@@ -14,7 +14,8 @@
     "react-dom": "19.2.3",
     "@archivox/core": "0.1.0",
     "@archivox/engines": "0.1.0",
-    "@archivox/generator": "0.1.0"
+    "@archivox/generator": "0.1.0",
+    "framer-motion": "^12.23.12"
   },
   "devDependencies": {
     "@types/node": "^20",
