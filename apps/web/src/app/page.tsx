@@ -7,7 +7,7 @@ import { Tabs, TabKey } from './components/Tabs';
 
 type ApiResult = {
   prompt: string;
-  layout: any;
+  layout: unknown;
   svg: string;
   script: string;
   notes?: string[];
@@ -43,8 +43,9 @@ export default function Home() {
       const data = (await res.json()) as ApiResult;
       if (!res.ok) throw new Error(data?.error ?? 'Request failed');
       setResult(data);
-    } catch (e: any) {
-      setResult({ prompt, layout: null, svg: '', script: '', error: e?.message ?? String(e) });
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : String(e);
+      setResult({ prompt, layout: null, svg: '', script: '', error: msg });
     } finally {
       setLoading(false);
     }
