@@ -7,10 +7,37 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-model User {
+enum RunStatus {
+  QUEUED
+  COMPLETE
+  ERROR
+}
+
+model Project {
   id        String   @id @default(cuid())
-  email     String   @unique
-  name      String?
+  name      String
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  runs Run[]
+
+  @@index([createdAt])
+}
+
+model Run {
+  id        String    @id @default(cuid())
+  projectId String
+  prompt    String
+  status    RunStatus @default(COMPLETE)
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  // Future: blob URLs + any derived metadata
+  // layoutJsonUrl String?
+  // svgUrl        String?
+  // scrUrl        String?
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@index([projectId, createdAt])
 }

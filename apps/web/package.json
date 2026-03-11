@@ -6,10 +6,14 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "dataset:extract": "node scripts/extract-plan-graphs.mjs",
+    "dataset:priors": "node scripts/build-priors.mjs",
+    "dataset:build": "npm run dataset:extract && npm run dataset:priors"
   },
   "dependencies": {
     "@archivox/core": "0.1.0",
+    "@archivox/db": "0.1.0",
     "@archivox/engines": "0.1.0",
     "@archivox/generator": "0.1.0",
     "dxf-parser": "^1.1.2",
