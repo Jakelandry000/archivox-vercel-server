@@ -8,7 +8,7 @@
   ],
   "scripts": {
     "dev": "npm run dev --workspace @archivox/web",
-    "build": "npm run build --workspaces",
+    "build": "npm run build --workspace @archivox/web",
     "lint": "npm run lint --workspaces",
     "test": "echo \"(no tests yet)\""
   },
