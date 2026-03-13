@@ -72,10 +72,13 @@ export default function Home() {
               </div>
             </div>
 
-            <div className="hidden sm:flex items-center gap-2 text-xs text-white/60">
-              <span className="kbd">⌘</span>
-              <span className="kbd">Enter</span>
-              <span>to generate</span>
+            <div className="hidden sm:flex items-center gap-3 text-xs text-white/60">
+              <a className="btn btn-ghost text-white/80" href="/ingest">Ingest DXF</a>
+              <div className="flex items-center gap-2">
+                <span className="kbd">⌘</span>
+                <span className="kbd">Enter</span>
+                <span>to generate</span>
+              </div>
             </div>
           </div>
 
