@@ -13,6 +13,11 @@ type DxfSummary = {
   bounds?: { minX: number; minY: number; maxX: number; maxY: number };
 };
 
+type AggregateCounts = {
+  entityCounts: Record<string, number>;
+  layerCounts: Record<string, number>;
+};
+
 function asNum(v: unknown): number {
   return typeof v === 'number' ? v : Number.NaN;
 }
@@ -153,12 +158,24 @@ export async function POST(req: Request) {
   const okCount = summaries.filter((s) => s.ok).length;
   const failCount = summaries.length - okCount;
 
+  const aggregate: AggregateCounts = { entityCounts: {}, layerCounts: {} };
+  for (const s of summaries) {
+    if (!s.ok) continue;
+    for (const [k, v] of Object.entries(s.entityCounts ?? {})) {
+      aggregate.entityCounts[k] = (aggregate.entityCounts[k] ?? 0) + v;
+    }
+    for (const [k, v] of Object.entries(s.layerCounts ?? {})) {
+      aggregate.layerCounts[k] = (aggregate.layerCounts[k] ?? 0) + v;
+    }
+  }
+
   return NextResponse.json({
     upload: { name: originalName, size: file.size },
     dxfFound: dxfFiles.length,
     processed: summaries.length,
     okCount,
     failCount,
+    aggregate,
     summaries
   });
 }

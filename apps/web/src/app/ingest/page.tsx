@@ -8,6 +8,10 @@ type IngestResponse = {
   processed: number;
   okCount: number;
   failCount: number;
+  aggregate?: {
+    entityCounts: Record<string, number>;
+    layerCounts: Record<string, number>;
+  };
   summaries: Array<{
     fileName: string;
     ok: boolean;
@@ -105,6 +109,30 @@ export default function IngestPage() {
                 DXF found: <b>{data.dxfFound}</b> • processed: <b>{data.processed}</b> • ok: <b>{data.okCount}</b> •
                 failed: <b>{data.failCount}</b>
               </div>
+              {data.aggregate ? (
+                <div className="mt-3 grid gap-3 md:grid-cols-2">
+                  <div className="rounded-lg border border-white/10 bg-black/10 p-3">
+                    <div className="text-xs font-semibold opacity-90">Top entity types</div>
+                    <div className="mt-1 text-xs opacity-80">
+                      {Object.entries(data.aggregate.entityCounts)
+                        .sort((a, b) => b[1] - a[1])
+                        .slice(0, 10)
+                        .map(([k, v]) => `${k}:${v}`)
+                        .join(' • ')}
+                    </div>
+                  </div>
+                  <div className="rounded-lg border border-white/10 bg-black/10 p-3">
+                    <div className="text-xs font-semibold opacity-90">Top layers (by entity count)</div>
+                    <div className="mt-1 text-xs opacity-80">
+                      {Object.entries(data.aggregate.layerCounts)
+                        .sort((a, b) => b[1] - a[1])
+                        .slice(0, 10)
+                        .map(([k, v]) => `${k}:${v}`)
+                        .join(' • ')}
+                    </div>
+                  </div>
+                </div>
+              ) : null}
             </div>
 
             <div className="grid gap-4 md:grid-cols-2">
