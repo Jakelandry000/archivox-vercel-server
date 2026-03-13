@@ -29,11 +29,41 @@ export interface Room2D {
   height: number;
 }
 
+export interface Point2D {
+  x: number;
+  y: number;
+}
+
+export type WallKind = 'interior' | 'exterior' | 'unknown';
+
+export interface Wall2D {
+  id: string;
+  a: Point2D;
+  b: Point2D;
+  thickness: number; // in layout units (feet/meters)
+  kind?: WallKind;
+}
+
+export type OpeningType = 'door' | 'window' | 'opening';
+
+export interface Opening2D {
+  id: string;
+  type: OpeningType;
+  wallId: string;
+  centerT: number; // 0..1 along wall segment from a->b
+  width: number; // in layout units
+  // Door-specific (optional for now)
+  swing?: 'left' | 'right' | 'double' | 'none';
+  handing?: 'in' | 'out' | 'none';
+}
+
 export interface LayoutV1 {
   schemaVersion: 'layout.v1';
   units: Units;
   dimensions: Bounds2D;
   rooms: Room2D[];
+  walls?: Wall2D[];
+  openings?: Opening2D[];
 }
 
 export function isLayoutV1(x: any): x is LayoutV1 {
@@ -62,10 +92,34 @@ export function normalizeLegacyLayout(input: any): LayoutV1 {
     height: Number(r?.height ?? 1)
   }));
 
+  const walls = Array.isArray(input?.walls)
+    ? input.walls.map((w: any, i: number) => ({
+        id: w?.id ?? `wall_${i + 1}`,
+        a: { x: Number(w?.a?.x ?? 0), y: Number(w?.a?.y ?? 0) },
+        b: { x: Number(w?.b?.x ?? 0), y: Number(w?.b?.y ?? 0) },
+        thickness: Number(w?.thickness ?? 0.5),
+        kind: w?.kind ?? 'unknown'
+      }))
+    : undefined;
+
+  const openings = Array.isArray(input?.openings)
+    ? input.openings.map((o: any, i: number) => ({
+        id: o?.id ?? `opening_${i + 1}`,
+        type: o?.type ?? 'opening',
+        wallId: String(o?.wallId ?? ''),
+        centerT: Number(o?.centerT ?? 0.5),
+        width: Number(o?.width ?? 3),
+        swing: o?.swing,
+        handing: o?.handing
+      }))
+    : undefined;
+
   return {
     schemaVersion: 'layout.v1',
     units,
     dimensions: { width: Number(dims.width ?? 40), depth: Number(dims.depth ?? 30) },
-    rooms
+    rooms,
+    walls,
+    openings
   };
 }
