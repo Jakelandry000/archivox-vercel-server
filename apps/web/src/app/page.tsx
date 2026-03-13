@@ -137,7 +137,7 @@ export default function Home() {
 
         {/* Output */}
         <div className="mt-8 grid grid-cols-1 gap-6 lg:grid-cols-12">
-          <div className="lg:col-span-5">
+          <div className="lg:col-span-8">
             <div className="glass rounded-3xl p-5">
               <SectionTitle
                 title="Output"
@@ -153,11 +153,13 @@ export default function Home() {
                   ) : null}
 
                   {result && !result.error && tab === 'plan' ? (
-                    <div className="rounded-2xl border border-white/10 bg-black/20 p-3 overflow-auto">
-                      <div
-                        className="min-w-[520px]"
-                        dangerouslySetInnerHTML={{ __html: result.svg }}
-                      />
+                    <div className="rounded-2xl border border-white/10 bg-black/20 p-4 overflow-auto">
+                      <div className="rounded-xl bg-white p-4">
+                        <div
+                          className="min-w-[860px] min-h-[520px]"
+                          dangerouslySetInnerHTML={{ __html: result.svg }}
+                        />
+                      </div>
                     </div>
                   ) : null}
 
@@ -177,11 +179,11 @@ export default function Home() {
             </div>
           </div>
 
-          <div className="lg:col-span-7">
+          <div className="lg:col-span-4">
             <div className="glass rounded-3xl p-5">
-              <SectionTitle title="Roadmap" subtitle="What’s next (designed for real architects, not just chat)." />
+              <SectionTitle title="Next" subtitle="Short-term upgrades that unlock better plans fast." />
 
-              <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
+              <div className="mt-4 grid grid-cols-1 gap-3">
                 {[
                   {
                     title: 'Attached garage defaults',
