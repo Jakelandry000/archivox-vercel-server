@@ -19,6 +19,8 @@
   },
   "dependencies": {
     "@prisma/client": "^6.16.1",
-    "pg": "^8.20.0"
+    "@types/three": "^0.183.1",
+    "pg": "^8.20.0",
+    "three": "^0.183.2"
   }
 }

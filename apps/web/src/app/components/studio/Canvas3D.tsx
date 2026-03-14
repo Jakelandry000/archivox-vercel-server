@@ -7,7 +7,7 @@ import { LayoutV1, normalizeLegacyLayout } from '@archivox/core';
 const WALL_HEIGHT = 8;
 
 type Props = {
-  layout: LayoutV1 | any | null;
+  layout: LayoutV1 | unknown | null;
 };
 
 export function Canvas3D({ layout }: Props) {
@@ -47,14 +47,14 @@ export function Canvas3D({ layout }: Props) {
     key.shadow.mapSize.set(1024, 1024);
     key.shadow.camera.near = 1;
     key.shadow.camera.far = 140;
-    // @ts-ignore
-    key.shadow.camera.left = -60;
-    // @ts-ignore
-    key.shadow.camera.right = 60;
-    // @ts-ignore
-    key.shadow.camera.top = 60;
-    // @ts-ignore
-    key.shadow.camera.bottom = -60;
+
+    // DirectionalLight uses an orthographic shadow camera.
+    const shadowCam = key.shadow.camera as THREE.OrthographicCamera;
+    shadowCam.left = -60;
+    shadowCam.right = 60;
+    shadowCam.top = 60;
+    shadowCam.bottom = -60;
+
     scene.add(key);
 
     const fill = new THREE.DirectionalLight(0xd4e9ff, 0.25);
@@ -221,10 +221,16 @@ export function Canvas3D({ layout }: Props) {
       renderer.dispose();
       // Clean scene
       scene.traverse((obj) => {
-        const mesh = obj as THREE.Mesh;
-        if (mesh.geometry) mesh.geometry.dispose?.();
-        const mat = (mesh.material ?? null) as any;
-        if (mat?.dispose) mat.dispose();
+        if (!(obj instanceof THREE.Mesh)) return;
+
+        obj.geometry?.dispose?.();
+
+        const mat = obj.material;
+        if (Array.isArray(mat)) {
+          for (const m of mat) m.dispose?.();
+        } else {
+          mat?.dispose?.();
+        }
       });
       if (container.contains(renderer.domElement)) container.removeChild(renderer.domElement);
     };

@@ -4,7 +4,7 @@ export type SelectedType = 'room' | 'wall' | 'opening' | null;
 
 export type GenerateResult = {
   prompt: string;
-  layout: any;
+  layout: unknown;
   svg: string;
   script: string;
   notes?: string[];
