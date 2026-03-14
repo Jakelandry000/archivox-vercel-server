@@ -9,10 +9,18 @@ import { Canvas2D } from './Canvas2D';
 import { Canvas3D } from './Canvas3D';
 import type { GenerateResult } from './types';
 
-export function StudioShell() {
+type Props = {
+  initialPrompt?: string;
+  autoGenerate?: boolean;
+  onResult?: (r: GenerateResult | null) => void;
+};
+
+export function StudioShell({ initialPrompt, autoGenerate, onResult }: Props) {
   const searchParams = useSearchParams();
 
-  const [prompt, setPrompt] = useState('Design a 3 bedroom 2 bathroom home with an attached garage and an office.');
+  const [prompt, setPrompt] = useState(
+    initialPrompt ?? 'Design a 3 bedroom 2 bathroom home with an attached garage and an office.'
+  );
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<GenerateResult | null>(null);
   const [tab, setTab] = useState<TabKey>('plan');
@@ -46,15 +54,23 @@ export function StudioShell() {
   useEffect(() => {
     const qPrompt = searchParams.get('prompt');
     const autogen = searchParams.get('autogen');
-    if (!qPrompt) return;
+
+    const nextPrompt = (qPrompt ?? initialPrompt ?? '').trim();
+    if (!nextPrompt) return;
 
     // Only run once per mount.
-    setPrompt(qPrompt);
-    if (autogen === '1') {
-      void onSubmit(qPrompt);
+    setPrompt(nextPrompt);
+
+    const shouldAutogen = autogen === '1' || autoGenerate === true;
+    if (shouldAutogen) {
+      void onSubmit(nextPrompt);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  useEffect(() => {
+    onResult?.(result);
+  }, [onResult, result]);
 
   return (
     <div className="min-h-screen bg-[#0b0f12] text-white">
