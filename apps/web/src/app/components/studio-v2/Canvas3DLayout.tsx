@@ -82,7 +82,9 @@ export function Canvas3DLayout({ layout }: { layout: LayoutV1 | null }) {
       scene.add(mesh);
     }
 
-    for (const wall of layout.walls ?? []) {
+    const walls = (layout.walls?.length ? layout.walls : exteriorWalls(layout)) ?? [];
+
+    for (const wall of walls) {
       const ax = wall.a.x - cx;
       const az = wall.a.y - cz;
       const bx = wall.b.x - cx;
@@ -213,4 +215,26 @@ export function Canvas3DLayout({ layout }: { layout: LayoutV1 | null }) {
   }
 
   return <div ref={mountRef} className="h-full w-full" aria-label="3D floor plan model" role="img" />;
+}
+
+function exteriorWalls(layout: LayoutV1): NonNullable<LayoutV1['walls']> {
+  const t = layout.units === 'meters' ? 0.2 : 0.67;
+  return [
+    { id: 'ext_1', a: { x: 0, y: 0 }, b: { x: layout.dimensions.width, y: 0 }, thickness: t, kind: 'exterior' as const },
+    {
+      id: 'ext_2',
+      a: { x: layout.dimensions.width, y: 0 },
+      b: { x: layout.dimensions.width, y: layout.dimensions.depth },
+      thickness: t,
+      kind: 'exterior' as const
+    },
+    {
+      id: 'ext_3',
+      a: { x: layout.dimensions.width, y: layout.dimensions.depth },
+      b: { x: 0, y: layout.dimensions.depth },
+      thickness: t,
+      kind: 'exterior' as const
+    },
+    { id: 'ext_4', a: { x: 0, y: layout.dimensions.depth }, b: { x: 0, y: 0 }, thickness: t, kind: 'exterior' as const }
+  ];
 }
