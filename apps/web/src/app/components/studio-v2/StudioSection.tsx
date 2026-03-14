@@ -3,8 +3,9 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { Braces, Code, Download, Sparkles } from 'lucide-react';
-import { Canvas2D } from '../studio/Canvas2D';
-import { Canvas3D } from '../studio/Canvas3D';
+import { normalizeLegacyLayout } from '@archivox/core';
+import { Canvas2DLayout } from './Canvas2DLayout';
+import { Canvas3DLayout } from './Canvas3DLayout';
 import type { GenerateResult } from '../studio/types';
 
 type CanvasTab = '2d' | '3d' | 'compare';
@@ -32,6 +33,9 @@ export function StudioSectionV2({ initialPrompt, autoGenerate, onResult }: Props
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<GenerateResult | null>(null);
   const [tab, setTab] = useState<CanvasTab>('2d');
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+
+  const layout = useMemo(() => (result?.layout ? normalizeLegacyLayout(result.layout) : null), [result?.layout]);
 
   useEffect(() => {
     if (initialPrompt) setPrompt(initialPrompt);
@@ -48,6 +52,7 @@ export function StudioSectionV2({ initialPrompt, autoGenerate, onResult }: Props
     if (!p) return;
 
     setLoading(true);
+    setSelectedId(null);
     setResult(null);
     try {
       const res = await fetch('/api/chat', {
@@ -185,14 +190,18 @@ export function StudioSectionV2({ initialPrompt, autoGenerate, onResult }: Props
 
             <AnimatePresence mode="wait">
               {tab === '2d' ? (
-                <motion.div key="2d" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0 av-canvas-surface">
-                  <Canvas2D svg={result?.svg ?? null} />
+                <motion.div key="2d" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0">
+                  <Canvas2DLayout
+                    layout={layout}
+                    selectedId={selectedId}
+                    onSelect={(id) => setSelectedId(id)}
+                  />
                 </motion.div>
               ) : null}
 
               {tab === '3d' ? (
                 <motion.div key="3d" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0">
-                  <Canvas3D layout={result?.layout ?? null} />
+                  <Canvas3DLayout layout={layout} />
                 </motion.div>
               ) : null}
 
@@ -205,12 +214,14 @@ export function StudioSectionV2({ initialPrompt, autoGenerate, onResult }: Props
                   className="absolute inset-0 grid grid-cols-1 gap-0 md:grid-cols-2"
                 >
                   <div className="border-b border-slate-200 md:border-b-0 md:border-r">
-                    <div className="h-full av-canvas-surface">
-                      <Canvas2D svg={result?.svg ?? null} />
-                    </div>
+                    <Canvas2DLayout
+                      layout={layout}
+                      selectedId={selectedId}
+                      onSelect={(id) => setSelectedId(id)}
+                    />
                   </div>
                   <div className="h-full">
-                    <Canvas3D layout={result?.layout ?? null} />
+                    <Canvas3DLayout layout={layout} />
                   </div>
                 </motion.div>
               ) : null}
