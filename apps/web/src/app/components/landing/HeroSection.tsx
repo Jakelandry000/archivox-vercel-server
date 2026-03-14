@@ -90,7 +90,7 @@ export function HeroSection() {
   const bgOpacity = useTransform(scrollYProgress, [0.7, 1], [0, 1]);
 
   return (
-    <div ref={container} className="relative h-[350vh]">
+    <div ref={container} className="relative h-[350vh] bg-[#060a09]">
       <div className="sticky top-0 h-screen overflow-hidden bg-[#060a09]">
         {ARCH_IMAGES.map((img) => (
           <ParallaxImage

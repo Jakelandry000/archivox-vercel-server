@@ -4,7 +4,7 @@ import { Suspense, useMemo, useRef, useState } from 'react';
 import type { LayoutV1 } from '@archivox/core';
 import { normalizeLegacyLayout } from '@archivox/core';
 import type { GenerateResult } from './components/studio/types';
-import { StudioShell } from './components/studio/StudioShell';
+import { StudioSectionV2 } from './components/studio-v2/StudioSection';
 import { HeroSection } from './components/landing/HeroSection';
 import { PromptSection } from './components/landing/PromptSection';
 
@@ -57,16 +57,16 @@ export default function Home() {
         }}
       />
 
-      {/* Studio (keep exact same) */}
+      {/* Studio (lock into section; h-screen like website-ui) */}
       <div ref={studioRef}>
         <Suspense
           fallback={
-            <div className="grid min-h-screen place-items-center bg-[#0b0f12] text-white">
-              <div className="text-sm text-white/60">Loading Studio…</div>
+            <div className="grid min-h-screen place-items-center bg-slate-50 text-slate-700">
+              <div className="text-sm">Loading Studio…</div>
             </div>
           }
         >
-          <StudioShell initialPrompt={seedPrompt} autoGenerate={autoGenerate} onResult={(r) => setResult(r)} />
+          <StudioSectionV2 initialPrompt={seedPrompt} autoGenerate={autoGenerate} onResult={(r) => setResult(r)} />
         </Suspense>
       </div>
 
