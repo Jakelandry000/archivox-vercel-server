@@ -1,17 +1,18 @@
 'use client';
 
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Sparkles, RefreshCcw, Code, Braces, DraftingCompass } from 'lucide-react';
+import { useSearchParams } from 'next/navigation';
 import { Tabs, TabKey } from '../Tabs';
 import { Canvas2D } from './Canvas2D';
 import { Canvas3D } from './Canvas3D';
 import type { GenerateResult } from './types';
 
 export function StudioShell() {
-  const [prompt, setPrompt] = useState(
-    'Design a 3 bedroom 2 bathroom home with an attached garage and an office.'
-  );
+  const searchParams = useSearchParams();
+
+  const [prompt, setPrompt] = useState('Design a 3 bedroom 2 bathroom home with an attached garage and an office.');
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<GenerateResult | null>(null);
   const [tab, setTab] = useState<TabKey>('plan');
@@ -19,25 +20,41 @@ export function StudioShell() {
 
   const canSubmit = useMemo(() => prompt.trim().length > 0 && !loading, [prompt, loading]);
 
-  async function onSubmit() {
+  async function onSubmit(nextPrompt?: string) {
+    const p = (nextPrompt ?? prompt).trim();
+    if (!p) return;
+
     setLoading(true);
     setResult(null);
     try {
       const res = await fetch('/api/chat', {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ prompt })
+        body: JSON.stringify({ prompt: p })
       });
       const data = (await res.json()) as GenerateResult;
       if (!res.ok) throw new Error(data?.error ?? 'Request failed');
       setResult(data);
     } catch (e: unknown) {
       const msg = e instanceof Error ? e.message : String(e);
-      setResult({ prompt, layout: null, svg: '', script: '', error: msg });
+      setResult({ prompt: p, layout: null, svg: '', script: '', error: msg });
     } finally {
       setLoading(false);
     }
   }
+
+  useEffect(() => {
+    const qPrompt = searchParams.get('prompt');
+    const autogen = searchParams.get('autogen');
+    if (!qPrompt) return;
+
+    // Only run once per mount.
+    setPrompt(qPrompt);
+    if (autogen === '1') {
+      void onSubmit(qPrompt);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   return (
     <div className="min-h-screen bg-[#0b0f12] text-white">
@@ -112,7 +129,7 @@ export function StudioShell() {
                   (canSubmit ? 'bg-emerald-500 text-black hover:brightness-110' : 'bg-white/5 text-white/40')
                 }
                 disabled={!canSubmit}
-                onClick={onSubmit}
+                onClick={() => void onSubmit()}
                 type="button"
               >
                 {loading ? 'Generating…' : (
