@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server';
 import JSZip from 'jszip';
 import DxfParser from 'dxf-parser';
+import crypto from 'node:crypto';
+import { put } from '@vercel/blob';
 
 export const runtime = 'nodejs';
 
@@ -11,6 +13,7 @@ type DxfSummary = {
   entityCounts?: Record<string, number>;
   layerCounts?: Record<string, number>;
   bounds?: { minX: number; minY: number; maxX: number; maxY: number };
+  textSamples?: Array<{ text: string; x?: number; y?: number; layer?: string }>;
 };
 
 type AggregateCounts = {
@@ -64,6 +67,9 @@ function summarizeDxf(doc: unknown): Omit<DxfSummary, 'fileName' | 'ok'> {
     | { minX: number; minY: number; maxX: number; maxY: number }
     | undefined;
 
+  const textSamples: Array<{ text: string; x?: number; y?: number; layer?: string }> = [];
+  const maxTextSamples = 50;
+
   for (const e of entities) {
     const type = String(e?.type ?? 'UNKNOWN');
     entityCounts[type] = (entityCounts[type] ?? 0) + 1;
@@ -90,17 +96,45 @@ function summarizeDxf(doc: unknown): Omit<DxfSummary, 'fileName' | 'ok'> {
         bounds = updateBounds(bounds, cx + r, cy + r);
       }
     } else if (type === 'TEXT' || type === 'MTEXT') {
-      const x = getPath(e, ['startPoint', 'x']) ?? getPath(e, ['position', 'x']);
-      const y = getPath(e, ['startPoint', 'y']) ?? getPath(e, ['position', 'y']);
-      bounds = updateBounds(bounds, x, y);
+      const xRaw = getPath(e, ['startPoint', 'x']) ?? getPath(e, ['position', 'x']);
+      const yRaw = getPath(e, ['startPoint', 'y']) ?? getPath(e, ['position', 'y']);
+      bounds = updateBounds(bounds, xRaw, yRaw);
+
+      if (textSamples.length < maxTextSamples) {
+        const text = String(e['text'] ?? e['string'] ?? '').trim();
+        if (text) {
+          const x = asNum(xRaw);
+          const y = asNum(yRaw);
+          textSamples.push({
+            text,
+            x: Number.isFinite(x) ? x : undefined,
+            y: Number.isFinite(y) ? y : undefined,
+            layer: layer || undefined
+          });
+        }
+      }
     }
   }
 
-  return { entityCounts, layerCounts, bounds };
+  return { entityCounts, layerCounts, bounds, textSamples };
+}
+
+function safeBaseName(fileName: string): string {
+  const base = fileName.split('/').pop() || fileName;
+  return base.replace(/[^a-zA-Z0-9._-]/g, '_');
+}
+
+async function putJson(key: string, obj: unknown) {
+  const body = JSON.stringify(obj, null, 2);
+  return put(key, body, { access: 'private', contentType: 'application/json; charset=utf-8' });
 }
 
 export async function POST(req: Request) {
   // Expect: multipart/form-data with a single .zip file in field "file".
+  // Vercel-safe ingestion:
+  // - writes artifacts to Vercel Blob (durable)
+  // - does NOT write to the local filesystem
+
   const form = await req.formData().catch(() => null);
   if (!form) {
     return NextResponse.json({ error: 'Expected multipart/form-data' }, { status: 400 });
@@ -130,7 +164,9 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: `Could not read zip: ${msg}` }, { status: 400 });
   }
 
-  const dxfFiles = Object.values(zip.files).filter((f) => !f.dir && f.name.toLowerCase().endsWith('.dxf'));
+  const dxfFiles = Object.values(zip.files).filter(
+    (f) => !f.dir && f.name.toLowerCase().endsWith('.dxf')
+  );
   if (dxfFiles.length === 0) {
     return NextResponse.json({ error: 'Zip contained no .dxf files' }, { status: 400 });
   }
@@ -139,18 +175,46 @@ export async function POST(req: Request) {
   const maxFiles = 200;
   const picked = dxfFiles.slice(0, maxFiles);
 
+  const batchId = `ing_${new Date().toISOString().replace(/[:.]/g, '-')}_${crypto
+    .randomBytes(4)
+    .toString('hex')}`;
+
+  const prefix = `ingest/${batchId}`;
+
+  // Save the zip for reproducibility.
+  const uploadBlob = await put(`${prefix}/upload.zip`, zipBuf, {
+    access: 'private',
+    contentType: 'application/zip'
+  });
+
+  const storeRawDxfs = process.env.ARCHIVOX_INGEST_STORE_RAW === '1';
+
   const parser = new DxfParser();
   const summaries: DxfSummary[] = [];
 
   for (const zf of picked) {
     const fileName = zf.name.split('/').pop() || zf.name;
+    const safeBase = safeBaseName(fileName);
+
     try {
       const text = await zf.async('text');
+
+      if (storeRawDxfs) {
+        await put(`${prefix}/raw/${safeBase}`, text, {
+          access: 'private',
+          contentType: 'text/plain; charset=utf-8'
+        });
+      }
+
       const doc = parser.parseSync(text);
       const summary = summarizeDxf(doc);
+
+      await putJson(`${prefix}/derived/${safeBase}.summary.json`, { fileName, ...summary });
+
       summaries.push({ fileName, ok: true, ...summary });
     } catch (e: unknown) {
       const msg = e instanceof Error ? e.message : String(e);
+      await putJson(`${prefix}/derived/${safeBase}.error.json`, { fileName, error: msg });
       summaries.push({ fileName, ok: false, error: msg });
     }
   }
@@ -169,13 +233,23 @@ export async function POST(req: Request) {
     }
   }
 
-  return NextResponse.json({
-    upload: { name: originalName, size: file.size },
+  const manifest = {
+    batchId,
+    createdAt: new Date().toISOString(),
+    upload: { name: originalName, size: file.size, blob: { url: uploadBlob.url, pathname: uploadBlob.pathname } },
     dxfFound: dxfFiles.length,
     processed: summaries.length,
     okCount,
     failCount,
     aggregate,
-    summaries
-  });
+    summaries,
+    output: {
+      blobPrefix: prefix,
+      storeRawDxfs
+    }
+  };
+
+  const manifestBlob = await putJson(`${prefix}/manifest.json`, manifest);
+
+  return NextResponse.json({ ...manifest, manifestBlob: { url: manifestBlob.url, pathname: manifestBlob.pathname } });
 }
