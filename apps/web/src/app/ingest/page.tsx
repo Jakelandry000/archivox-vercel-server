@@ -3,6 +3,8 @@
 import React, { useMemo, useState } from 'react';
 
 type IngestResponse = {
+  batchId: string;
+  createdAt?: string;
   upload: { name: string; size: number };
   dxfFound: number;
   processed: number;
@@ -20,6 +22,7 @@ type IngestResponse = {
     layerCounts?: Record<string, number>;
     bounds?: { minX: number; minY: number; maxX: number; maxY: number };
   }>;
+  manifestBlob?: { url: string; pathname: string };
 };
 
 export default function IngestPage() {
@@ -27,6 +30,8 @@ export default function IngestPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [data, setData] = useState<IngestResponse | null>(null);
+  const [manifest, setManifest] = useState<unknown | null>(null);
+  const [manifestLoading, setManifestLoading] = useState(false);
 
   const ok = useMemo(() => (data?.summaries ?? []).filter((s) => s.ok), [data]);
   const bad = useMemo(() => (data?.summaries ?? []).filter((s) => !s.ok), [data]);
@@ -36,6 +41,7 @@ export default function IngestPage() {
     setLoading(true);
     setError(null);
     setData(null);
+    setManifest(null);
 
     try {
       const form = new FormData();
@@ -56,6 +62,26 @@ export default function IngestPage() {
       setError(e instanceof Error ? e.message : String(e));
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function loadManifest() {
+    if (!data?.batchId) return;
+    setManifestLoading(true);
+    setError(null);
+
+    try {
+      const res = await fetch(`/api/ingest/manifest?batchId=${encodeURIComponent(data.batchId)}`);
+      const json = await res.json().catch(() => null);
+      if (!res.ok) {
+        setError(json?.error ?? `Request failed (${res.status})`);
+        return;
+      }
+      setManifest(json);
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : String(e));
+    } finally {
+      setManifestLoading(false);
     }
   }
 
@@ -102,13 +128,37 @@ export default function IngestPage() {
         {data ? (
           <section className="space-y-4">
             <div className="rounded-xl border border-white/10 bg-white/5 p-4 text-sm">
-              <div>
-                Zip: <b>{data.upload.name}</b> ({(data.upload.size / (1024 * 1024)).toFixed(2)} MB)
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                  <div>
+                    Batch ID: <b className="font-mono">{data.batchId}</b>
+                  </div>
+                  <div className="mt-1">
+                    Zip: <b>{data.upload.name}</b> ({(data.upload.size / (1024 * 1024)).toFixed(2)} MB)
+                  </div>
+                </div>
+
+                <button
+                  className="rounded-lg bg-white/10 px-3 py-2 text-xs hover:bg-white/15 disabled:opacity-50"
+                  onClick={loadManifest}
+                  disabled={manifestLoading}
+                >
+                  {manifestLoading ? 'Loading manifest…' : 'View manifest'}
+                </button>
               </div>
               <div className="mt-1">
                 DXF found: <b>{data.dxfFound}</b> • processed: <b>{data.processed}</b> • ok: <b>{data.okCount}</b> •
                 failed: <b>{data.failCount}</b>
               </div>
+              {manifest ? (
+                <div className="mt-3 rounded-lg border border-white/10 bg-black/10 p-3">
+                  <div className="text-xs font-semibold opacity-90">Manifest (JSON)</div>
+                  <pre className="mt-2 max-h-80 overflow-auto text-[11px] leading-snug opacity-90">
+                    {JSON.stringify(manifest, null, 2)}
+                  </pre>
+                </div>
+              ) : null}
+
               {data.aggregate ? (
                 <div className="mt-3 grid gap-3 md:grid-cols-2">
                   <div className="rounded-lg border border-white/10 bg-black/10 p-3">
