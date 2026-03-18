@@ -1,0 +1,15 @@
+{
+  "name": "archivox-training-tools",
+  "version": "0.1.0",
+  "private": true,
+  "description": "ArchiVox ingestion CLI for training data preparation",
+  "main": "dist/cli.js",
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/cli.js"
+  },
+  "devDependencies": {
+    "@types/node": "^20.14.0",
+    "typescript": "^5.4.5"
+  }
+}
