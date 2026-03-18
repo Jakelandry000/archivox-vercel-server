@@ -160,23 +160,39 @@ parse HATCH entities.
 
 ---
 
+## Corpus location
+
+**The corpus directory must never be inside a web-served path.**
+Store it somewhere private, e.g. `~/archivox-corpus` or `/data/archivox-corpus`.
+The ingest tool will hard-refuse paths under `public/`, `.next/`, `app/`, `pages/`,
+`dist/`, `build/`, `www/`, `assets/`, `.vercel/`, and similar.
+Do not commit the corpus to this repository; add it to `.gitignore`.
+
+---
+
 ## Status
 
 ### Phase A — Complete
 
-The ingestion pipeline skeleton is fully implemented:
+- File discovery: recursive directory scan, ZIP unpacking to temp staging, supported/unsupported classification
+- `plan_id`: stable SHA-256 of source bytes (hex, 64 chars) — deterministic; duplicate files → same plan_id
+- Corpus layout: `plans/<plan_id>/source/original.<ext>` + `derived/{plan,graph,metrics}.json`
+- Manifest: per-run `manifests/ingest-<runId>.json` with timestamp, tool version, Node.js version, platform, git commit, full file list, and per-plan checksums
+- Guardrails: refuses to write into web-served paths
+- DXF parsing: full room/label/wall extraction via `dxf-parser`
+- PDF / image parsing: stubs
 
-- **File discovery**: recursive directory scan, ZIP unpacking to temp staging, supported/unsupported classification
-- **plan_id**: stable SHA-256 of source file bytes (hex, 64 chars) — deterministic across re-runs; duplicate files map to same plan_id
-- **Corpus layout**: `plans/<plan_id>/source/original.<ext>` + `derived/{plan,graph,metrics}.json` written on every non-dry run
-- **Manifest**: per-run `manifests/ingest-<runId>.json` with timestamp, tool version, Node.js version, platform, git commit, full file list, counts, and per-plan checksums
-- **Guardrails**: ingest refuses to write into `public/`, `.next/`, `app/`, `pages/`, `dist/`, `build/`, and similar web-served paths
-- **DXF parsing**: full room/label/wall extraction via `dxf-parser`
-- **PDF / image parsing**: stubs — checksum + metadata only; parsing not yet implemented
+### Phase B — Complete
 
-### Phase B — Next
+- **Deterministic selection**: files sorted by normalized relative path before `--maxFiles` is applied; selection is stable across re-runs
+- **Within-run deduplication**: files sharing the same sha256 produce one plan directory; duplicates are recorded in the manifest with `deduped:true`
+- **Manifest always written**: `--dryRun` no longer suppresses the manifest — plan directories are still skipped, but the run manifest is always written to `manifests/`
+- **Enhanced manifest**: now includes `input` section (original path, type `dir`|`zip`|`file`, staging path for ZIPs), per-file `bytes`/`relativePath`/`supported` fields, and richer summary counts (`totalSupported`, `totalDeduped`, `totalSkippedUnsupported`)
+- **`metrics.json` schema**: now includes `schemaVersion:'Metrics@v1'` and a `counts` summary object
+- **New tests**: deterministic maxFiles selection + within-run dedup coverage
 
-- **PlanSpec/GraphSpec real schemas**: finalize v1 with stricter field validation
-- **PDF parsing**: rasterise via `pdf2pic` + OCR via `Tesseract.js`; implement `OcrProvider` interface in `src/parsers/pdf.ts`
-- **Image parsing**: normalise resolution via `sharp`; run layout-detection model (e.g. LayoutLM / Detectron2) for polygon extraction
+### Phase C — Next
+
+- **PDF parsing**: rasterise via `pdf2pic` + OCR via `Tesseract.js`; implement `OcrProvider` in `src/parsers/pdf.ts`
+- **Image parsing**: normalise via `sharp`; run layout-detection model for polygon extraction
 - **DXF enhancements**: INSERT/BLOCK reference expansion; HATCH entity support

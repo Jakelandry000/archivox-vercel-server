@@ -7,6 +7,10 @@
  *  3. Validate + build metrics
  *  4. Write artifacts (unless dryRun)
  *  5. Accumulate manifest entry
+ *
+ * Deduplication: if two files in the same run share the same sha256, only the
+ * first is written to disk; subsequent occurrences are recorded in the manifest
+ * with deduped:true.
  */
 
 import * as path from 'path';
@@ -21,6 +25,7 @@ import { parseImageFile } from './parsers/image';
 import { buildGraphSpec } from './graph';
 import { validatePlan } from './validation';
 import { initCorpus, writePlanArtifacts, sha256File } from './corpus';
+import { warnIfSuspiciousPath } from './safety';
 import { buildManifest, writeManifest, generateRunId } from './manifest';
 
 function planIdFromFile(filePath: string): string {
@@ -44,29 +49,37 @@ export async function runIngest(config: IngestConfig): Promise<string> {
   log(`[ingest] Run ID: ${runId}`);
   log(`[ingest] Input: ${config.inputPath}`);
   log(`[ingest] Corpus: ${config.corpusPath}`);
-  if (config.dryRun) log('[ingest] DRY RUN — no derived outputs will be written.');
+  if (config.dryRun) log('[ingest] DRY RUN — no derived outputs will be written (manifest will still be written).');
 
   // ── Discovery ─────────────────────────────────────────────────────────────
   log('[ingest] Discovering files...');
-  const { files, tmpDirs } = discoverFiles(config.inputPath, config.maxFiles ?? undefined);
+  const { files, tmpDirs, inputType, stagingPath } = discoverFiles(
+    config.inputPath,
+    config.maxFiles ?? undefined,
+  );
 
   const skipped = files.filter((f) => f.skipped);
   const toProcess = files.filter((f) => !f.skipped);
 
-  log(`[ingest] Discovered ${files.length} file(s): ${toProcess.length} to process, ${skipped.length} skipped.`);
+  log(
+    `[ingest] Discovered ${files.length} file(s): ${toProcess.length} to process, ${skipped.length} skipped.`,
+  );
   for (const s of skipped) {
-    log(`  SKIP  ${path.basename(s.path)} — ${s.skipReason}`);
+    log(`  SKIP  ${s.relativePath} — ${s.skipReason}`);
   }
 
-  if (!config.dryRun) {
-    initCorpus(config.corpusPath);
-  }
+  // Always init corpus so manifests/ directory exists (even on dryRun).
+  initCorpus(config.corpusPath);
+  const suspiciousWarning = warnIfSuspiciousPath(config.corpusPath);
+  if (suspiciousWarning) logErr(suspiciousWarning);
 
   // ── Per-file processing ───────────────────────────────────────────────────
   const ingestedPlans: ManifestPlanEntry[] = [];
+  // Track plan_ids seen this run for within-run deduplication.
+  const seenPlanIds = new Set<string>();
 
   for (const file of toProcess) {
-    log(`[ingest] Processing: ${path.basename(file.path)} (${file.type})`);
+    log(`[ingest] Processing: ${file.relativePath} (${file.type})`);
 
     let planSpec: PlanSpec;
     let graphSpec: GraphSpec;
@@ -74,9 +87,32 @@ export async function runIngest(config: IngestConfig): Promise<string> {
 
     try {
       const planId = planIdFromFile(file.path);
-      const sha256 = sha256File(file.path);
-      const now = new Date().toISOString();
+      const sha256 = planId; // plan_id IS the sha256
 
+      // ── Deduplicate within this run ──────────────────────────────────────
+      if (seenPlanIds.has(planId)) {
+        log(`  DEDUP ${file.relativePath} — sha256 ${planId.slice(0, 12)}… already processed this run`);
+        ingestedPlans.push({
+          planId,
+          sourceName: path.basename(file.path),
+          sourceType: file.type as string,
+          sha256,
+          bytes: file.bytes,
+          artifactPaths: {
+            planJson: '(deduped)',
+            graphJson: '(deduped)',
+            metricsJson: '(deduped)',
+          },
+          warnings: [],
+          errors: [],
+          deduped: true,
+        });
+        continue;
+      }
+
+      seenPlanIds.add(planId);
+
+      const now = new Date().toISOString();
       const source = {
         filename: path.basename(file.path),
         type: file.type as 'dxf' | 'pdf' | 'image',
@@ -159,6 +195,7 @@ export async function runIngest(config: IngestConfig): Promise<string> {
           sourceName: source.filename,
           sourceType: source.type,
           sha256,
+          bytes: file.bytes,
           artifactPaths: {
             planJson: artifactPaths.planJson,
             graphJson: artifactPaths.graphJson,
@@ -173,6 +210,7 @@ export async function runIngest(config: IngestConfig): Promise<string> {
           sourceName: source.filename,
           sourceType: source.type,
           sha256,
+          bytes: file.bytes,
           artifactPaths: {
             planJson: '(dry-run)',
             graphJson: '(dry-run)',
@@ -183,27 +221,36 @@ export async function runIngest(config: IngestConfig): Promise<string> {
         });
       }
     } catch (err) {
-      logErr(`  ERROR processing ${path.basename(file.path)}: ${(err as Error).message}`);
-      // Mark the file as skipped in the discovered list with an error reason
+      logErr(`  ERROR processing ${file.relativePath}: ${(err as Error).message}`);
       file.skipped = true;
       file.skipReason = `Processing error: ${(err as Error).message}`;
     }
   }
 
   // ── Manifest ──────────────────────────────────────────────────────────────
-  const manifest = buildManifest(runId, config, files, ingestedPlans);
-  let manifestPath: string;
+  const inputInfo = {
+    originalPath: config.inputPath,
+    type: inputType,
+    stagingPath,
+  };
 
-  if (!config.dryRun) {
-    manifestPath = writeManifest(config.corpusPath, manifest);
-    log(`[ingest] Manifest written: ${manifestPath}`);
-  } else {
-    manifestPath = '(dry-run)';
-    log('[ingest] DRY RUN complete — manifest not written.');
+  const manifest = buildManifest(runId, config, files, ingestedPlans, inputInfo);
+
+  // Always write manifest (even on dryRun) — manifests/ dir was created by initCorpus above.
+  const manifestPath = writeManifest(config.corpusPath, manifest);
+  log(`[ingest] Manifest written: ${manifestPath}`);
+
+  if (config.dryRun) {
+    log('[ingest] DRY RUN complete — no derived outputs written.');
     log(JSON.stringify(manifest.summary, null, 2));
   }
 
-  log(`[ingest] Done. Ingested: ${manifest.summary.totalIngested}, Warnings: ${manifest.summary.totalWarnings}, Errors: ${manifest.summary.totalErrors}`);
+  log(
+    `[ingest] Done. Ingested: ${manifest.summary.totalIngested}` +
+      ` Deduped: ${manifest.summary.totalDeduped}` +
+      ` Warnings: ${manifest.summary.totalWarnings}` +
+      ` Errors: ${manifest.summary.totalErrors}`,
+  );
 
   cleanupTmpDirs(tmpDirs);
   return manifestPath;

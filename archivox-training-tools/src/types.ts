@@ -123,7 +123,18 @@ export interface GraphSpec {
 // ─── Metrics ──────────────────────────────────────────────────────────────────
 
 export interface PlanMetrics {
+  schemaVersion: 'Metrics@v1';
   planId: string;
+  counts: {
+    rooms: number;
+    labeled: number;
+    selfIntersecting: number;
+    nested: number;
+    outliers: number;
+    isolated: number;
+    warnings: number;
+    errors: number;
+  };
   labelCoveragePercent: number;
   selfIntersectingPolygons: string[];
   roomsInsideOtherRooms: Array<{ inner: string; outer: string }>;
@@ -137,7 +148,15 @@ export interface PlanMetrics {
 
 export interface DiscoveredFile {
   path: string;
+  /** Path relative to the input root (directory or ZIP extraction root). */
+  relativePath: string;
   type: SourceType | 'unknown';
+  /** Lower-case extension including dot, e.g. '.dxf'. */
+  ext: string;
+  /** File size in bytes. */
+  bytes: number;
+  /** True if the extension is in the supported list (regardless of maxFiles limiting). */
+  supported: boolean;
   skipped: boolean;
   skipReason?: string;
 }
@@ -149,6 +168,7 @@ export interface ManifestPlanEntry {
   sourceName: string;
   sourceType: string;
   sha256: string;
+  bytes: number;
   artifactPaths: {
     planJson: string;
     graphJson: string;
@@ -156,6 +176,8 @@ export interface ManifestPlanEntry {
   };
   warnings: QualitySignal[];
   errors: QualitySignal[];
+  /** True when this file is a duplicate of another file already processed in this run. */
+  deduped?: boolean;
 }
 
 export interface IngestConfig {
@@ -176,14 +198,28 @@ export interface IngestManifest {
   nodeVersion: string;
   platform: string;
   gitCommit: string | null;
+  /** Metadata about the input source for this run. */
+  input: {
+    originalPath: string;
+    type: 'dir' | 'zip' | 'file';
+    /** Temp staging directory used when input was a ZIP archive. */
+    stagingPath?: string;
+  };
   config: IngestConfig;
   discoveredFiles: DiscoveredFile[];
   ingestedPlans: ManifestPlanEntry[];
   summary: {
     totalDiscovered: number;
-    totalSkipped: number;
+    /** Files whose extension is in the supported list. */
+    totalSupported: number;
     totalIngested: number;
+    /** Plans skipped because an identical sha256 was already processed this run. */
+    totalDeduped: number;
+    /** Files skipped due to unsupported extension. */
+    totalSkippedUnsupported: number;
     totalWarnings: number;
     totalErrors: number;
+    /** Total skipped for any reason (unsupported, maxFiles, processing error). */
+    totalSkipped: number;
   };
 }

@@ -27,8 +27,13 @@ export function buildManifest(
   config: IngestConfig,
   discoveredFiles: DiscoveredFile[],
   ingestedPlans: ManifestPlanEntry[],
+  inputInfo: { originalPath: string; type: 'dir' | 'zip' | 'file'; stagingPath?: string },
 ): IngestManifest {
   const totalSkipped = discoveredFiles.filter((f) => f.skipped).length;
+  const totalSupported = discoveredFiles.filter((f) => f.supported).length;
+  const totalSkippedUnsupported = discoveredFiles.filter((f) => !f.supported).length;
+  const totalDeduped = ingestedPlans.filter((p) => p.deduped).length;
+  const totalIngested = ingestedPlans.filter((p) => !p.deduped).length;
   const totalWarnings = ingestedPlans.reduce((s, p) => s + p.warnings.length, 0);
   const totalErrors = ingestedPlans.reduce((s, p) => s + p.errors.length, 0);
 
@@ -40,13 +45,17 @@ export function buildManifest(
     nodeVersion: process.version,
     platform: process.platform,
     gitCommit: getGitCommit(),
+    input: inputInfo,
     config,
     discoveredFiles,
     ingestedPlans,
     summary: {
       totalDiscovered: discoveredFiles.length,
+      totalSupported,
+      totalIngested,
+      totalDeduped,
+      totalSkippedUnsupported,
       totalSkipped,
-      totalIngested: ingestedPlans.length,
       totalWarnings,
       totalErrors,
     },

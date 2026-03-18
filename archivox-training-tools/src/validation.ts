@@ -1,4 +1,5 @@
 import { PlanSpec, GraphSpec, PlanMetrics, QualitySignal } from './types';
+import { SCHEMA_METRICS } from './version';
 import { polygonHasSelfIntersection, polygonArea, isPolygonInsidePolygon } from './geometry';
 
 /**
@@ -111,7 +112,18 @@ export function validatePlan(plan: PlanSpec, graph: GraphSpec): PlanMetrics {
   }
 
   return {
+    schemaVersion: SCHEMA_METRICS,
     planId: plan.planId,
+    counts: {
+      rooms: rooms.length,
+      labeled: rooms.filter((r) => r.label !== null).length,
+      selfIntersecting: selfIntersecting.length,
+      nested: insideOther.length,
+      outliers: areaOutliers.length,
+      isolated: isolatedRooms.length,
+      warnings: warnings.length,
+      errors: errors.length,
+    },
     labelCoveragePercent,
     selfIntersectingPolygons: selfIntersecting,
     roomsInsideOtherRooms: insideOther,
