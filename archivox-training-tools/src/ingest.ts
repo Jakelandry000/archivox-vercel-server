@@ -10,7 +10,6 @@
  */
 
 import * as path from 'path';
-import * as crypto from 'crypto';
 import * as fs from 'fs';
 
 import { IngestConfig, PlanSpec, GraphSpec, PlanMetrics, ManifestPlanEntry, QualitySignal } from './types';
@@ -25,8 +24,7 @@ import { initCorpus, writePlanArtifacts, sha256File } from './corpus';
 import { buildManifest, writeManifest, generateRunId } from './manifest';
 
 function planIdFromFile(filePath: string): string {
-  const buf = fs.readFileSync(filePath);
-  return crypto.createHash('sha256').update(buf).digest('hex').slice(0, 40);
+  return sha256File(filePath);
 }
 
 function log(msg: string): void {

@@ -1,8 +1,8 @@
 import * as fs from 'fs';
 import * as path from 'path';
-import * as crypto from 'crypto';
 import { PlanSpec, GraphSpec, PlanMetrics } from './types';
 import { assertSafeOutputPath, warnIfSuspiciousPath } from './safety';
+import { sha256Buffer, sha256File } from './utils/hash';
 
 export interface CorpusPaths {
   sourceDir: string;
@@ -31,20 +31,8 @@ export function getPlanPaths(corpusPath: string, planId: string): CorpusPaths {
   };
 }
 
-/**
- * Computes a SHA-256 hex digest of the given file.
- */
-export function sha256File(filePath: string): string {
-  const buf = fs.readFileSync(filePath);
-  return crypto.createHash('sha256').update(buf).digest('hex');
-}
-
-/**
- * Computes a SHA-256 hex digest of a Buffer.
- */
-export function sha256Buffer(buf: Buffer): string {
-  return crypto.createHash('sha256').update(buf).digest('hex');
-}
+// Re-exported for backwards compatibility — primary implementation is in utils/hash.ts
+export { sha256Buffer, sha256File } from './utils/hash';
 
 /**
  * Writes all derived artifacts for a plan to the corpus directory.

@@ -37,6 +37,8 @@ export function buildManifest(
     runId,
     timestamp: new Date().toISOString(),
     toolVersion: TOOL_VERSION,
+    nodeVersion: process.version,
+    platform: process.platform,
     gitCommit: getGitCommit(),
     config,
     discoveredFiles,

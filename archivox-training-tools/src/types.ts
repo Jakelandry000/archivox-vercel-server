@@ -173,6 +173,8 @@ export interface IngestManifest {
   runId: string;
   timestamp: string;
   toolVersion: string;
+  nodeVersion: string;
+  platform: string;
   gitCommit: string | null;
   config: IngestConfig;
   discoveredFiles: DiscoveredFile[];

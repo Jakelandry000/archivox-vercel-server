@@ -157,3 +157,26 @@ parse HATCH entities.
 - For a full dataset version: tag git + record the manifest file path.
 - Consider adopting DVC (`dvc add corpus/`) for large binary tracking on top
   of this manifest layer.
+
+---
+
+## Status
+
+### Phase A — Complete
+
+The ingestion pipeline skeleton is fully implemented:
+
+- **File discovery**: recursive directory scan, ZIP unpacking to temp staging, supported/unsupported classification
+- **plan_id**: stable SHA-256 of source file bytes (hex, 64 chars) — deterministic across re-runs; duplicate files map to same plan_id
+- **Corpus layout**: `plans/<plan_id>/source/original.<ext>` + `derived/{plan,graph,metrics}.json` written on every non-dry run
+- **Manifest**: per-run `manifests/ingest-<runId>.json` with timestamp, tool version, Node.js version, platform, git commit, full file list, counts, and per-plan checksums
+- **Guardrails**: ingest refuses to write into `public/`, `.next/`, `app/`, `pages/`, `dist/`, `build/`, and similar web-served paths
+- **DXF parsing**: full room/label/wall extraction via `dxf-parser`
+- **PDF / image parsing**: stubs — checksum + metadata only; parsing not yet implemented
+
+### Phase B — Next
+
+- **PlanSpec/GraphSpec real schemas**: finalize v1 with stricter field validation
+- **PDF parsing**: rasterise via `pdf2pic` + OCR via `Tesseract.js`; implement `OcrProvider` interface in `src/parsers/pdf.ts`
+- **Image parsing**: normalise resolution via `sharp`; run layout-detection model (e.g. LayoutLM / Detectron2) for polygon extraction
+- **DXF enhancements**: INSERT/BLOCK reference expansion; HATCH entity support
