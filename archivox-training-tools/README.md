@@ -108,7 +108,7 @@ deterministic across re-runs with the same input.
 
 | Format | Extraction | Status |
 |--------|------------|--------|
-| DXF    | Text entities, closed polylines, wall segments | **Full** |
+| DXF    | Text entities, closed polylines, wall segments, label association, graph | **Full (Phase C1)** |
 | PDF    | Checksum + metadata | Stub (OCR not yet wired) |
 | PNG/JPG/WebP | Checksum + metadata | Stub (vision model not yet wired) |
 | ZIP    | Unpacked to temp, contents processed | **Full** |
@@ -191,8 +191,39 @@ Do not commit the corpus to this repository; add it to `.gitignore`.
 - **`metrics.json` schema**: now includes `schemaVersion:'Metrics@v1'` and a `counts` summary object
 - **New tests**: deterministic maxFiles selection + within-run dedup coverage
 
-### Phase C — Next
+### Phase C1 — Complete
 
-- **PDF parsing**: rasterise via `pdf2pic` + OCR via `Tesseract.js`; implement `OcrProvider` in `src/parsers/pdf.ts`
-- **Image parsing**: normalise via `sharp`; run layout-detection model for polygon extraction
-- **DXF enhancements**: INSERT/BLOCK reference expansion; HATCH entity support
+Full DXF parsing pipeline producing real `plan.json` and `graph.json` outputs:
+
+- **Polygon extraction**: closed LWPOLYLINE/POLYLINE entities → room polygons.
+  Degenerate polygons (< 3 unique vertices or near-zero area) are rejected with a warning.
+- **Label extraction**: TEXT and MTEXT entities → `LabelToken` array with `id`, `kind`, `height`, `raw`, `rotation` fields.
+  MTEXT format codes (`\P`, `\f`, `{}`) are stripped before normalization.
+- **Label-to-room association** (three-strategy cascade):
+  1. Containment: token position inside exactly one polygon → confidence 1.0.
+  2. Ambiguous containment (multiple polygons): smallest-area polygon wins → confidence 0.8.
+  3. Nearest centroid within configurable threshold (`--labelMaxDistance`, default 500 units) → confidence scaled 0–0.5.
+- **Coordinate normalization**: all output coordinates translated so bounding box min-corner is at (0, 0).
+- **GraphSpec@v1**: one node per room (area, centroid, label); adjacency edges where polygon boundary
+  distance ≤ `--adjacencyThreshold` (default 50); `shared-boundary` vs `proximity` edge types.
+- **Metrics enhancements**: `counts.labelsTotal`, `counts.roomsLabeled`, `counts.edgesTotal` added to `metrics.json`.
+- **Source enrichment**: `plan.json > source` now includes `relativePath`, `ext`, `bytes`.
+- **Room enrichment**: `Room` now includes `polygonId` (alias for `id`) and `assignedLabel`
+  (structured form with `tokenId`, `confidence`, `method`).
+- **Determinism**: rooms sorted by `room-NNNN` id; tokens sorted by extraction order.
+
+**Current DXF limitations:**
+- INSERT/BLOCK references are not expanded (entities inside blocks are ignored unless they are in
+  the `*Model_Space` block, which is included).
+- HATCH entities are not parsed (no additional polygon source from hatching).
+- Units fallback to `mm` when `$INSUNITS` header variable is absent.
+- Nested blocks, xrefs, and paper-space entities are not processed.
+
+### Phase C2 — Next
+
+- **PDF parsing**: rasterise via `pdf2pic` + OCR via `Tesseract.js`; implement `OcrProvider` in `src/parsers/pdf.ts`.
+- **Image parsing**: normalise via `sharp`; run layout-detection model for polygon extraction.
+- **DXF unit detection**: heuristic inference from typical room dimensions when `$INSUNITS` is absent.
+- **DXF adjacency improvement**: shared-boundary length estimation via edge overlap; door/opening detection
+  from gaps in shared walls.
+- **DXF block expansion**: walk INSERT entities to expand reused geometry blocks.

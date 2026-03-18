@@ -1,5 +1,5 @@
 /**
- * DXF parser module.
+ * DXF parser module — Phase C1.
  *
  * Dependency: dxf-parser (v1.x)
  * Chosen because it handles the ENTITIES section for the common types we need
@@ -18,6 +18,7 @@ import {
   WallSegment,
   Point,
   BoundingBox,
+  Room,
 } from '../types';
 import { associateLabels, normalizeToOrigin, polygonArea, polygonCentroid, polygonPerimeter } from '../geometry';
 
@@ -55,7 +56,8 @@ interface DxfText extends DxfEntityBase {
   type: 'TEXT';
   text: string;
   startPoint: DxfVec;
-  height?: number;
+  textHeight?: number; // group code 40 — dxf-parser field name
+  rotation?: number;
 }
 
 interface DxfMtext extends DxfEntityBase {
@@ -63,6 +65,7 @@ interface DxfMtext extends DxfEntityBase {
   text: string;
   position: DxfVec;
   height?: number;
+  rotation?: number;
 }
 
 type DxfEntity = DxfLwPolyline | DxfPolyline | DxfLine | DxfText | DxfMtext | DxfEntityBase;
@@ -112,12 +115,28 @@ function isClosedPolyline(entity: DxfLwPolyline | DxfPolyline): boolean {
   return Math.abs(first.x - last.x) < 1e-6 && Math.abs(first.y - last.y) < 1e-6;
 }
 
+/**
+ * Returns true if the polygon is degenerate:
+ *  - fewer than 3 unique vertices, or
+ *  - near-zero area (< 1e-6 sq units).
+ */
+function isDegenerate(pts: Point[]): boolean {
+  const seen = new Set<string>();
+  for (const p of pts) {
+    seen.add(`${p.x.toFixed(6)},${p.y.toFixed(6)}`);
+  }
+  if (seen.size < 3) return true;
+  return polygonArea(pts) < 1e-6;
+}
+
 function extractPolylinesAndLines(entities: DxfEntity[]): {
   closedPolygons: Point[][];
   walls: WallSegment[];
+  degenerateCount: number;
 } {
   const closedPolygons: Point[][] = [];
   const walls: WallSegment[] = [];
+  let degenerateCount = 0;
 
   for (const e of entities) {
     if (e.type === 'LWPOLYLINE' || e.type === 'POLYLINE') {
@@ -132,7 +151,13 @@ function extractPolylinesAndLines(entities: DxfEntity[]): {
           Math.abs(last.x - first.x) < 1e-6 && Math.abs(last.y - first.y) < 1e-6
             ? pts.slice(0, -1)
             : pts;
-        if (deduped.length >= 3) closedPolygons.push(deduped);
+        if (deduped.length >= 3) {
+          if (isDegenerate(deduped)) {
+            degenerateCount++;
+          } else {
+            closedPolygons.push(deduped);
+          }
+        }
       } else {
         // Open polyline → treat as a series of wall segments
         for (let i = 0; i < pts.length - 1; i++) {
@@ -145,7 +170,7 @@ function extractPolylinesAndLines(entities: DxfEntity[]): {
     }
   }
 
-  return { closedPolygons, walls };
+  return { closedPolygons, walls, degenerateCount };
 }
 
 function extractTextEntities(entities: DxfEntity[]): LabelToken[] {
@@ -155,21 +180,32 @@ function extractTextEntities(entities: DxfEntity[]): LabelToken[] {
       const t = e as DxfText;
       if (t.text && t.startPoint) {
         tokens.push({
+          id: `token-${String(tokens.length).padStart(4, '0')}`,
           text: t.text,
           normalizedText: normalizeText(t.text),
           position: vecToPoint(t.startPoint),
+          kind: 'TEXT',
+          rotation: t.rotation ?? 0,
+          height: t.textHeight,
+          raw: t.text,
         });
       }
     } else if (e.type === 'MTEXT') {
       const t = e as DxfMtext;
       if (t.text && t.position) {
+        const raw = t.text;
         // Strip DXF MTEXT format codes like \P, \f, {}, etc.
-        const cleaned = t.text.replace(/\\[A-Za-z][^;]*;|[{}\\]|\\\\/g, '').trim();
+        const cleaned = raw.replace(/\\[A-Za-z][^;]*;|[{}\\]|\\\\/g, '').trim();
         if (cleaned) {
           tokens.push({
+            id: `token-${String(tokens.length).padStart(4, '0')}`,
             text: cleaned,
             normalizedText: normalizeText(cleaned),
             position: vecToPoint(t.position),
+            kind: 'MTEXT',
+            rotation: t.rotation ?? 0,
+            height: t.height,
+            raw,
           });
         }
       }
@@ -228,16 +264,7 @@ export interface DxfParseResult {
   labels: LabelToken[];
   units: PlanUnits;
   warnings: QualitySignal[];
-  rooms: Array<{
-    id: string;
-    polygon: Point[];
-    centroid: Point;
-    area: number;
-    perimeter: number;
-    label: string | null;
-    labelConfidence: number;
-    labelProvenance: 'containment' | 'nearest-centroid' | 'none';
-  }>;
+  rooms: Room[];
 }
 
 export function parseDxfFile(
@@ -245,6 +272,16 @@ export function parseDxfFile(
   labelMaxDistance = 500,
 ): DxfParseResult {
   const content = fs.readFileSync(filePath, 'utf-8');
+  return parseDxfContent(content, labelMaxDistance);
+}
+
+/**
+ * Parse DXF from a string (useful for testing without disk I/O).
+ */
+export function parseDxfContent(
+  content: string,
+  labelMaxDistance = 500,
+): DxfParseResult {
   const parser = new DxfParser();
   const warnings: QualitySignal[] = [];
   let dxf: ParsedDxf;
@@ -252,10 +289,10 @@ export function parseDxfFile(
   try {
     dxf = parser.parseSync(content) as unknown as ParsedDxf;
   } catch (err) {
-    throw new Error(`Failed to parse DXF file "${filePath}": ${(err as Error).message}`);
+    throw new Error(`Failed to parse DXF content: ${(err as Error).message}`);
   }
 
-  const entities: DxfEntity[] = dxf.entities ?? [];
+  const entities: DxfEntity[] = [...(dxf.entities ?? [])];
 
   // Also include entities from model-space block (*Model_Space / *MODEL_SPACE)
   const blocks = dxf.blocks ?? {};
@@ -265,20 +302,29 @@ export function parseDxfFile(
     }
   }
 
-  const units = detectUnits(dxf.header);
+  const units = detectUnits(dxf.header ?? {});
   if (units.detected === 'unknown') {
     warnings.push({ level: 'warning', code: 'UNITS_UNKNOWN', message: 'Could not detect units from $INSUNITS; assuming mm.' });
   }
 
-  const { closedPolygons, walls } = extractPolylinesAndLines(entities);
+  const { closedPolygons, walls, degenerateCount } = extractPolylinesAndLines(entities);
   const labels = extractTextEntities(entities);
+
+  if (degenerateCount > 0) {
+    warnings.push({
+      level: 'warning',
+      code: 'DEGENERATE_POLYGONS_SKIPPED',
+      message: `${degenerateCount} degenerate polygon(s) (< 3 unique vertices or near-zero area) were skipped.`,
+      detail: { count: degenerateCount },
+    });
+  }
 
   if (closedPolygons.length === 0) {
     warnings.push({ level: 'warning', code: 'NO_CLOSED_POLYGONS', message: 'No closed polylines found; room extraction will be empty.' });
   }
 
   // Normalize coordinates: translate to origin
-  const originalBounds = computeGlobalBounds(closedPolygons, walls, labels, dxf.header);
+  const originalBounds = computeGlobalBounds(closedPolygons, walls, labels, dxf.header ?? {});
   const { normalized: normalizedPolygons, originalBounds: ob } = normalizeToOrigin(closedPolygons);
   const dx = ob.minX, dy = ob.minY;
 
@@ -303,24 +349,42 @@ export function parseDxfFile(
   // Associate labels to polygons
   const associations = associateLabels(normalizedLabels, normalizedPolygons, labelMaxDistance);
 
-  // Build label map: polygonIndex → best label
-  const polyLabelMap = new Map<number, { text: string; confidence: number; provenance: 'containment' | 'nearest-centroid' | 'none' }>();
-  for (const assoc of associations) {
+  // Build label map: polygonIndex → best label (with tokenId)
+  const polyLabelMap = new Map<number, {
+    text: string;
+    tokenId?: string;
+    confidence: number;
+    provenance: 'containment' | 'nearest-centroid' | 'none';
+  }>();
+  for (let ai = 0; ai < associations.length; ai++) {
+    const assoc = associations[ai];
     if (assoc.polygonIndex < 0) continue;
     const existing = polyLabelMap.get(assoc.polygonIndex);
     if (!existing || assoc.confidence > existing.confidence) {
       polyLabelMap.set(assoc.polygonIndex, {
         text: assoc.normalizedText,
+        tokenId: normalizedLabels[ai].id,
         confidence: assoc.confidence,
         provenance: assoc.provenance,
       });
     }
   }
 
-  const rooms = normalizedPolygons.map((polygon, i) => {
+  // Warn if no labels found but polygons exist
+  if (labels.length === 0 && closedPolygons.length > 0) {
+    warnings.push({
+      level: 'warning',
+      code: 'NO_LABELS',
+      message: 'No TEXT or MTEXT entities found; rooms will be unlabeled.',
+    });
+  }
+
+  // Build rooms sorted by id (deterministic)
+  const rooms: Room[] = normalizedPolygons.map((polygon, i) => {
+    const roomId = `room-${String(i).padStart(4, '0')}`;
     const labelInfo = polyLabelMap.get(i);
     return {
-      id: `room-${String(i).padStart(4, '0')}`,
+      id: roomId,
       polygon,
       centroid: polygonCentroid(polygon),
       area: polygonArea(polygon),
@@ -328,8 +392,28 @@ export function parseDxfFile(
       label: labelInfo?.text ?? null,
       labelConfidence: labelInfo?.confidence ?? 0,
       labelProvenance: labelInfo?.provenance ?? 'none' as const,
+      polygonId: roomId,
+      assignedLabel: labelInfo
+        ? {
+            text: labelInfo.text,
+            tokenId: labelInfo.tokenId,
+            confidence: labelInfo.confidence,
+            method: labelInfo.provenance,
+          }
+        : null,
     };
   });
+
+  // Compute label coverage warning
+  const labeledCount = rooms.filter((r) => r.label !== null).length;
+  if (rooms.length > 0 && labeledCount === 0) {
+    warnings.push({
+      level: 'warning',
+      code: 'ZERO_LABEL_COVERAGE',
+      message: 'No rooms could be associated with any label.',
+      detail: { roomsTotal: rooms.length, labelsTotal: labels.length },
+    });
+  }
 
   const geometry: PlanGeometry = {
     bounds: normBounds,

@@ -26,6 +26,12 @@ export interface PlanSource {
   sha256: string;
   ingestTimestamp: string;
   toolVersion: string;
+  /** Relative path within the input root (directory or ZIP). */
+  relativePath?: string;
+  /** Lower-case file extension including dot, e.g. '.dxf'. */
+  ext?: string;
+  /** File size in bytes. */
+  bytes?: number;
 }
 
 export interface PlanUnits {
@@ -35,9 +41,19 @@ export interface PlanUnits {
 }
 
 export interface LabelToken {
+  /** Stable deterministic id, e.g. 'token-0000'. Populated by DXF parser. */
+  id?: string;
   text: string;
   normalizedText: string;
   position: Point;
+  /** Entity type this token came from. */
+  kind?: 'TEXT' | 'MTEXT';
+  /** Rotation angle in degrees (0 if unspecified). */
+  rotation?: number;
+  /** Text height in drawing units. */
+  height?: number;
+  /** Raw text before format-code stripping / normalization. */
+  raw?: string;
 }
 
 export interface WallSegment {
@@ -74,6 +90,15 @@ export interface Room {
   label: string | null;
   labelConfidence: number;
   labelProvenance: LabelProvenance;
+  /** Alias for id — polygon identity reference. Populated by DXF parser. */
+  polygonId?: string;
+  /** Structured label assignment with token reference. Populated by DXF parser. */
+  assignedLabel?: {
+    text: string;
+    tokenId?: string;
+    confidence: number;
+    method: LabelProvenance;
+  } | null;
 }
 
 export interface PlanSpec {
@@ -134,6 +159,12 @@ export interface PlanMetrics {
     isolated: number;
     warnings: number;
     errors: number;
+    /** Total label tokens extracted (all TEXT/MTEXT). */
+    labelsTotal?: number;
+    /** Rooms with a non-null label (same as `labeled` but explicit name). */
+    roomsLabeled?: number;
+    /** Total adjacency edges in the graph. */
+    edgesTotal?: number;
   };
   labelCoveragePercent: number;
   selfIntersectingPolygons: string[];

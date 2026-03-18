@@ -119,6 +119,9 @@ export async function runIngest(config: IngestConfig): Promise<string> {
         sha256,
         ingestTimestamp: now,
         toolVersion: TOOL_VERSION,
+        relativePath: file.relativePath,
+        ext: file.ext,
+        bytes: file.bytes,
       };
 
       let parseWarnings: QualitySignal[] = [];
