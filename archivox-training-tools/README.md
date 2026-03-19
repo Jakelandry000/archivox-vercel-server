@@ -108,9 +108,9 @@ deterministic across re-runs with the same input.
 
 | Format | Extraction | Status |
 |--------|------------|--------|
-| DXF    | Text entities, closed polylines, wall segments, label association, graph | **Full (Phase C1)** |
-| PDF    | Checksum + metadata | Stub (OCR not yet wired) |
-| PNG/JPG/WebP | Checksum + metadata | Stub (vision model not yet wired) |
+| DXF    | Text entities, closed polylines, wall segments, label association, adjacency graph, validation | **Full (Phase C2)** |
+| PDF    | Checksum + metadata + OCR interface stub | Stub (plug in OcrInterface to activate) |
+| PNG/JPG/WebP | Checksum + metadata + OCR interface stub | Stub (plug in OcrInterface to activate) |
 | ZIP    | Unpacked to temp, contents processed | **Full** |
 
 ---
@@ -219,11 +219,30 @@ Full DXF parsing pipeline producing real `plan.json` and `graph.json` outputs:
 - Units fallback to `mm` when `$INSUNITS` header variable is absent.
 - Nested blocks, xrefs, and paper-space entities are not processed.
 
-### Phase C2 — Next
+### Phase C2 — Complete
 
-- **PDF parsing**: rasterise via `pdf2pic` + OCR via `Tesseract.js`; implement `OcrProvider` in `src/parsers/pdf.ts`.
+Full end-to-end DXF ingest, robust adjacency graph, validation rules, and OCR interface:
+
+- **DXF-derived artifacts**: ingest writes real `plan.json` / `graph.json` / `metrics.json` from parser output (not stubs).
+- **GraphSpec@v1 adjacency algorithm**: bbox-based candidate pre-filtering (fast O(n²) reject), segment-to-segment
+  min-distance computation, configurable `adjacencyThreshold`.  Edges sorted lexicographically by `(sourceId, targetId)`
+  for deterministic output.  `globalFeatures.components` added (union-find connected-component count).
+- **Validation enhancements**:
+  - `ROOM_INSIDE_ROOM`: warns with inner/outer area in detail object.
+  - `AREA_OUTLIER`: now also checks >10× median ratio in addition to >3σ from mean.
+  - `DISCONNECTED_GRAPH` (new): warns when adjacency graph has >1 connected component; reports component count.
+  - `LOW_LABEL_COVERAGE`: threshold is 30% when label tokens are present, 50% otherwise.
+  - `metrics.json` counts now include `components` and `edgesTotal`.
+- **OCR interface** (`src/ocr/types.ts` + `src/ocr/noop.ts`):
+  - `OcrInterface.extractTextTokensFromRaster(input, options)` — returns `LabelToken[]`.
+  - `noopOcr` ships as default; replace with Tesseract.js or cloud-OCR implementation in Phase D.
+- **`validate` command**: now writes updated `metrics.json` back to corpus after re-running validation.
+- **`summarize` command**: now shows total edges and connected-component counts from `metrics.json`.
+
+### Phase C3 — Next
+
+- **OCR integration**: implement `OcrInterface` with Tesseract.js or cloud-OCR; wire into PDF/image parsers.
 - **Image parsing**: normalise via `sharp`; run layout-detection model for polygon extraction.
 - **DXF unit detection**: heuristic inference from typical room dimensions when `$INSUNITS` is absent.
-- **DXF adjacency improvement**: shared-boundary length estimation via edge overlap; door/opening detection
-  from gaps in shared walls.
 - **DXF block expansion**: walk INSERT entities to expand reused geometry blocks.
+- **Embedding generation**: add `vectorise` subcommand; call embedding API; store `derived/embeddings.json`.

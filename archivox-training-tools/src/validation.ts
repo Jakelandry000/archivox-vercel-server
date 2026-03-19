@@ -36,8 +36,13 @@ export function validatePlan(plan: PlanSpec, graph: GraphSpec): PlanMetrics {
         warnings.push({
           level: 'warning',
           code: 'ROOM_INSIDE_ROOM',
-          message: `Room ${rooms[i].id} appears to be fully contained inside room ${rooms[j].id}.`,
-          detail: { inner: rooms[i].id, outer: rooms[j].id },
+          message: `Room ${rooms[i].id} (area ${rooms[i].area.toFixed(2)}) appears to be fully contained inside room ${rooms[j].id} (area ${rooms[j].area.toFixed(2)}).`,
+          detail: {
+            inner: rooms[i].id,
+            innerArea: rooms[i].area,
+            outer: rooms[j].id,
+            outerArea: rooms[j].area,
+          },
         });
       }
     }
@@ -50,14 +55,17 @@ export function validatePlan(plan: PlanSpec, graph: GraphSpec): PlanMetrics {
     if (areas.length > 0) {
       const mean = areas.reduce((s, a) => s + a, 0) / areas.length;
       const stdDev = Math.sqrt(areas.reduce((s, a) => s + (a - mean) ** 2, 0) / areas.length);
+      const median = [...areas].sort((a, b) => a - b)[Math.floor(areas.length / 2)];
       for (const room of rooms) {
-        if (stdDev > 0 && Math.abs(room.area - mean) > 3 * stdDev) {
+        const isStdDevOutlier = stdDev > 0 && Math.abs(room.area - mean) > 3 * stdDev;
+        const isRatioOutlier = median > 0 && room.area / median > 10;
+        if (isStdDevOutlier || isRatioOutlier) {
           areaOutliers.push(room.id);
           warnings.push({
             level: 'warning',
             code: 'AREA_OUTLIER',
-            message: `Room ${room.id} has an extreme area (${room.area.toFixed(2)}) — more than 3σ from mean (${mean.toFixed(2)}).`,
-            detail: { roomId: room.id, area: room.area, mean, stdDev },
+            message: `Room ${room.id} has an extreme area (${room.area.toFixed(2)}) — more than 3σ from mean (${mean.toFixed(2)}) or >10× median (${median.toFixed(2)}).`,
+            detail: { roomId: room.id, area: room.area, mean, stdDev, median },
           });
         }
       }
@@ -82,12 +90,15 @@ export function validatePlan(plan: PlanSpec, graph: GraphSpec): PlanMetrics {
     ? (labeledRooms / rooms.length) * 100
     : 0;
 
-  if (labelCoveragePercent < 50 && rooms.length > 0) {
+  // Warn if plan has extracted label tokens but coverage is below 30%.
+  const hasLabelTokens = plan.labels.length > 0;
+  const coverageThreshold = hasLabelTokens ? 30 : 50;
+  if (labelCoveragePercent < coverageThreshold && rooms.length > 0) {
     warnings.push({
       level: 'warning',
       code: 'LOW_LABEL_COVERAGE',
-      message: `Only ${labelCoveragePercent.toFixed(1)}% of rooms have assigned labels.`,
-      detail: { labeledRooms, totalRooms: rooms.length },
+      message: `Only ${labelCoveragePercent.toFixed(1)}% of rooms have assigned labels (threshold: ${coverageThreshold}%).`,
+      detail: { labeledRooms, totalRooms: rooms.length, labelsTotal: plan.labels.length },
     });
   }
 
@@ -102,7 +113,18 @@ export function validatePlan(plan: PlanSpec, graph: GraphSpec): PlanMetrics {
     });
   }
 
-  // ── 7. Empty plan ─────────────────────────────────────────────────────────
+  // ── 7. Graph connectivity — multiple connected components ─────────────────
+  const components = graph.globalFeatures.components ?? 1;
+  if (components > 1 && rooms.length > 1) {
+    warnings.push({
+      level: 'warning',
+      code: 'DISCONNECTED_GRAPH',
+      message: `Adjacency graph has ${components} connected component(s). The plan may contain isolated room clusters.`,
+      detail: { components },
+    });
+  }
+
+  // ── 8. Empty plan ─────────────────────────────────────────────────────────
   if (rooms.length === 0) {
     warnings.push({
       level: 'warning',
@@ -126,6 +148,7 @@ export function validatePlan(plan: PlanSpec, graph: GraphSpec): PlanMetrics {
       labelsTotal: plan.labels.length,
       roomsLabeled: labeledRooms,
       edgesTotal: graph.edges.length,
+      components,
     },
     labelCoveragePercent,
     selfIntersectingPolygons: selfIntersecting,

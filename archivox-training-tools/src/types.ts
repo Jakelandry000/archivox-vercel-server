@@ -135,6 +135,8 @@ export interface GraphGlobalFeatures {
   roomCount: number;
   roomCountByType: Record<string, number>;
   isolatedRooms: string[];
+  /** Number of connected components in the adjacency graph (1 = fully connected). */
+  components: number;
 }
 
 export interface GraphSpec {
@@ -165,6 +167,8 @@ export interface PlanMetrics {
     roomsLabeled?: number;
     /** Total adjacency edges in the graph. */
     edgesTotal?: number;
+    /** Number of connected components in the adjacency graph. */
+    components?: number;
   };
   labelCoveragePercent: number;
   selfIntersectingPolygons: string[];

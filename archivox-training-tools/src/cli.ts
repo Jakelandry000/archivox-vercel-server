@@ -11,7 +11,7 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import { runIngest } from './ingest';
-import { listCorpusPlans, readPlanSpec, readGraphSpec, readPlanMetrics } from './corpus';
+import { listCorpusPlans, readPlanSpec, readGraphSpec, readPlanMetrics, getPlanPaths } from './corpus';
 import { validatePlan } from './validation';
 import { IngestConfig } from './types';
 import { TOOL_VERSION } from './version';
@@ -129,9 +129,15 @@ async function cmdValidate(args: Args): Promise<void> {
     const metrics = validatePlan(plan, graph);
     totalWarnings += metrics.warnings.length;
     totalErrors += metrics.errors.length;
+
+    // Write updated metrics.json back to corpus.
+    const metricsPath = getPlanPaths(resolved, planId).metricsJson;
+    fs.writeFileSync(metricsPath, JSON.stringify(metrics, null, 2), 'utf-8');
+
     console.log(
       `  ${planId.slice(0, 12)}… warnings=${metrics.warnings.length} errors=${metrics.errors.length}` +
-        ` labels=${metrics.labelCoveragePercent.toFixed(1)}%`,
+        ` labels=${metrics.labelCoveragePercent.toFixed(1)}%` +
+        ` components=${metrics.counts.components ?? '?'}`,
     );
   }
 
@@ -150,6 +156,9 @@ async function cmdSummarize(args: Args): Promise<void> {
   let totalLabeled = 0;
   let totalWarnings = 0;
   let totalErrors = 0;
+  let totalEdges = 0;
+  let totalComponents = 0;
+  let plansWithMetrics = 0;
 
   for (const planId of planIds) {
     const plan = readPlanSpec(resolved, planId);
@@ -159,6 +168,16 @@ async function cmdSummarize(args: Args): Promise<void> {
     totalLabeled += plan.rooms.filter((r) => r.label !== null).length;
     totalWarnings += plan.qualitySignals.filter((s) => s.level === 'warning').length;
     totalErrors += plan.qualitySignals.filter((s) => s.level === 'error').length;
+
+    // Enrich with metrics.json when available.
+    try {
+      const metrics = readPlanMetrics(resolved, planId);
+      totalEdges += metrics.counts.edgesTotal ?? 0;
+      totalComponents += metrics.counts.components ?? 0;
+      plansWithMetrics++;
+    } catch {
+      // metrics.json may not exist for older corpus entries.
+    }
   }
 
   // List manifests
@@ -172,6 +191,10 @@ async function cmdSummarize(args: Args): Promise<void> {
   console.log(`  By type     : ${JSON.stringify(countByType)}`);
   console.log(`  Total rooms : ${totalRooms}`);
   console.log(`  Labeled     : ${totalLabeled} / ${totalRooms} (${totalRooms > 0 ? ((totalLabeled / totalRooms) * 100).toFixed(1) : '0.0'}%)`);
+  if (plansWithMetrics > 0) {
+    console.log(`  Total edges : ${totalEdges}`);
+    console.log(`  Components  : ${totalComponents} (across ${plansWithMetrics} plans with metrics)`);
+  }
   console.log(`  Warnings    : ${totalWarnings}`);
   console.log(`  Errors      : ${totalErrors}`);
   console.log(`  Manifests   : ${manifests.length}`);
