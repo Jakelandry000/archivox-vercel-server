@@ -14,3 +14,21 @@ model User {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
+
+enum FloorPlanStatus {
+  new
+  processing
+  processed
+  failed
+}
+
+model FloorPlan {
+  id        String          @id @default(cuid())
+  name      String
+  source    String?         // e.g. 'upload', 'import'
+  status    FloorPlanStatus @default(new)
+  filePath  String?         // internal server path
+  metadata  Json?           // lightweight derived info (dimensions, room count, etc.)
+  createdAt DateTime        @default(now())
+  updatedAt DateTime        @updatedAt
+}
