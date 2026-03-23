@@ -1,0 +1,2 @@
+# This package uses pnpm (pnpm-lock.yaml). Ignore the npm lockfile.
+package-lock.json

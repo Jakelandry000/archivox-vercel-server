@@ -7,22 +7,27 @@ export function generateFloorPlanSvg(layoutInput: LayoutV1 | any) {
   const totalWidth = layout.dimensions.width * scale;
   const totalHeight = layout.dimensions.depth * scale;
 
+  const PAD = 8;
+  const svgW = totalWidth + PAD * 2;
+  const svgH = totalHeight + PAD * 2;
+
   const svgElements = layout.rooms
     .map((room) => {
-      const x = room.x * scale;
-      const y = room.y * scale;
+      const x = room.x * scale + PAD;
+      const y = room.y * scale + PAD;
       const w = room.width * scale;
       const h = room.height * scale;
       const label = (room.label ?? room.type ?? '').toString();
       return `
-        <rect x="${x}" y="${y}" width="${w}" height="${h}" fill="none" stroke="#444" stroke-width="2" />
-        <text x="${x + 4}" y="${y + 15}" font-size="12" fill="#333">${escapeXml(label)}</text>
+        <rect x="${x}" y="${y}" width="${w}" height="${h}" fill="rgba(34,197,94,0.07)" stroke="#5a9a72" stroke-width="1.5" />
+        <text x="${x + 5}" y="${y + 14}" font-size="11" fill="#a8cdb8" font-family="ui-monospace,monospace">${escapeXml(label)}</text>
       `;
     })
     .join('\n');
 
   const svg = `
-    <svg width="${totalWidth}" height="${totalHeight}" viewBox="0 0 ${totalWidth} ${totalHeight}" xmlns="http://www.w3.org/2000/svg">
+    <svg width="${svgW}" height="${svgH}" viewBox="0 0 ${svgW} ${svgH}" xmlns="http://www.w3.org/2000/svg">
+      <rect width="${svgW}" height="${svgH}" fill="#0e1812" rx="6" />
       ${svgElements}
     </svg>
   `.trim();
