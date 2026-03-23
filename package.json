@@ -12,11 +12,7 @@
     "lint": "npm run lint --workspaces",
     "test": "echo \"(no tests yet)\""
   },
-  "devDependencies": {
-    "prisma": "^7.5.0"
-  },
   "dependencies": {
-    "@prisma/client": "^7.5.0",
     "pg": "^8.20.0"
   }
 }
