@@ -1,10 +1,17 @@
-import { LayoutV1, Units } from '@archivox/core';
+import { LayoutV1, Units, validateLayout, ValidationResult } from '@archivox/core';
 
 export type GenerateInput = {
   prompt: string;
   units?: Units;
   width?: number;
   depth?: number;
+};
+
+export type GenerateResult = {
+  layout: LayoutV1;
+  validation: ValidationResult;
+  /** Number of generation attempts made (1 = passed on first try) */
+  attempts: number;
 };
 
 // MVP heuristic generator: cheap, deterministic, good enough to demo.
@@ -23,7 +30,7 @@ export function generateLayoutFromText(input: GenerateInput): LayoutV1 {
     garage: /\bgarage\b/.test(prompt),
     laundry: /\blaundry\b/.test(prompt),
     kitchen: true,
-    living: true
+    living: true,
   };
 
   // Very simple packing: stack rooms in rows.
@@ -67,8 +74,46 @@ export function generateLayoutFromText(input: GenerateInput): LayoutV1 {
     schemaVersion: 'layout.v1',
     units,
     dimensions: { width, depth },
-    rooms
+    rooms,
   };
+}
+
+/**
+ * Generates a layout and validates it.  If the score is below `scoreThreshold`,
+ * retries up to `maxAttempts` total by expanding the floor-plan canvas slightly
+ * (±5% per attempt) to relieve packing pressure.  Returns the highest-scoring
+ * result along with its validation and the number of attempts made.
+ */
+export function generateAndValidate(
+  input: GenerateInput,
+  options: { scoreThreshold?: number; maxAttempts?: number } = {}
+): GenerateResult {
+  const { scoreThreshold = 70, maxAttempts = 4 } = options;
+
+  let best: GenerateResult | null = null;
+
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    // Each retry nudges dimensions by a small factor to vary the packing outcome
+    const scaleFactor = attempt === 1 ? 1 : 1 + (attempt - 1) * 0.05;
+    const tweakedInput: GenerateInput = {
+      ...input,
+      width: input.width ? input.width * scaleFactor : undefined,
+      depth: input.depth ? input.depth * scaleFactor : undefined,
+    };
+
+    const layout = generateLayoutFromText(tweakedInput);
+    const validation = validateLayout(layout);
+
+    const result: GenerateResult = { layout, validation, attempts: attempt };
+
+    if (!best || validation.score > best.validation.score) {
+      best = result;
+    }
+
+    if (validation.score >= scoreThreshold) break;
+  }
+
+  return best!;
 }
 
 function parseCount(prompt: string, keywords: string[]): number | null {

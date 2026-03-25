@@ -10,7 +10,10 @@
     "dev": "npm run dev --workspace @archivox/web",
     "build": "npm run build --workspace @archivox/web",
     "lint": "npm run lint --workspaces",
-    "test": "echo \"(no tests yet)\""
+    "test": "npx tsx packages/core/src/validator.test.ts",
+    "db:generate": "npm run prisma:generate --workspace @archivox/db",
+    "db:migrate": "npm run prisma:migrate:dev --workspace @archivox/db",
+    "db:studio": "npm run prisma:studio --workspace @archivox/db"
   },
   "dependencies": {
     "pg": "^8.20.0"

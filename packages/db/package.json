@@ -5,6 +5,7 @@
   "type": "module",
   "main": "src/index.ts",
   "dependencies": {
+    "@prisma/adapter-pg": "^7.5.0",
     "@prisma/client": "^7.5.0",
     "pg": "^8.0.0"
   },
@@ -12,8 +13,8 @@
     "prisma": "^7.5.0"
   },
   "scripts": {
-    "prisma:generate": "prisma generate",
-    "prisma:migrate:dev": "prisma migrate dev",
-    "prisma:studio": "prisma studio"
+    "prisma:generate": "prisma generate --config=./prisma.config.ts",
+    "prisma:migrate:dev": "prisma migrate dev --config=./prisma.config.ts",
+    "prisma:studio": "node --env-file=.env ../../node_modules/prisma/build/index.js studio --config=./prisma.config.ts"
   }
 }
