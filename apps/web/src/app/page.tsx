@@ -5,14 +5,155 @@ import { motion } from 'framer-motion';
 import { ScrollShell } from './components/ScrollShell';
 import { Tabs, TabKey } from './components/Tabs';
 
+type ValidationViolation = {
+  code: string;
+  severity: 'error' | 'warning' | 'info';
+  message: string;
+  roomIds?: string[];
+};
+
+type ValidationMetrics = {
+  totalArea: number;
+  coveredArea: number;
+  coverageRatio: number;
+  roomCount: number;
+  overlapCount: number;
+  avgRoomWidth: number;
+  avgRoomHeight: number;
+};
+
+type ValidationResult = {
+  score: number;
+  violations: ValidationViolation[];
+  metrics: ValidationMetrics;
+};
+
 type ApiResult = {
   prompt: string;
   layout: unknown;
   svg: string;
   script: string;
+  validation?: ValidationResult;
+  meta?: { attempts: number; notes: string[] };
   notes?: string[];
   error?: string;
 };
+
+function scoreLabel(score: number): { label: string; color: string } {
+  if (score >= 85) return { label: 'Excellent', color: 'text-emerald-400' };
+  if (score >= 70) return { label: 'Good', color: 'text-green-400' };
+  if (score >= 50) return { label: 'Fair', color: 'text-yellow-400' };
+  return { label: 'Poor', color: 'text-red-400' };
+}
+
+function ValidationPanel({ validation, layout }: { validation?: ValidationResult; layout: unknown }) {
+  if (!validation) {
+    return (
+      <div className="rounded-2xl border border-white/10 bg-black/20 p-5 text-sm text-white/50">
+        No validation data available. Generate a layout to see results.
+      </div>
+    );
+  }
+
+  const { score, violations, metrics } = validation;
+  const { label, color } = scoreLabel(score);
+
+  const errors = violations.filter(v => v.severity === 'error');
+  const warnings = violations.filter(v => v.severity === 'warning');
+  const infos = violations.filter(v => v.severity === 'info');
+
+  // Derive garage ratio from layout rooms
+  let garageRatio: string = '—';
+  if (layout && typeof layout === 'object' && 'rooms' in layout && metrics.coveredArea > 0) {
+    const rooms = (layout as { rooms: Array<{ type: string; width: number; height: number }> }).rooms;
+    const garageArea = rooms.filter(r => r.type === 'garage').reduce((s, r) => s + r.width * r.height, 0);
+    garageRatio = (garageArea / metrics.coveredArea * 100).toFixed(1) + '%';
+  }
+
+  const outOfBoundsCount = violations.filter(v => v.code === 'ROOM_OUT_OF_BOUNDS').length;
+
+  const keyMetrics = [
+    { label: 'Overlap Pairs', value: String(metrics.overlapCount) },
+    { label: 'Out-of-Bounds Rooms', value: String(outOfBoundsCount) },
+    { label: 'Garage Ratio', value: garageRatio },
+    { label: 'Coverage', value: (metrics.coverageRatio * 100).toFixed(1) + '%' },
+    { label: 'Circulation Ratio', value: '—' },
+    { label: 'Total Overlap Area', value: '—' },
+  ];
+
+  const severityStyles: Record<string, string> = {
+    error: 'text-red-300 border-red-500/30 bg-red-500/5',
+    warning: 'text-yellow-300 border-yellow-500/30 bg-yellow-500/5',
+    info: 'text-blue-300 border-blue-500/30 bg-blue-500/5',
+  };
+
+  const severityDot: Record<string, string> = {
+    error: 'bg-red-400',
+    warning: 'bg-yellow-400',
+    info: 'bg-blue-400',
+  };
+
+  return (
+    <div className="flex flex-col gap-4">
+      {/* Score */}
+      <div className="rounded-2xl border border-white/10 bg-black/20 p-5 flex items-center gap-5">
+        <div className={`text-6xl font-bold tabular-nums leading-none ${color}`}>{score}</div>
+        <div>
+          <div className={`text-lg font-semibold ${color}`}>{label}</div>
+          <div className="mt-1 text-xs text-white/50">
+            {errors.length} error{errors.length !== 1 ? 's' : ''} · {warnings.length} warning{warnings.length !== 1 ? 's' : ''} · {infos.length} note{infos.length !== 1 ? 's' : ''}
+          </div>
+          <div className="mt-2 h-1.5 w-32 rounded-full bg-white/10 overflow-hidden">
+            <div
+              className={`h-full rounded-full transition-all ${score >= 85 ? 'bg-emerald-400' : score >= 70 ? 'bg-green-400' : score >= 50 ? 'bg-yellow-400' : 'bg-red-400'}`}
+              style={{ width: `${score}%` }}
+            />
+          </div>
+        </div>
+      </div>
+
+      {/* Key Metrics */}
+      <div className="rounded-2xl border border-white/10 bg-black/20 p-4">
+        <div className="text-xs font-semibold text-white/60 uppercase tracking-wider mb-3">Key Metrics</div>
+        <div className="grid grid-cols-3 gap-2">
+          {keyMetrics.map(m => (
+            <div key={m.label} className="rounded-xl border border-white/8 bg-white/3 p-3">
+              <div className="text-base font-semibold text-white/90 tabular-nums">{m.value}</div>
+              <div className="mt-0.5 text-[11px] text-white/50 leading-tight">{m.label}</div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Violations */}
+      {violations.length === 0 ? (
+        <div className="rounded-2xl border border-emerald-500/30 bg-emerald-500/5 p-4 text-sm text-emerald-300">
+          No violations — layout passes all checks.
+        </div>
+      ) : (
+        <div className="flex flex-col gap-2">
+          {([['error', errors], ['warning', warnings], ['info', infos]] as const).map(([sev, list]) =>
+            list.length === 0 ? null : (
+              <div key={sev} className={`rounded-2xl border p-4 ${severityStyles[sev]}`}>
+                <div className="flex items-center gap-2 mb-2">
+                  <span className={`h-2 w-2 rounded-full ${severityDot[sev]}`} />
+                  <span className="text-xs font-semibold uppercase tracking-wider opacity-70">
+                    {sev === 'error' ? 'Errors' : sev === 'warning' ? 'Warnings' : 'Notes'} ({list.length})
+                  </span>
+                </div>
+                <ul className="flex flex-col gap-1">
+                  {list.map((v, i) => (
+                    <li key={i} className="text-xs opacity-90 leading-relaxed">{v.message}</li>
+                  ))}
+                </ul>
+              </div>
+            )
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
 
 function SectionTitle({ title, subtitle }: { title: string; subtitle?: string }) {
   return (
@@ -140,7 +281,7 @@ export default function Home() {
             <div className="glass rounded-3xl p-5">
               <SectionTitle
                 title="Output"
-                subtitle="Switch between the plan preview, CAD script, and the raw JSON layout."
+                subtitle="Switch between the plan preview, CAD script, JSON layout, and validation report."
               />
 
               <div className="mt-4">
@@ -170,6 +311,10 @@ export default function Home() {
                     <pre className="rounded-2xl border border-white/10 bg-black/20 p-4 text-xs whitespace-pre-wrap text-white/90">
                       {JSON.stringify(result.layout, null, 2)}
                     </pre>
+                  ) : null}
+
+                  {result && !result.error && tab === 'validation' ? (
+                    <ValidationPanel validation={result.validation} layout={result.layout} />
                   ) : null}
                 </Tabs>
               </div>
