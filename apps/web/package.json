@@ -6,7 +6,10 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "dataset:extract": "node scripts/extract-plan-graphs.mjs",
+    "dataset:priors": "node scripts/build-priors.mjs",
+    "dataset:build": "npm run dataset:extract && npm run dataset:priors"
   },
   "dependencies": {
     "next": "16.1.6",
