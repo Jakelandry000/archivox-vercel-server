@@ -21,7 +21,6 @@ function formatDate(ms: number): string {
   });
 }
 
-<<<<<<< HEAD
 function FloorplanSection({
   project,
   userId,
