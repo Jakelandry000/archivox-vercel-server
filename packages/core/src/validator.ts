@@ -30,7 +30,7 @@ export interface ValidationMetrics {
 }
 
 export interface ValidationResult {
-  /** 0–100; -20 per error, -5 per warning, -1 per info, plus soft priors bonus (≤+5). */
+  /** 0–100; -20 per error, -5 per warning, -1 per info, plus soft priors adjustment ([-10,+10]). */
   score: number;
   violations: Violation[];
   metrics: ValidationMetrics;
@@ -439,17 +439,27 @@ export function validateLayout(layout: LayoutV1, priors?: Priors): ValidationRes
   // priors are omitted.
   let priorsAdjustment: number | undefined;
   if (priors) {
-    const ADJACENCY_THRESHOLD = 0.05;
-    let bonus = 0;
+    // BONUS_THRESHOLD: pair appears in >=5% of dataset edges -> award bonus when adjacent.
+    // PENALTY_THRESHOLD: pair appears in >=20% of edges -> penalise when NOT adjacent.
+    // Adjustment clamped to [-10, +10] so priors remain soft.
+    const BONUS_THRESHOLD   = 0.05;
+    const PENALTY_THRESHOLD = 0.20;
+    let adjustment = 0;
     for (let i = 0; i < validRooms.length; i++) {
       for (let j = i + 1; j < validRooms.length; j++) {
-        if (roomsAreAdjacent(validRooms[i], validRooms[j])) {
-          const adjScore = getAdjacencyScore(priors, validRooms[i].type, validRooms[j].type);
-          if (adjScore >= ADJACENCY_THRESHOLD) bonus += 1;
+        const adjScore = getAdjacencyScore(priors, validRooms[i].type, validRooms[j].type);
+        if (adjScore <= 0) continue;
+        const adjacent = roomsAreAdjacent(validRooms[i], validRooms[j]);
+        if (adjacent && adjScore >= BONUS_THRESHOLD) {
+          // Bonus proportional to normalized weight, at most +2 per pair.
+          adjustment += Math.min(2, adjScore * 10);
+        } else if (!adjacent && adjScore >= PENALTY_THRESHOLD) {
+          // Penalty proportional to strength of expectation, at most -2 per pair.
+          adjustment -= Math.min(2, adjScore * 5);
         }
       }
     }
-    priorsAdjustment = Math.min(bonus, 5);
+    priorsAdjustment = Math.max(-10, Math.min(10, Math.round(adjustment)));
   }
 
   const score = Math.min(100, baseScore + (priorsAdjustment ?? 0));

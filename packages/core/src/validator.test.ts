@@ -7,6 +7,7 @@
 import { validateLayout } from './validator.js';
 import { LayoutV1 } from './layout.js';
 import { Priors } from './priors';
+import { applyIbcRules } from './rules';
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -45,7 +46,7 @@ function assertEqual<T>(actual: T, expected: T, msg?: string) {
   }
 }
 
-// ── Tests ─────────────────────────────────────────────────────────────────────
+// ── Base tests ────────────────────────────────────────────────────────────────
 
 console.log('\nvalidateLayout');
 
@@ -54,16 +55,16 @@ test('well-formed layout has no errors', () => {
   const layout = makeLayout({
     dimensions: { width: 30, depth: 20 },
     rooms: [
-      { id: 'r1', type: 'living room', x: 0,  y: 0,  width: 18, height: 14 },
-      { id: 'r2', type: 'kitchen',     x: 18, y: 0,  width: 12, height: 10 },
-      { id: 'r3', type: 'bedroom',     x: 0,  y: 14, width: 12, height: 6  },
-      { id: 'r4', type: 'bathroom',    x: 12, y: 14, width: 8,  height: 6  },
-      { id: 'r5', type: 'dining',      x: 20, y: 10, width: 10, height: 10 },
+      { id: 'r1', type: 'living room', x: 0, y: 0, width: 18, height: 14 },
+      { id: 'r2', type: 'kitchen', x: 18, y: 0, width: 12, height: 10 },
+      { id: 'r3', type: 'bedroom', x: 0, y: 14, width: 12, height: 6 },
+      { id: 'r4', type: 'bathroom', x: 12, y: 14, width: 8, height: 6 },
+      { id: 'r5', type: 'dining', x: 20, y: 10, width: 10, height: 10 },
     ],
   });
   const { violations } = validateLayout(layout);
-  const errors = violations.filter(v => v.severity === 'error');
-  assert(errors.length === 0, `expected no errors, got: ${errors.map(v=>v.code).join(', ')}`);
+  const errors = violations.filter((v) => v.severity === 'error');
+  assert(errors.length === 0, `expected no errors, got: ${errors.map((v) => v.code).join(', ')}`);
 });
 
 test('overlapping rooms produce ROOM_OVERLAP errors', () => {
@@ -74,54 +75,46 @@ test('overlapping rooms produce ROOM_OVERLAP errors', () => {
     ],
   });
   const { violations } = validateLayout(layout);
-  const overlaps = violations.filter(v => v.code === 'ROOM_OVERLAP');
+  const overlaps = violations.filter((v) => v.code === 'ROOM_OVERLAP');
   assert(overlaps.length >= 1, 'expected at least one ROOM_OVERLAP violation');
 });
 
 test('room outside bounds produces ROOM_OUT_OF_BOUNDS error', () => {
   const layout = makeLayout({
     dimensions: { width: 20, depth: 20 },
-    rooms: [
-      { id: 'r1', type: 'bedroom', x: 15, y: 15, width: 12, height: 10 }, // extends outside
-    ],
+    rooms: [{ id: 'r1', type: 'bedroom', x: 15, y: 15, width: 12, height: 10 }], // extends outside
   });
   const { violations } = validateLayout(layout);
-  const oob = violations.filter(v => v.code === 'ROOM_OUT_OF_BOUNDS');
+  const oob = violations.filter((v) => v.code === 'ROOM_OUT_OF_BOUNDS');
   assert(oob.length >= 1, 'expected ROOM_OUT_OF_BOUNDS violation');
 });
 
 test('tiny room triggers ROOM_TOO_SMALL warning', () => {
   const layout = makeLayout({
-    rooms: [
-      { id: 'r1', type: 'bedroom', x: 0, y: 0, width: 4, height: 4 }, // < 9 ft min
-    ],
+    rooms: [{ id: 'r1', type: 'bedroom', x: 0, y: 0, width: 4, height: 4 }], // < 9 ft min
   });
   const { violations } = validateLayout(layout);
-  const small = violations.filter(v => v.code === 'ROOM_TOO_SMALL');
+  const small = violations.filter((v) => v.code === 'ROOM_TOO_SMALL');
   assert(small.length >= 1, 'expected ROOM_TOO_SMALL warning');
 });
 
 test('low coverage triggers LOW_COVERAGE warning', () => {
   const layout = makeLayout({
     dimensions: { width: 100, depth: 100 },
-    rooms: [
-      { id: 'r1', type: 'bedroom', x: 0, y: 0, width: 10, height: 10 }, // 1% coverage
-    ],
+    rooms: [{ id: 'r1', type: 'bedroom', x: 0, y: 0, width: 10, height: 10 }], // 1% coverage
   });
   const { violations } = validateLayout(layout);
-  const low = violations.filter(v => v.code === 'LOW_COVERAGE');
+  const low = violations.filter((v) => v.code === 'LOW_COVERAGE');
   assert(low.length === 1, 'expected LOW_COVERAGE warning');
 });
 
 test('high coverage triggers HIGH_COVERAGE warning', () => {
   const layout = makeLayout({
     dimensions: { width: 20, depth: 10 },
-    rooms: [
-      { id: 'r1', type: 'living room', x: 0, y: 0, width: 20, height: 10 }, // 100% coverage
-    ],
+    rooms: [{ id: 'r1', type: 'living room', x: 0, y: 0, width: 20, height: 10 }], // 100% coverage
   });
   const { violations } = validateLayout(layout);
-  const high = violations.filter(v => v.code === 'HIGH_COVERAGE');
+  const high = violations.filter((v) => v.code === 'HIGH_COVERAGE');
   assert(high.length === 1, 'expected HIGH_COVERAGE warning');
 });
 
@@ -129,36 +122,38 @@ test('separated kitchen and dining triggers ADJACENCY_PREFERRED info', () => {
   const layout = makeLayout({
     dimensions: { width: 40, depth: 30 },
     rooms: [
-      { id: 'r1', type: 'kitchen', x: 0,  y: 0, width: 10, height: 10 },
-      { id: 'r2', type: 'dining',  x: 30, y: 0, width: 10, height: 10 }, // far apart
+      { id: 'r1', type: 'kitchen', x: 0, y: 0, width: 10, height: 10 },
+      { id: 'r2', type: 'dining', x: 30, y: 0, width: 10, height: 10 }, // far apart
     ],
   });
   const { violations } = validateLayout(layout);
-  const adj = violations.filter(v => v.code === 'ADJACENCY_PREFERRED');
+  const adj = violations.filter((v) => v.code === 'ADJACENCY_PREFERRED');
   assert(adj.length >= 1, 'expected ADJACENCY_PREFERRED info violation');
 });
 
 test('score decreases with each additional error', () => {
-  const one = validateLayout(makeLayout({
-    dimensions: { width: 5, depth: 5 },
-    rooms: [{ id: 'r1', type: 'bedroom', x: 0, y: 0, width: 10, height: 10 }],
-  }));
-  const two = validateLayout(makeLayout({
-    dimensions: { width: 5, depth: 5 },
-    rooms: [
-      { id: 'r1', type: 'bedroom', x: 0, y: 0, width: 10, height: 10 },
-      { id: 'r2', type: 'bedroom', x: 0, y: 0, width: 10, height: 10 },
-    ],
-  }));
+  const one = validateLayout(
+    makeLayout({
+      dimensions: { width: 5, depth: 5 },
+      rooms: [{ id: 'r1', type: 'bedroom', x: 0, y: 0, width: 10, height: 10 }],
+    }),
+  );
+  const two = validateLayout(
+    makeLayout({
+      dimensions: { width: 5, depth: 5 },
+      rooms: [
+        { id: 'r1', type: 'bedroom', x: 0, y: 0, width: 10, height: 10 },
+        { id: 'r2', type: 'bedroom', x: 0, y: 0, width: 10, height: 10 },
+      ],
+    }),
+  );
   assert(two.score <= one.score, 'more errors should not increase the score');
 });
 
 test('metrics are computed correctly', () => {
   const layout = makeLayout({
     dimensions: { width: 40, depth: 30 },
-    rooms: [
-      { id: 'r1', type: 'bedroom', x: 0, y: 0, width: 10, height: 10 },
-    ],
+    rooms: [{ id: 'r1', type: 'bedroom', x: 0, y: 0, width: 10, height: 10 }],
   });
   const { metrics } = validateLayout(layout);
   assertEqual(metrics.totalArea, 1200, 'totalArea');
@@ -171,7 +166,7 @@ test('metrics are computed correctly', () => {
 
 console.log('\nvalidateLayout + priors');
 
-// Fixture priors: bedroom↔office is common (70% of edges), nothing else.
+// Fixture priors: bedroom↔office is common (70% of edges)
 const fixturePriors: Priors = {
   schemaVersion: 'Priors@v1',
   totalPlans: 1,
@@ -184,8 +179,8 @@ const fixturePriors: Priors = {
 test('priorsAdjustment is undefined when priors are not supplied', () => {
   const layout = makeLayout({
     rooms: [
-      { id: 'r1', type: 'bedroom', x: 0,  y: 0, width: 12, height: 10 },
-      { id: 'r2', type: 'office',  x: 12, y: 0, width: 12, height: 10 },
+      { id: 'r1', type: 'bedroom', x: 0, y: 0, width: 12, height: 10 },
+      { id: 'r2', type: 'office', x: 12, y: 0, width: 12, height: 10 },
     ],
   });
   const result = validateLayout(layout);
@@ -193,11 +188,10 @@ test('priorsAdjustment is undefined when priors are not supplied', () => {
 });
 
 test('priorsAdjustment is +1 when a common adjacent pair is present', () => {
-  // bedroom and office share an edge; bedroom|office = 7/10 = 70% ≥ 5% threshold
   const layout = makeLayout({
     rooms: [
-      { id: 'r1', type: 'bedroom', x: 0,  y: 0, width: 12, height: 10 },
-      { id: 'r2', type: 'office',  x: 12, y: 0, width: 12, height: 10 },
+      { id: 'r1', type: 'bedroom', x: 0, y: 0, width: 12, height: 10 },
+      { id: 'r2', type: 'office', x: 12, y: 0, width: 12, height: 10 },
     ],
   });
   const result = validateLayout(layout, fixturePriors);
@@ -205,11 +199,10 @@ test('priorsAdjustment is +1 when a common adjacent pair is present', () => {
 });
 
 test('priorsAdjustment is 0 when common pair is not adjacent', () => {
-  // bedroom and office are far apart — no shared edge
   const layout = makeLayout({
     rooms: [
-      { id: 'r1', type: 'bedroom', x: 0,  y: 0, width: 12, height: 10 },
-      { id: 'r2', type: 'office',  x: 28, y: 0, width: 12, height: 10 },
+      { id: 'r1', type: 'bedroom', x: 0, y: 0, width: 12, height: 10 },
+      { id: 'r2', type: 'office', x: 28, y: 0, width: 12, height: 10 },
     ],
   });
   const result = validateLayout(layout, fixturePriors);
@@ -219,14 +212,14 @@ test('priorsAdjustment is 0 when common pair is not adjacent', () => {
 test('score is higher when priors-preferred adjacency is satisfied', () => {
   const adjLayout = makeLayout({
     rooms: [
-      { id: 'r1', type: 'bedroom', x: 0,  y: 0, width: 12, height: 10 },
-      { id: 'r2', type: 'office',  x: 12, y: 0, width: 12, height: 10 },
+      { id: 'r1', type: 'bedroom', x: 0, y: 0, width: 12, height: 10 },
+      { id: 'r2', type: 'office', x: 12, y: 0, width: 12, height: 10 },
     ],
   });
   const sepLayout = makeLayout({
     rooms: [
-      { id: 'r1', type: 'bedroom', x: 0,  y: 0, width: 12, height: 10 },
-      { id: 'r2', type: 'office',  x: 28, y: 0, width: 12, height: 10 },
+      { id: 'r1', type: 'bedroom', x: 0, y: 0, width: 12, height: 10 },
+      { id: 'r2', type: 'office', x: 28, y: 0, width: 12, height: 10 },
     ],
   });
   const withAdj = validateLayout(adjLayout, fixturePriors);
@@ -234,8 +227,61 @@ test('score is higher when priors-preferred adjacency is satisfied', () => {
   assert(withAdj.score > withSep.score, `adjacent score (${withAdj.score}) should exceed separated score (${withSep.score})`);
 });
 
-// ── IBC rules tests ────────────────────────────────────────
+// ── Improved priors scoring tests ─────────────────────────────────────────────
 
+console.log('\nvalidateLayout + improved priors scoring');
+
+// Strong priors fixture: bedroom|office = 80% of edges
+const strongPriors: Priors = {
+  schemaVersion: 'Priors@v1',
+  totalPlans: 1,
+  totalRooms: 2,
+  totalEdges: 10,
+  labelFreq: { bedroom: 5, office: 5 },
+  adjacencyFreq: { 'bedroom|office': 8 },
+};
+
+test('priorsAdjustment is positive when strong pair is adjacent (bonus)', () => {
+  const layout = makeLayout({
+    rooms: [
+      { id: 'r1', type: 'bedroom', x: 0, y: 0, width: 12, height: 10 },
+      { id: 'r2', type: 'office', x: 12, y: 0, width: 12, height: 10 },
+    ],
+  });
+  const result = validateLayout(layout, strongPriors);
+  assert(result.priorsAdjustment !== undefined && result.priorsAdjustment > 0, 'expected positive priorsAdjustment');
+});
+
+test('priorsAdjustment is negative when very-strong pair is NOT adjacent (penalty)', () => {
+  const layout = makeLayout({
+    rooms: [
+      { id: 'r1', type: 'bedroom', x: 0, y: 0, width: 12, height: 10 },
+      { id: 'r2', type: 'office', x: 28, y: 0, width: 12, height: 10 },
+    ],
+  });
+  const result = validateLayout(layout, strongPriors);
+  assert(result.priorsAdjustment !== undefined && result.priorsAdjustment < 0, 'expected negative priorsAdjustment (penalty)');
+});
+
+test('priorsAdjustment stays within [-10, +10] regardless of room count', () => {
+  const manyRooms = Array.from({ length: 10 }, (_, i) => ({
+    id: `r${i}`,
+    type: i % 2 === 0 ? 'bedroom' : 'office',
+    x: i * 12,
+    y: 0,
+    width: 12,
+    height: 10,
+  }));
+  const layout = makeLayout({ rooms: manyRooms, dimensions: { width: 200, depth: 30 } });
+  const result = validateLayout(layout, strongPriors);
+  assert(
+    result.priorsAdjustment !== undefined && result.priorsAdjustment >= -10 && result.priorsAdjustment <= 10,
+    'priorsAdjustment out of [-10, +10] bounds',
+  );
+});
+
+
+// ── IBC rules tests ───────────────────────────────────────────────────
 import { applyIbcRules, IbcRuleSet } from './rules.js';
 
 console.log('
@@ -250,7 +296,7 @@ const fixtureRuleset: IbcRuleSet = {
       severity: 'warn',
       appliesTo: ['hall'],
       params: { minWidthFt: 3 },
-      source: 'IBC 2021 �1005.1',
+      source: 'IBC 2021 §1005.1',
     },
     {
       id: 'ibc-003',
@@ -258,7 +304,7 @@ const fixtureRuleset: IbcRuleSet = {
       severity: 'warn',
       appliesTo: [],
       params: { requiredTypes: ['hall', 'entry'] },
-      source: 'IBC 2021 �1003.3',
+      source: 'IBC 2021 §1003.3',
     },
   ],
 };
@@ -302,7 +348,63 @@ test('applyIbcRules does NOT warn egress when hall is present (ibc-003)', () => 
   const violations = applyIbcRules(layout, fixtureRuleset);
   const match = violations.find(v => v.code === 'ibc-003');
   assert(match === undefined, 'should NOT warn egress when hall is present');
+// ââ Improved priors scoring tests âââââââââââââââââââââââââââââââââââââââââââââ
+
+console.log('\nvalidateLayout + improved priors scoring');
+
+// Strong priors fixture: bedroom|office = 80% of edges
+const strongPriors: Priors = {
+  schemaVersion: 'Priors@v1',
+  totalPlans: 1,
+  totalRooms: 2,
+  totalEdges: 10,
+  labelFreq: { bedroom: 5, office: 5 },
+  adjacencyFreq: { 'bedroom|office': 8 },
+};
+
+test('priorsAdjustment is positive when strong pair is adjacent (bonus)', () => {
+  const layout = makeLayout({
+    rooms: [
+      { id: 'r1', type: 'bedroom', x: 0, y: 0, width: 12, height: 10 },
+      { id: 'r2', type: 'office', x: 12, y: 0, width: 12, height: 10 },
+    ],
+  });
+  const result = validateLayout(layout, strongPriors);
+  assert(result.priorsAdjustment !== undefined && result.priorsAdjustment > 0, 'expected positive priorsAdjustment');
 });
+
+test('priorsAdjustment is negative when very-strong pair is NOT adjacent (penalty)', () => {
+  const layout = makeLayout({
+    rooms: [
+      { id: 'r1', type: 'bedroom', x: 0, y: 0, width: 12, height: 10 },
+      { id: 'r2', type: 'office', x: 28, y: 0, width: 12, height: 10 },
+    ],
+  });
+  const result = validateLayout(layout, strongPriors);
+  assert(result.priorsAdjustment !== undefined && result.priorsAdjustment < 0, 'expected negative priorsAdjustment (penalty)');
+});
+
+test('priorsAdjustment stays within [-10, +10] regardless of room count', () => {
+  const manyRooms = Array.from({ length: 10 }, (_, i) => ({
+    id: `r${i}`,
+    type: i % 2 === 0 ? 'bedroom' : 'office',
+    x: i * 12,
+    y: 0,
+    width: 12,
+    height: 10,
+  }));
+  const layout = makeLayout({ rooms: manyRooms, dimensions: { width: 200, depth: 30 } });
+  const result = validateLayout(layout, strongPriors);
+  assert(
+    result.priorsAdjustment !== undefined && result.priorsAdjustment >= -10 && result.priorsAdjustment <= 10,
+    'priorsAdjustment out of [-10, +10] bounds',
+  );
+});
+
+// ââ Summary âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+
+console.log(`\n${passed} passed, ${failed} failed\n`);
+if (failed > 0) process.exit(1);
 
 // ── Summary ───────────────────────────────────────────────────────────────────
 
