@@ -7,6 +7,7 @@
 import { validateLayout } from './validator.js';
 import { LayoutV1 } from './layout.js';
 import { Priors } from './priors';
+import { applyIbcRules } from './rules';
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -278,6 +279,132 @@ test('priorsAdjustment stays within [-10, +10] regardless of room count', () => 
     'priorsAdjustment out of [-10, +10] bounds',
   );
 });
+
+
+// ── IBC rules tests ───────────────────────────────────────────────────
+import { applyIbcRules, IbcRuleSet } from './rules.js';
+
+console.log('
+IBC rules');
+
+const fixtureRuleset: IbcRuleSet = {
+  schemaVersion: 'ibc-rules.v0',
+  rules: [
+    {
+      id: 'ibc-001',
+      description: 'Corridor min width.',
+      severity: 'warn',
+      appliesTo: ['hall'],
+      params: { minWidthFt: 3 },
+      source: 'IBC 2021 §1005.1',
+    },
+    {
+      id: 'ibc-003',
+      description: 'Egress path required.',
+      severity: 'warn',
+      appliesTo: [],
+      params: { requiredTypes: ['hall', 'entry'] },
+      source: 'IBC 2021 §1003.3',
+    },
+  ],
+};
+
+test('applyIbcRules returns empty array when no rules file and no ruleset', () => {
+  const layout = makeLayout({ rooms: [{ id: 'r1', type: 'bedroom', x: 0, y: 0, width: 10, height: 10 }] });
+  // Pass an empty ruleset to avoid file-system access
+  const result = applyIbcRules(layout, { schemaVersion: 'ibc-rules.v0', rules: [] });
+  assertEqual(result.length, 0, 'expected no violations from empty ruleset');
+});
+
+test('applyIbcRules warns when hall is too narrow (ibc-001)', () => {
+  const layout = makeLayout({
+    rooms: [{ id: 'h1', type: 'hall', x: 0, y: 0, width: 2, height: 10 }], // 2ft < 3ft min
+  });
+  const violations = applyIbcRules(layout, fixtureRuleset);
+  const match = violations.find(v => v.code === 'ibc-001');
+  assert(match !== undefined, 'expected ibc-001 violation for narrow hall');
+  assert(match!.severity === 'warning', 'ibc-001 should be warning severity');
+});
+
+test('applyIbcRules warns when no egress room present (ibc-003)', () => {
+  const layout = makeLayout({
+    rooms: [
+      { id: 'r1', type: 'bedroom', x: 0, y: 0, width: 12, height: 10 },
+      { id: 'r2', type: 'kitchen', x: 12, y: 0, width: 12, height: 10 },
+    ],
+  });
+  const violations = applyIbcRules(layout, fixtureRuleset);
+  const match = violations.find(v => v.code === 'ibc-003');
+  assert(match !== undefined, 'expected ibc-003 violation when no hall/entry present');
+});
+
+test('applyIbcRules does NOT warn egress when hall is present (ibc-003)', () => {
+  const layout = makeLayout({
+    rooms: [
+      { id: 'r1', type: 'bedroom', x: 0, y: 0, width: 10, height: 10 },
+      { id: 'h1', type: 'hall',    x: 10, y: 0, width: 4,  height: 10 },
+    ],
+  });
+  const violations = applyIbcRules(layout, fixtureRuleset);
+  const match = violations.find(v => v.code === 'ibc-003');
+  assert(match === undefined, 'should NOT warn egress when hall is present');
+// ââ Improved priors scoring tests âââââââââââââââââââââââââââââââââââââââââââââ
+
+console.log('\nvalidateLayout + improved priors scoring');
+
+// Strong priors fixture: bedroom|office = 80% of edges
+const strongPriors: Priors = {
+  schemaVersion: 'Priors@v1',
+  totalPlans: 1,
+  totalRooms: 2,
+  totalEdges: 10,
+  labelFreq: { bedroom: 5, office: 5 },
+  adjacencyFreq: { 'bedroom|office': 8 },
+};
+
+test('priorsAdjustment is positive when strong pair is adjacent (bonus)', () => {
+  const layout = makeLayout({
+    rooms: [
+      { id: 'r1', type: 'bedroom', x: 0, y: 0, width: 12, height: 10 },
+      { id: 'r2', type: 'office', x: 12, y: 0, width: 12, height: 10 },
+    ],
+  });
+  const result = validateLayout(layout, strongPriors);
+  assert(result.priorsAdjustment !== undefined && result.priorsAdjustment > 0, 'expected positive priorsAdjustment');
+});
+
+test('priorsAdjustment is negative when very-strong pair is NOT adjacent (penalty)', () => {
+  const layout = makeLayout({
+    rooms: [
+      { id: 'r1', type: 'bedroom', x: 0, y: 0, width: 12, height: 10 },
+      { id: 'r2', type: 'office', x: 28, y: 0, width: 12, height: 10 },
+    ],
+  });
+  const result = validateLayout(layout, strongPriors);
+  assert(result.priorsAdjustment !== undefined && result.priorsAdjustment < 0, 'expected negative priorsAdjustment (penalty)');
+});
+
+test('priorsAdjustment stays within [-10, +10] regardless of room count', () => {
+  const manyRooms = Array.from({ length: 10 }, (_, i) => ({
+    id: `r${i}`,
+    type: i % 2 === 0 ? 'bedroom' : 'office',
+    x: i * 12,
+    y: 0,
+    width: 12,
+    height: 10,
+  }));
+  const layout = makeLayout({ rooms: manyRooms, dimensions: { width: 200, depth: 30 } });
+  const result = validateLayout(layout, strongPriors);
+  assert(
+    result.priorsAdjustment !== undefined && result.priorsAdjustment >= -10 && result.priorsAdjustment <= 10,
+    'priorsAdjustment out of [-10, +10] bounds',
+  );
+});
+
+// ââ Summary âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+
+console.log(`\n${passed} passed, ${failed} failed\n`);
+if (failed > 0) process.exit(1);
 
 // ── Summary ───────────────────────────────────────────────────────────────────
 
