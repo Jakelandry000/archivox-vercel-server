@@ -1,12 +1,36 @@
 import { NextResponse } from 'next/server';
 import { generateAndValidate } from '@archivox/generator';
 import { generateAutoCadScr, generateFloorPlanSvg } from '@archivox/engines';
-import { loadPriors } from '@archivox/core';
+import { loadPriors, getCachedPriorsPath } from '@archivox/core';
 
 // Load once per cold start; null if datasets/core-v1/priors.json is absent.
-const _priors = loadPriors();
-if (!_priors) {
-  console.warn('[api/chat] Priors file not found; layout scoring will run without priors.');
+let _priorsError: string | undefined;
+const _priors = (() => {
+  try {
+    const p = loadPriors();
+    if (!p) {
+      _priorsError = 'Priors file not found or could not be parsed';
+      console.warn('[api/chat] Priors file not found; layout scoring will run without priors.');
+    }
+    return p;
+  } catch (e: any) {
+    _priorsError = String(e?.message ?? e);
+    return null;
+  }
+})();
+
+function buildPriorsMeta() {
+  if (!_priors) {
+    return { loaded: false, path: null, error: _priorsError ?? 'Unknown error' };
+  }
+  const labelEntries = Object.entries(_priors.labelFreq).sort((a, b) => b[1] - a[1]);
+  return {
+    loaded: true,
+    path: getCachedPriorsPath(),
+    labelsCount: labelEntries.length,
+    adjacencyPairsCount: Object.keys(_priors.adjacencyFreq).length,
+    topLabels: labelEntries.slice(0, 5).map(([label, count]) => ({ label, count })),
+  };
 }
 
 export async function POST(req: Request) {
@@ -31,6 +55,7 @@ export async function POST(req: Request) {
     svg,
     script,
     validation,
+    priors: buildPriorsMeta(),
     meta: {
       attempts,
       notes: [
