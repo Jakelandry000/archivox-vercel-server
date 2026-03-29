@@ -47,11 +47,24 @@ export async function POST(req: Request, { params }: Params) {
   const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
   const pathname = `floorplans/${session.user.id}/${projectId}/${safeName}`;
 
-  const blob = await put(pathname, file, { access: 'public' });
+  try {
+    const blob = await put(pathname, file, { access: 'public' });
 
-  return NextResponse.json({
-    blobUrl: blob.url,
-    filename: file.name,
-    uploadedAt: Date.now(),
-  });
+    return NextResponse.json({
+      blobUrl: blob.url,
+      filename: file.name,
+      uploadedAt: Date.now(),
+    });
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : String(err);
+    // Common cause in Preview/Prod: missing/invalid `BLOB_READ_WRITE_TOKEN`.
+    return NextResponse.json(
+      {
+        error: 'Blob upload failed',
+        detail: message,
+        hint: 'Verify BLOB_READ_WRITE_TOKEN is set for this environment and redeploy the preview.',
+      },
+      { status: 500 },
+    );
+  }
 }
