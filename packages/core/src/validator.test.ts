@@ -6,7 +6,7 @@
 
 import { validateLayout } from './validator.js';
 import { LayoutV1 } from './layout.js';
-import { Priors } from './priors.js';
+import { Priors } from './priors';
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
