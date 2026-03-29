@@ -5,6 +5,22 @@ export type FloorplanAttachment = {
   uploadedAt: number; // ms since epoch
 };
 
+export type DraftResult = {
+  svg: string;
+  script: string;
+  validation: {
+    score: number;
+    violations: Array<{ severity: string; message: string }>;
+  };
+  priorsMeta: {
+    loaded: boolean;
+    labelsCount: number;
+    adjacencyPairsCount: number;
+    topLabels: string[];
+  };
+  generatedAt: number; // ms since epoch
+};
+
 export type Project = {
   id: string;
   name: string;
@@ -19,6 +35,8 @@ export type Project = {
   program?: string;
   /** Attached floorplan file (Vercel Blob) */
   floorplan?: FloorplanAttachment;
+  /** Latest generated draft result, persisted to localStorage */
+  latestDraft?: DraftResult;
   createdAt: number; // ms since epoch
   updatedAt: number; // ms since epoch
 };
