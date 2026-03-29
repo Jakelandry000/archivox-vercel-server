@@ -232,9 +232,72 @@ test('score is higher when priors-preferred adjacency is satisfied', () => {
   const withAdj = validateLayout(adjLayout, fixturePriors);
   const withSep = validateLayout(sepLayout, fixturePriors);
   assert(withAdj.score > withSep.score, `adjacent score (${withAdj.score}) should exceed separated score (${withSep.score})`);
+});
+// ── Improved priors scoring tests ─────────────────────
+
+console.log('
+validateLayout + improved priors scoring');
+
+// High-weight priors fixture: bedroom|office = 80% of edges (very strong)
+const strongPriors: Priors = {
+  schemaVersion: 'Priors@v1',
+  totalPlans: 1,
+  totalRooms: 2,
+  totalEdges: 10,
+  labelFreq: { bedroom: 5, office: 5 },
+  adjacencyFreq: { 'bedroom|office': 8 },
+};
+
+test('priorsAdjustment is positive when strong pair is adjacent (bonus)', () => {
+  const layout = makeLayout({
+    rooms: [
+      { id: 'r1', type: 'bedroom', x: 0,  y: 0, width: 12, height: 10 },
+      { id: 'r2', type: 'office',  x: 12, y: 0, width: 12, height: 10 },
+    ],
+  });
+  const result = validateLayout(layout, strongPriors);
+  assert(
+    result.priorsAdjustment !== undefined && result.priorsAdjustment > 0,
+    'expected positive priorsAdjustment'
+  );
 });
 
-// ── Summary ───────────────────────────────────────────────────────────────────
+test('priorsAdjustment is negative when very-strong pair is NOT adjacent (penalty)', () => {
+  const layout = makeLayout({
+    rooms: [
+      { id: 'r1', type: 'bedroom', x: 0,  y: 0, width: 12, height: 10 },
+      { id: 'r2', type: 'office',  x: 28, y: 0, width: 12, height: 10 },
+    ],
+  });
+  const result = validateLayout(layout, strongPriors);
+  assert(
+    result.priorsAdjustment !== undefined && result.priorsAdjustment < 0,
+    'expected negative priorsAdjustment (penalty)'
+  );
+});
 
-console.log(`\n${passed} passed, ${failed} failed\n`);
+test('priorsAdjustment stays within [-10, +10] regardless of room count', () => {
+  const manyRooms = Array.from({ length: 10 }, (_, i) => ({
+    id: `r${i}`,
+    type: i % 2 === 0 ? 'bedroom' : 'office',
+    x: i * 12,
+    y: 0,
+    width: 12,
+    height: 10,
+  }));
+  const layout = makeLayout({ rooms: manyRooms, dimensions: { width: 200, depth: 30 } });
+  const result = validateLayout(layout, strongPriors);
+  assert(
+    result.priorsAdjustment !== undefined &&
+      result.priorsAdjustment >= -10 &&
+      result.priorsAdjustment <= 10,
+    'priorsAdjustment out of [-10, +10] bounds'
+  );
+});
+
+// ── Summary ──────────────────────────────────────────────────────────
+
+console.log(`
+${passed} passed, ${failed} failed
+`);
 if (failed > 0) process.exit(1);
