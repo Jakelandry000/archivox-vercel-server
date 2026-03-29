@@ -6,6 +6,7 @@
 
 import { validateLayout } from './validator.js';
 import { LayoutV1 } from './layout.js';
+import { Priors } from './priors.js';
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -164,6 +165,73 @@ test('metrics are computed correctly', () => {
   assertEqual(metrics.coveredArea, 100, 'coveredArea');
   assertEqual(Math.round(metrics.coverageRatio * 100) / 100, 0.08, 'coverageRatio');
   assertEqual(metrics.roomCount, 1, 'roomCount');
+});
+
+// ── Priors tests ──────────────────────────────────────────────────────────────
+
+console.log('\nvalidateLayout + priors');
+
+// Fixture priors: bedroom↔office is common (70% of edges), nothing else.
+const fixturePriors: Priors = {
+  schemaVersion: 'Priors@v1',
+  totalPlans: 1,
+  totalRooms: 2,
+  totalEdges: 10,
+  labelFreq: { bedroom: 5, office: 5 },
+  adjacencyFreq: { 'bedroom|office': 7 },
+};
+
+test('priorsAdjustment is undefined when priors are not supplied', () => {
+  const layout = makeLayout({
+    rooms: [
+      { id: 'r1', type: 'bedroom', x: 0,  y: 0, width: 12, height: 10 },
+      { id: 'r2', type: 'office',  x: 12, y: 0, width: 12, height: 10 },
+    ],
+  });
+  const result = validateLayout(layout);
+  assert(result.priorsAdjustment === undefined, 'priorsAdjustment should be undefined without priors');
+});
+
+test('priorsAdjustment is +1 when a common adjacent pair is present', () => {
+  // bedroom and office share an edge; bedroom|office = 7/10 = 70% ≥ 5% threshold
+  const layout = makeLayout({
+    rooms: [
+      { id: 'r1', type: 'bedroom', x: 0,  y: 0, width: 12, height: 10 },
+      { id: 'r2', type: 'office',  x: 12, y: 0, width: 12, height: 10 },
+    ],
+  });
+  const result = validateLayout(layout, fixturePriors);
+  assertEqual(result.priorsAdjustment, 1, `expected priorsAdjustment=1, got ${result.priorsAdjustment}`);
+});
+
+test('priorsAdjustment is 0 when common pair is not adjacent', () => {
+  // bedroom and office are far apart — no shared edge
+  const layout = makeLayout({
+    rooms: [
+      { id: 'r1', type: 'bedroom', x: 0,  y: 0, width: 12, height: 10 },
+      { id: 'r2', type: 'office',  x: 28, y: 0, width: 12, height: 10 },
+    ],
+  });
+  const result = validateLayout(layout, fixturePriors);
+  assertEqual(result.priorsAdjustment, 0, `expected priorsAdjustment=0, got ${result.priorsAdjustment}`);
+});
+
+test('score is higher when priors-preferred adjacency is satisfied', () => {
+  const adjLayout = makeLayout({
+    rooms: [
+      { id: 'r1', type: 'bedroom', x: 0,  y: 0, width: 12, height: 10 },
+      { id: 'r2', type: 'office',  x: 12, y: 0, width: 12, height: 10 },
+    ],
+  });
+  const sepLayout = makeLayout({
+    rooms: [
+      { id: 'r1', type: 'bedroom', x: 0,  y: 0, width: 12, height: 10 },
+      { id: 'r2', type: 'office',  x: 28, y: 0, width: 12, height: 10 },
+    ],
+  });
+  const withAdj = validateLayout(adjLayout, fixturePriors);
+  const withSep = validateLayout(sepLayout, fixturePriors);
+  assert(withAdj.score > withSep.score, `adjacent score (${withAdj.score}) should exceed separated score (${withSep.score})`);
 });
 
 // ── Summary ───────────────────────────────────────────────────────────────────

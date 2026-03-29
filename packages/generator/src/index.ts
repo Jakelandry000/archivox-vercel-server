@@ -1,4 +1,4 @@
-import { LayoutV1, Units, validateLayout, ValidationResult } from '@archivox/core';
+import { LayoutV1, Units, validateLayout, ValidationResult, loadPriors, Priors } from '@archivox/core';
 
 export type GenerateInput = {
   prompt: string;
@@ -166,9 +166,18 @@ export function generateAndValidate(
     maxAttempts?: number;
     /** Score at which to stop early. Default 95. */
     earlyExitScore?: number;
+    /**
+     * Dataset priors for soft scoring.  When omitted the generator falls back
+     * to loading them from the default path (cached).  Pass null to explicitly
+     * disable priors for this call.
+     */
+    priors?: Priors | null;
   } = {}
 ): GenerateResult {
   const { scoreThreshold = 70, maxAttempts = 8, earlyExitScore = 95 } = options;
+  // Resolve effective priors: explicit option wins; otherwise try default path.
+  const effectivePriors: Priors | undefined =
+    'priors' in options ? (options.priors ?? undefined) : (loadPriors() ?? undefined);
 
   // Resolve seed: caller-supplied or random.
   const seed = input.seed ?? Math.floor(Math.random() * 2 ** 31);
@@ -183,7 +192,7 @@ export function generateAndValidate(
 
   for (let attempt = 1; attempt <= maxAttempts; attempt++) {
     const layout = generateLayoutFromText(input, attempt - 1, rng, currentHints);
-    const validation = validateLayout(layout);
+    const validation = validateLayout(layout, effectivePriors);
     scores.push(validation.score);
     debug.push({ strategy: nextStrategy });
 
