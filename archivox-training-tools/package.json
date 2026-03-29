@@ -1,0 +1,26 @@
+{
+  "name": "archivox-training-tools",
+  "version": "0.3.0",
+  "private": true,
+  "description": "ArchiVox ingestion CLI for architectural floorplan training data",
+  "main": "dist/cli.js",
+  "bin": {
+    "archivox-ingest": "dist/cli.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/cli.js",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "dependencies": {
+    "adm-zip": "^0.5.16",
+    "dxf-parser": "^1.1.2"
+  },
+  "devDependencies": {
+    "@types/adm-zip": "^0.5.7",
+    "@types/node": "^20.14.0",
+    "typescript": "^5.4.5",
+    "vitest": "^1.6.0"
+  }
+}

@@ -1,0 +1,32 @@
+# ArchiVox
+
+# secrets
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+*.pfx
+*.crt
+*.cer
+
+# node
+node_modules/
+.next/
+dist/
+coverage/
+
+# logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Dataset cache — never served to client
+data/
+!data/.gitkeep
