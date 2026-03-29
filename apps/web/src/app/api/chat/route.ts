@@ -1,6 +1,13 @@
 import { NextResponse } from 'next/server';
 import { generateAndValidate } from '@archivox/generator';
 import { generateAutoCadScr, generateFloorPlanSvg } from '@archivox/engines';
+import { loadPriors } from '@archivox/core';
+
+// Load once per cold start; null if datasets/core-v1/priors.json is absent.
+const _priors = loadPriors();
+if (!_priors) {
+  console.warn('[api/chat] Priors file not found; layout scoring will run without priors.');
+}
 
 export async function POST(req: Request) {
   const body = await req.json().catch(() => ({}));
@@ -12,7 +19,7 @@ export async function POST(req: Request) {
 
   const { layout, validation, attempts } = generateAndValidate(
     { prompt },
-    { scoreThreshold: 70, maxAttempts: 4 }
+    { scoreThreshold: 70, maxAttempts: 4, priors: _priors }
   );
 
   const { svg } = generateFloorPlanSvg(layout);

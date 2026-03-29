@@ -1,4 +1,5 @@
 import { LayoutV1, Room2D } from './layout.js';
+import { Priors, getAdjacencyScore } from './priors';
 
 export type Severity = 'error' | 'warning' | 'info';
 
@@ -29,10 +30,15 @@ export interface ValidationMetrics {
 }
 
 export interface ValidationResult {
-  /** 0–100; -20 per error, -5 per warning, -1 per info */
+  /** 0–100; -20 per error, -5 per warning, -1 per info, plus soft priors bonus (≤+5). */
   score: number;
   violations: Violation[];
   metrics: ValidationMetrics;
+  /**
+   * Score adjustment contributed by dataset priors (non-negative soft bonus).
+   * Undefined when no priors were supplied to validateLayout.
+   */
+  priorsAdjustment?: number;
 }
 
 // ── Dimension thresholds (feet; scaled if meters) ──────────────────────────
@@ -136,7 +142,13 @@ function outOfBoundsArea(r: Room2D, dimW: number, dimD: number): number {
  * Global: coverage ratio, living-room ratio.
  * Score: 0–100, -20/error -5/warning -1/info.
  */
-export function validateLayout(layout: LayoutV1): ValidationResult {
+/**
+ * Optional priors for soft scoring — see packages/core/src/priors.ts.
+ * When supplied, each adjacent room pair that is common in the dataset
+ * contributes +1 to the score (capped at +5 total).  Hard rule violations
+ * and existing semantics are unchanged regardless of whether priors are passed.
+ */
+export function validateLayout(layout: LayoutV1, priors?: Priors): ValidationResult {
   const violations: Violation[] = [];
   const { rooms, dimensions, units } = layout;
   const ftToUnit = units === 'meters' ? 0.3048 : 1;
@@ -419,7 +431,28 @@ export function validateLayout(layout: LayoutV1): ValidationResult {
   const errorCount = violations.filter(v => v.severity === 'error').length;
   const warnCount  = violations.filter(v => v.severity === 'warning').length;
   const infoCount  = violations.filter(v => v.severity === 'info').length;
-  const score = Math.max(0, 100 - errorCount * 20 - warnCount * 5 - infoCount * 1);
+  const baseScore = Math.max(0, 100 - errorCount * 20 - warnCount * 5 - infoCount * 1);
+
+  // ── PRIORS SOFT SCORING ───────────────────────────────────────────────────
+  // Each adjacent room pair that is common in the dataset (≥5% of all edges)
+  // contributes +1 to the score, capped at +5.  No hard fails; no effect when
+  // priors are omitted.
+  let priorsAdjustment: number | undefined;
+  if (priors) {
+    const ADJACENCY_THRESHOLD = 0.05;
+    let bonus = 0;
+    for (let i = 0; i < validRooms.length; i++) {
+      for (let j = i + 1; j < validRooms.length; j++) {
+        if (roomsAreAdjacent(validRooms[i], validRooms[j])) {
+          const adjScore = getAdjacencyScore(priors, validRooms[i].type, validRooms[j].type);
+          if (adjScore >= ADJACENCY_THRESHOLD) bonus += 1;
+        }
+      }
+    }
+    priorsAdjustment = Math.min(bonus, 5);
+  }
+
+  const score = Math.min(100, baseScore + (priorsAdjustment ?? 0));
 
   // ── METRICS ───────────────────────────────────────────────────────────────
 
@@ -446,5 +479,10 @@ export function validateLayout(layout: LayoutV1): ValidationResult {
       validRooms.length > 0 ? validRooms.reduce((s, r) => s + r.height, 0) / validRooms.length : 0,
   };
 
-  return { score, violations, metrics };
+  return {
+    score,
+    violations,
+    metrics,
+    ...(priorsAdjustment !== undefined ? { priorsAdjustment } : {}),
+  };
 }
