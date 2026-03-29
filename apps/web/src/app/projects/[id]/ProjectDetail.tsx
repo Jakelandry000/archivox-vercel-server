@@ -69,29 +69,41 @@ function FloorplanSection({
 
   const fp = project.floorplan;
   const isImage = fp && /\.(png|jpe?g)$/i.test(fp.filename);
+  // Proxy URL: routes through our authenticated view endpoint — never exposes the raw blob URL
+  const viewUrl = fp
+    ? `/api/projects/${project.id}/floorplan/view?url=${encodeURIComponent(fp.blobUrl)}`
+    : null;
 
   return (
     <div className="glass rounded-2xl px-5 py-4 flex flex-col gap-3">
       <div className="text-[10px] uppercase tracking-wider text-white/35">Floorplan</div>
 
-      {fp ? (
+      {fp && viewUrl ? (
         <div className="flex flex-col gap-2">
           {isImage ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img
-              src={fp.blobUrl}
+              src={viewUrl}
               alt={fp.filename}
               className="rounded-lg max-h-64 object-contain w-full bg-black/20"
             />
           ) : (
-            <a
-              href={fp.blobUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-sm text-blue-400 hover:text-blue-300 underline underline-offset-2 break-all"
-            >
-              {fp.filename}
-            </a>
+            <div className="flex flex-col gap-2">
+              <a
+                href={viewUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-sm text-blue-400 hover:text-blue-300 underline underline-offset-2"
+              >
+                Open PDF
+              </a>
+              <iframe
+                src={viewUrl}
+                title={fp.filename}
+                className="w-full rounded-lg bg-black/20"
+                style={{ height: '360px', border: 'none' }}
+              />
+            </div>
           )}
           <div className="flex items-center justify-between gap-3">
             <span className="text-[11px] text-white/40">
