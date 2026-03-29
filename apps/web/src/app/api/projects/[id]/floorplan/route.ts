@@ -48,7 +48,7 @@ export async function POST(req: Request, { params }: Params) {
   const pathname = `floorplans/${session.user.id}/${projectId}/${safeName}`;
 
   try {
-    const blob = await put(pathname, file, { access: 'public' });
+    const blob = await put(pathname, file, { access: 'private' });
 
     return NextResponse.json({
       blobUrl: blob.url,
