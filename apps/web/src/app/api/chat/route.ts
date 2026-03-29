@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { generateAndValidate } from '@archivox/generator';
 import { generateAutoCadScr, generateFloorPlanSvg } from '@archivox/engines';
-import { loadPriors } from '@archivox/core';
+import { loadPriors, applyIbcRules } from '@archivox/core';
 
 // Load once per cold start; null if datasets/core-v1/priors.json is absent.
 const _priors = loadPriors();
@@ -22,15 +22,35 @@ export async function POST(req: Request) {
     { scoreThreshold: 70, maxAttempts: 4, priors: _priors }
   );
 
+  // Append IBC soft violations (warnings/info only) to the validation result.
+  const ibcViolations = applyIbcRules(layout);
+  const validationWithIbc = ibcViolations.length > 0
+    ? { ...validation, violations: [...validation.violations, ...ibcViolations] }
+    : validation;
+
   const { svg } = generateFloorPlanSvg(layout);
   const { script } = generateAutoCadScr(layout);
+
+  // Build priors metadata (aggregate counts only — no raw dataset content).
+  const priorsMeta = _priors
+    ? {
+        loaded: true,
+        labelsCount: Object.keys(_priors.labelFreq).length,
+        adjacencyPairsCount: Object.keys(_priors.adjacencyFreq).length,
+        topLabels: Object.entries(_priors.labelFreq)
+          .sort((a, b) => b[1] - a[1])
+          .slice(0, 6)
+          .map(([label]) => label),
+      }
+    : { loaded: false, labelsCount: 0, adjacencyPairsCount: 0, topLabels: [] as string[] };
 
   return NextResponse.json({
     prompt,
     layout,
     svg,
     script,
-    validation,
+    validation: validationWithIbc,
+    priorsMeta,
     meta: {
       attempts,
       notes: [

@@ -26,6 +26,14 @@ type ValidationResult = {
   score: number;
   violations: ValidationViolation[];
   metrics: ValidationMetrics;
+  priorsAdjustment?: number;
+};
+
+type PriorsMeta = {
+  loaded: boolean;
+  labelsCount: number;
+  adjacencyPairsCount: number;
+  topLabels: string[];
 };
 
 type ApiResult = {
@@ -34,6 +42,7 @@ type ApiResult = {
   svg: string;
   script: string;
   validation?: ValidationResult;
+  priorsMeta?: PriorsMeta;
   meta?: { attempts: number; notes: string[] };
   notes?: string[];
   error?: string;
@@ -46,7 +55,7 @@ function scoreLabel(score: number): { label: string; color: string } {
   return { label: 'Poor', color: 'text-red-400' };
 }
 
-function ValidationPanel({ validation, layout }: { validation?: ValidationResult; layout: unknown }) {
+function ValidationPanel({ validation, layout, priorsMeta }: { validation?: ValidationResult; layout: unknown; priorsMeta?: PriorsMeta }) {
   if (!validation) {
     return (
       <div className="rounded-2xl border border-white/10 bg-black/20 p-5 text-sm text-white/50">
@@ -55,12 +64,16 @@ function ValidationPanel({ validation, layout }: { validation?: ValidationResult
     );
   }
 
-  const { score, violations, metrics } = validation;
+  const { score, violations, metrics, priorsAdjustment } = validation;
   const { label, color } = scoreLabel(score);
 
-  const errors = violations.filter(v => v.severity === 'error');
-  const warnings = violations.filter(v => v.severity === 'warning');
-  const infos = violations.filter(v => v.severity === 'info');
+  // Split IBC violations (code starts with "ibc-") from core violations.
+  const coreViolations = violations.filter(v => !v.code.startsWith('ibc-'));
+  const ibcViolations  = violations.filter(v => v.code.startsWith('ibc-'));
+
+  const errors   = coreViolations.filter(v => v.severity === 'error');
+  const warnings = coreViolations.filter(v => v.severity === 'warning');
+  const infos    = coreViolations.filter(v => v.severity === 'info');
 
   // Derive garage ratio from layout rooms
   let garageRatio: string = '—';
@@ -70,7 +83,7 @@ function ValidationPanel({ validation, layout }: { validation?: ValidationResult
     garageRatio = (garageArea / metrics.coveredArea * 100).toFixed(1) + '%';
   }
 
-  const outOfBoundsCount = violations.filter(v => v.code === 'ROOM_OUT_OF_BOUNDS').length;
+  const outOfBoundsCount = coreViolations.filter(v => v.code === 'ROOM_OUT_OF_BOUNDS').length;
 
   const keyMetrics = [
     { label: 'Overlap Pairs', value: String(metrics.overlapCount) },
@@ -99,7 +112,19 @@ function ValidationPanel({ validation, layout }: { validation?: ValidationResult
       <div className="rounded-2xl border border-white/10 bg-black/20 p-5 flex items-center gap-5">
         <div className={`text-6xl font-bold tabular-nums leading-none ${color}`}>{score}</div>
         <div>
-          <div className={`text-lg font-semibold ${color}`}>{label}</div>
+          <div className="flex items-center gap-2">
+            <span className={`text-lg font-semibold ${color}`}>{label}</span>
+            {priorsAdjustment !== undefined && priorsAdjustment > 0 && (
+              <span className="text-xs font-medium text-emerald-400/80 bg-emerald-500/10 border border-emerald-500/20 rounded-full px-2 py-0.5">
+                +{priorsAdjustment} priors
+              </span>
+            )}
+            {priorsAdjustment !== undefined && priorsAdjustment === 0 && (
+              <span className="text-xs text-white/30 bg-white/5 border border-white/10 rounded-full px-2 py-0.5">
+                +0 priors
+              </span>
+            )}
+          </div>
           <div className="mt-1 text-xs text-white/50">
             {errors.length} error{errors.length !== 1 ? 's' : ''} · {warnings.length} warning{warnings.length !== 1 ? 's' : ''} · {infos.length} note{infos.length !== 1 ? 's' : ''}
           </div>
@@ -125,10 +150,10 @@ function ValidationPanel({ validation, layout }: { validation?: ValidationResult
         </div>
       </div>
 
-      {/* Violations */}
-      {violations.length === 0 ? (
+      {/* Core Violations */}
+      {coreViolations.length === 0 ? (
         <div className="rounded-2xl border border-emerald-500/30 bg-emerald-500/5 p-4 text-sm text-emerald-300">
-          No violations — layout passes all checks.
+          No core violations — layout passes all checks.
         </div>
       ) : (
         <div className="flex flex-col gap-2">
@@ -151,6 +176,52 @@ function ValidationPanel({ validation, layout }: { validation?: ValidationResult
           )}
         </div>
       )}
+
+      {/* IBC / Code Checks */}
+      <div className="rounded-2xl border border-white/10 bg-black/20 p-4">
+        <div className="text-xs font-semibold text-white/60 uppercase tracking-wider mb-3">IBC / Code Checks</div>
+        {ibcViolations.length === 0 ? (
+          <div className="text-xs text-white/40">No IBC warnings for this layout.</div>
+        ) : (
+          <ul className="flex flex-col gap-1.5">
+            {ibcViolations.map((v, i) => (
+              <li key={i} className="flex items-start gap-2 text-xs">
+                <span className={`mt-0.5 h-2 w-2 flex-shrink-0 rounded-full ${severityDot[v.severity] ?? 'bg-white/30'}`} />
+                <span className="text-white/70 leading-relaxed">
+                  <span className="font-mono text-white/40 mr-1">{v.code}</span>
+                  {v.message}
+                </span>
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
+
+      {/* Priors */}
+      <div className="rounded-2xl border border-white/10 bg-black/20 p-4">
+        <div className="text-xs font-semibold text-white/60 uppercase tracking-wider mb-3">Dataset Priors</div>
+        {!priorsMeta || !priorsMeta.loaded ? (
+          <div className="text-xs text-white/40">Priors not loaded — scoring ran without dataset context.</div>
+        ) : (
+          <div className="flex flex-col gap-2">
+            <div className="grid grid-cols-2 gap-2">
+              <div className="rounded-xl border border-white/8 bg-white/3 p-3">
+                <div className="text-base font-semibold text-white/90 tabular-nums">{priorsMeta.labelsCount}</div>
+                <div className="mt-0.5 text-[11px] text-white/50">Room labels</div>
+              </div>
+              <div className="rounded-xl border border-white/8 bg-white/3 p-3">
+                <div className="text-base font-semibold text-white/90 tabular-nums">{priorsMeta.adjacencyPairsCount}</div>
+                <div className="mt-0.5 text-[11px] text-white/50">Adjacency pairs</div>
+              </div>
+            </div>
+            {priorsMeta.topLabels.length > 0 && (
+              <div className="text-[11px] text-white/50">
+                Top labels: <span className="text-white/70">{priorsMeta.topLabels.join(', ')}</span>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
     </div>
   );
 }
@@ -314,7 +385,7 @@ export default function Home() {
                   ) : null}
 
                   {result && !result.error && tab === 'validation' ? (
-                    <ValidationPanel validation={result.validation} layout={result.layout} />
+                    <ValidationPanel validation={result.validation} layout={result.layout} priorsMeta={result.priorsMeta} />
                   ) : null}
                 </Tabs>
               </div>
