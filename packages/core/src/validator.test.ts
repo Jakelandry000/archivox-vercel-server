@@ -234,6 +234,76 @@ test('score is higher when priors-preferred adjacency is satisfied', () => {
   assert(withAdj.score > withSep.score, `adjacent score (${withAdj.score}) should exceed separated score (${withSep.score})`);
 });
 
+// ── IBC rules tests ────────────────────────────────────────
+
+import { applyIbcRules, IbcRuleSet } from './rules.js';
+
+console.log('
+IBC rules');
+
+const fixtureRuleset: IbcRuleSet = {
+  schemaVersion: 'ibc-rules.v0',
+  rules: [
+    {
+      id: 'ibc-001',
+      description: 'Corridor min width.',
+      severity: 'warn',
+      appliesTo: ['hall'],
+      params: { minWidthFt: 3 },
+      source: 'IBC 2021 �1005.1',
+    },
+    {
+      id: 'ibc-003',
+      description: 'Egress path required.',
+      severity: 'warn',
+      appliesTo: [],
+      params: { requiredTypes: ['hall', 'entry'] },
+      source: 'IBC 2021 �1003.3',
+    },
+  ],
+};
+
+test('applyIbcRules returns empty array when no rules file and no ruleset', () => {
+  const layout = makeLayout({ rooms: [{ id: 'r1', type: 'bedroom', x: 0, y: 0, width: 10, height: 10 }] });
+  // Pass an empty ruleset to avoid file-system access
+  const result = applyIbcRules(layout, { schemaVersion: 'ibc-rules.v0', rules: [] });
+  assertEqual(result.length, 0, 'expected no violations from empty ruleset');
+});
+
+test('applyIbcRules warns when hall is too narrow (ibc-001)', () => {
+  const layout = makeLayout({
+    rooms: [{ id: 'h1', type: 'hall', x: 0, y: 0, width: 2, height: 10 }], // 2ft < 3ft min
+  });
+  const violations = applyIbcRules(layout, fixtureRuleset);
+  const match = violations.find(v => v.code === 'ibc-001');
+  assert(match !== undefined, 'expected ibc-001 violation for narrow hall');
+  assert(match!.severity === 'warning', 'ibc-001 should be warning severity');
+});
+
+test('applyIbcRules warns when no egress room present (ibc-003)', () => {
+  const layout = makeLayout({
+    rooms: [
+      { id: 'r1', type: 'bedroom', x: 0, y: 0, width: 12, height: 10 },
+      { id: 'r2', type: 'kitchen', x: 12, y: 0, width: 12, height: 10 },
+    ],
+  });
+  const violations = applyIbcRules(layout, fixtureRuleset);
+  const match = violations.find(v => v.code === 'ibc-003');
+  assert(match !== undefined, 'expected ibc-003 violation when no hall/entry present');
+});
+
+test('applyIbcRules does NOT warn egress when hall is present (ibc-003)', () => {
+  const layout = makeLayout({
+    rooms: [
+      { id: 'r1', type: 'bedroom', x: 0, y: 0, width: 10, height: 10 },
+      { id: 'h1', type: 'hall',    x: 10, y: 0, width: 4,  height: 10 },
+    ],
+  });
+  const violations = applyIbcRules(layout, fixtureRuleset);
+  const match = violations.find(v => v.code === 'ibc-003');
+  assert(match === undefined, 'should NOT warn egress when hall is present');
+});
+
 // ── Summary ───────────────────────────────────────────────────────────────────
 
 console.log(`\n${passed} passed, ${failed} failed\n`);

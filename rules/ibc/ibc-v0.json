@@ -1,0 +1,45 @@
+{
+  "schemaVersion": "ibc-rules.v0",
+  "rules": [
+    {
+      "id": "ibc-001",
+      "description": "Corridors and hallways must meet a minimum clear width to allow egress and accessibility.",
+      "severity": "warn",
+      "appliesTo": ["hall"],
+      "params": { "minWidthFt": 3 },
+      "source": "IBC 2021 §1005.1 / ICC A117.1 §403.5"
+    },
+    {
+      "id": "ibc-002",
+      "description": "Door clear opening width must meet accessibility minimums. Placeholder — actual door geometry not yet modelled.",
+      "severity": "info",
+      "appliesTo": [],
+      "params": { "minClearWidthIn": 32 },
+      "source": "IBC 2021 §1010.1.1 / ADA 2010 §404.2.3"
+    },
+    {
+      "id": "ibc-003",
+      "description": "Every floor must have an accessible egress path. At least one room should function as or connect to an exit corridor.",
+      "severity": "warn",
+      "appliesTo": [],
+      "params": { "requiredTypes": ["hall", "entry"] },
+      "source": "IBC 2021 §1003.3"
+    },
+    {
+      "id": "ibc-004",
+      "description": "Bathrooms serving bedrooms should be accessible from sleeping areas without crossing through another bedroom or kitchen.",
+      "severity": "info",
+      "appliesTo": ["bathroom"],
+      "params": {},
+      "source": "Accessibility heuristic (residential practice)"
+    },
+    {
+      "id": "ibc-005",
+      "description": "Stairs or landing areas, if present, should have a minimum run/landing depth. Placeholder — stair geometry not yet modelled.",
+      "severity": "info",
+      "appliesTo": ["stairs", "landing"],
+      "params": { "minLandingDepthFt": 3 },
+      "source": "IBC 2021 §1011.6"
+    }
+  ]
+}
