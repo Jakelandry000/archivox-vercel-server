@@ -81,3 +81,8 @@ export function getAdjacencyScore(priors: Priors, a: string, b: string): number 
 export function getLabelCount(priors: Priors, label: string): number {
   return priors.labelFreq[label] ?? 0;
 }
+
+/** Returns the resolved file path from the last successful loadPriors call, or null. */
+export function getCachedPriorsPath(): string | null {
+  return _cache?.resolvedPath ?? null;
+}
