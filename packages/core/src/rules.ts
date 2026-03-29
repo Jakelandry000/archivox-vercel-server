@@ -1,8 +1,8 @@
 import { readFileSync } from 'node:fs';
 import { resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { LayoutV1, Room2D } from './layout.js';
-import { Violation } from './validator.js';
+import { LayoutV1, Room2D } from './layout';
+import { Violation } from './validator';
 
 // ── IBC Rule types ────────────────────────────────────────────────────────────
 
