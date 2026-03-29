@@ -1,5 +1,5 @@
 import { LayoutV1, Room2D } from './layout.js';
-import { Priors, getAdjacencyScore } from './priors.js';
+import { Priors, getAdjacencyScore } from './priors';
 
 export type Severity = 'error' | 'warning' | 'info';
 
