@@ -3,6 +3,18 @@ import { Priors, getAdjacencyScore } from './priors';
 
 export type Severity = 'error' | 'warning' | 'info';
 
+/**
+ * Structured repair action that a generator or UI can execute to resolve
+ * the violation.  Added to Violation.suggestedFixes.
+ */
+export type RepairAction =
+  | { type: 'moveRoom';             roomId: string; dx: number; dy: number }
+  | { type: 'resizeRoom';           roomId: string; targetW?: number; targetH?: number; scaleX?: number; scaleY?: number }
+  | { type: 'swapRooms';            roomIdA: string; roomIdB: string }
+  | { type: 'addHallwayConnection'; nearRoomId: string }
+  | { type: 'addRoom';              roomType: string }
+  | { type: 'removeRoom';           roomId: string };
+
 export interface Violation {
   code: string;
   severity: Severity;
@@ -10,6 +22,13 @@ export interface Violation {
   roomIds?: string[];
   value?: number;
   threshold?: number;
+  /** Structured repair actions that could resolve this violation. */
+  suggestedFixes?: RepairAction[];
+  /**
+   * Rulebook rule ID that motivates this violation (e.g. "R-021").
+   * Present only when the check has a mapped ruleId in rulebook_manifest.json.
+   */
+  ruleId?: string;
 }
 
 export interface ValidationMetrics {
