@@ -1,4 +1,4 @@
-import { LayoutV1, Units, validateLayout, ValidationResult, loadPriors, Priors } from '@archivox/core';
+import { LayoutV1, Units, validateLayout, ValidationResult, loadPriors, Priors, RepairAction } from '@archivox/core';
 
 export type GenerateInput = {
   prompt: string;
@@ -227,6 +227,9 @@ export function generateAndValidate(
  * Analyzes a validation result and derives repair hints for the next attempt.
  * Returns both the hints and a human-readable strategy label recorded in
  * meta.debug[i].strategy.
+ *
+ * When violations carry structured `suggestedFixes`, those are used to inform
+ * the numeric hints where applicable (e.g. resizeRoom → worstRoomScale, etc.).
  */
 function deriveRepairHints(
   validation: ValidationResult,
@@ -240,6 +243,7 @@ function deriveRepairHints(
     worstRoomScale: 1.0,
   };
   const strategies: string[] = [];
+  const roomById = new Map(layout.rooms.map(r => [r.id, r]));
 
   // 1. High coverage → enlarge canvas so rooms have breathing room.
   if (validation.violations.some(v => v.code === 'HIGH_COVERAGE')) {
@@ -248,9 +252,21 @@ function deriveRepairHints(
   }
 
   // 2. High garage ratio → downscale garage.
+  //    Also covers RB-001 suggestedFixes (resizeRoom on garage).
   if (validation.metrics.garageRatio > 0.25) {
     hints.garageScale = 0.85;
     strategies.push('shrink-garage');
+  } else {
+    // Check RB-001 structured hints for garage resize scale.
+    const garageRatioViol = validation.violations.find(v => v.code === 'RB-001');
+    if (garageRatioViol?.suggestedFixes) {
+      for (const fix of garageRatioViol.suggestedFixes) {
+        if (fix.type === 'resizeRoom' && fix.scaleX !== undefined) {
+          hints.garageScale = Math.min(hints.garageScale, fix.scaleX);
+          strategies.push('shrink-garage');
+        }
+      }
+    }
   }
 
   // 3. Overlap / containment → spacing boost + downscale offending room types.
@@ -260,7 +276,6 @@ function deriveRepairHints(
   if (overlapViolations.length > 0) {
     hints.roomSpacing = Math.max(hints.roomSpacing, 1.0);
     hints.worstRoomScale = 0.9;
-    const roomById = new Map(layout.rooms.map(r => [r.id, r]));
     for (const v of overlapViolations) {
       for (const id of v.roomIds ?? []) {
         const room = roomById.get(id);
@@ -276,10 +291,82 @@ function deriveRepairHints(
     strategies.push('expand-bounds');
   }
 
+  // 5. Thin slivers (RB-003) → mark the sliver room types for scale correction.
+  const sliverViolations = validation.violations.filter(v => v.code === 'RB-003');
+  if (sliverViolations.length > 0) {
+    for (const v of sliverViolations) {
+      for (const id of v.roomIds ?? []) {
+        const room = roomById.get(id);
+        if (room) hints.worstRoomTypes.add(room.type);
+      }
+    }
+    hints.worstRoomScale = Math.min(hints.worstRoomScale, 0.85);
+    strategies.push('fix-slivers');
+  }
+
+  // 6. Canvas too small (addRoom fix on RB-008/RB-009) → expand canvas slightly.
+  const missingRoomViolations = validation.violations.filter(
+    v => (v.code === 'RB-008' || v.code === 'RB-009') &&
+         v.suggestedFixes?.some(f => f.type === 'addRoom')
+  );
+  if (missingRoomViolations.length > 0) {
+    hints.canvasScale = Math.max(hints.canvasScale, 1.05);
+    strategies.push('add-missing-rooms');
+  }
+
   return {
     hints,
     strategy: strategies.length > 0 ? strategies.join('+') : 'none',
   };
+}
+
+// ---------------------------------------------------------------------------
+// applyRepairAction — deterministic single-fix applicator
+// ---------------------------------------------------------------------------
+
+/**
+ * Applies a single `RepairAction` (from a Violation's `suggestedFixes`) to a
+ * layout and returns a new layout with that fix applied.  The input layout is
+ * not mutated.  Returns the same layout unchanged when the action references a
+ * room that does not exist or the action type is not supported.
+ *
+ * Supported action types: `resizeRoom`, `moveRoom`, `swapRooms`, `removeRoom`.
+ * `addHallwayConnection` and `addRoom` are no-ops (structural changes require
+ * full re-layout).
+ */
+export function applyRepairAction(layout: LayoutV1, action: RepairAction): LayoutV1 {
+  // Deep-clone rooms so the input is not mutated.
+  const rooms = layout.rooms.map(r => ({ ...r }));
+
+  if (action.type === 'resizeRoom') {
+    const r = rooms.find(r => r.id === action.roomId);
+    if (r) {
+      if (action.targetW !== undefined) r.width  = action.targetW;
+      else if (action.scaleX !== undefined) r.width  = r.width  * action.scaleX;
+      if (action.targetH !== undefined) r.height = action.targetH;
+      else if (action.scaleY !== undefined) r.height = r.height * action.scaleY;
+    }
+  } else if (action.type === 'moveRoom') {
+    const r = rooms.find(r => r.id === action.roomId);
+    if (r) {
+      r.x += action.dx;
+      r.y += action.dy;
+    }
+  } else if (action.type === 'swapRooms') {
+    const a = rooms.find(r => r.id === action.roomIdA);
+    const b = rooms.find(r => r.id === action.roomIdB);
+    if (a && b) {
+      const ax = a.x, ay = a.y;
+      a.x = b.x; a.y = b.y;
+      b.x = ax;  b.y = ay;
+    }
+  } else if (action.type === 'removeRoom') {
+    const idx = rooms.findIndex(r => r.id === action.roomId);
+    if (idx !== -1) rooms.splice(idx, 1);
+  }
+  // 'addRoom' and 'addHallwayConnection' are not handled — they require re-layout.
+
+  return { ...layout, rooms };
 }
 
 // ---------------------------------------------------------------------------
