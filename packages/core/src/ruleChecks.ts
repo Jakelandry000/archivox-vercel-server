@@ -2806,6 +2806,451 @@ const RB_070: RuleCheck = {
   },
 };
 
+// ── Next 10 checks (RB-071..RB-080) ──────────────────────────────────────────
+
+/**
+ * RB-071 — ENTRY_MIN_AREA
+ * Entry/foyer must have ≥ 20 sq ft of floor area.
+ * A functional entry requires space to open the door, stand, remove outerwear,
+ * and allow two people to pass — Architectural Graphic Standards minimum is
+ * 20 sq ft (e.g., 4 × 5 ft). Smaller entries create bottlenecks and cannot
+ * accommodate accessible turning approach to the door (ADA §404.2).
+ * Rulebook ref: R-032 (Entry Sequence Primacy)
+ */
+const RB_071: RuleCheck = {
+  id: 'RB-071',
+  ruleId: 'R-032',
+  title: 'Entry Minimum Area',
+  severity: 'warning',
+  applies: layout => layout.rooms.some(r => r.type === 'entry' && r.width > 0 && r.height > 0),
+  check(layout, ctx) {
+    const rooms = validRooms(layout);
+    const entries = rooms.filter(r => r.type === 'entry');
+    const violations: Violation[] = [];
+    const factor   = ctx.ftToUnit * ctx.ftToUnit;
+    const MIN_AREA = 20; // sq ft
+    for (const e of entries) {
+      const areaSqFt = roomArea(e) / factor;
+      if (areaSqFt < MIN_AREA) {
+        violations.push({
+          code: 'RB-071',
+          severity: 'warning',
+          message: `Entry "${roomLabel(e)}" is only ${areaSqFt.toFixed(0)} sq ft — must be ≥ ${MIN_AREA} sq ft to allow door swing, outerwear removal, and accessible turning approach (Arch. Graphic Standards).`,
+          roomIds: [e.id],
+          value: areaSqFt,
+          threshold: MIN_AREA,
+          suggestedFixes: [{
+            type: 'resizeRoom',
+            roomId: e.id,
+            scaleX: Math.sqrt(MIN_AREA / areaSqFt) + 0.05,
+            scaleY: Math.sqrt(MIN_AREA / areaSqFt) + 0.05,
+          }],
+        });
+      }
+    }
+    return violations;
+  },
+};
+
+/**
+ * RB-072 — BATHROOM_ASPECT_RATIO
+ * Each bathroom must have an aspect ratio ≤ 3:1.
+ * Highly elongated bathrooms cannot simultaneously place a toilet, lavatory,
+ * and tub/shower with required clearances while also maintaining a 5-ft ADA
+ * turning diameter (R-013). A 3:1 limit is the practical fixture-layout
+ * boundary per Architectural Graphic Standards — Bathroom Fixture Clearances.
+ * Rulebook ref: R-013 (ADA Turning Radius at All Activity Nodes)
+ */
+const RB_072: RuleCheck = {
+  id: 'RB-072',
+  ruleId: 'R-013',
+  title: 'Bathroom Aspect Ratio',
+  severity: 'warning',
+  applies: layout => layout.rooms.some(r => r.type === 'bathroom' && r.width > 0 && r.height > 0),
+  check(layout) {
+    const rooms = validRooms(layout);
+    const baths = rooms.filter(r => r.type === 'bathroom');
+    const violations: Violation[] = [];
+    const MAX_RATIO = 3;
+    for (const b of baths) {
+      const longer  = Math.max(b.width, b.height);
+      const shorter = Math.min(b.width, b.height);
+      if (shorter === 0) continue;
+      const ratio = longer / shorter;
+      if (ratio > MAX_RATIO) {
+        violations.push({
+          code: 'RB-072',
+          severity: 'warning',
+          message: `Bathroom "${roomLabel(b)}" has aspect ratio ${ratio.toFixed(1)}:1 — must be ≤ ${MAX_RATIO}:1 to fit fixtures with required clearances and ADA turning radius.`,
+          roomIds: [b.id],
+          value: ratio,
+          threshold: MAX_RATIO,
+          suggestedFixes: [{
+            type: 'resizeRoom',
+            roomId: b.id,
+            targetW: b.width  > b.height ? b.height * MAX_RATIO : b.width,
+            targetH: b.height > b.width  ? b.width  * MAX_RATIO : b.height,
+          }],
+        });
+      }
+    }
+    return violations;
+  },
+};
+
+/**
+ * RB-073 — KITCHEN_MIN_DEPTH
+ * Kitchen longer dimension must be ≥ 8 ft.
+ * The NKBA work-triangle requires at least one counter run of ≥ 8 ft to
+ * accommodate sink, range, and refrigerator with required clearances between
+ * them. A kitchen that is narrow in both dimensions cannot fit any valid
+ * work-triangle configuration (RB-056 checks width; this checks depth).
+ * Rulebook ref: R-082 (Workstation Ergonomic Work-Triangle Optimization)
+ */
+const RB_073: RuleCheck = {
+  id: 'RB-073',
+  ruleId: 'R-082',
+  title: 'Kitchen Minimum Depth',
+  severity: 'warning',
+  applies: layout => layout.rooms.some(r => r.type === 'kitchen' && r.width > 0 && r.height > 0),
+  check(layout, ctx) {
+    const rooms = validRooms(layout);
+    const kitchens = rooms.filter(r => r.type === 'kitchen');
+    const violations: Violation[] = [];
+    const MIN_D = 8 * ctx.ftToUnit; // 8 ft
+    for (const k of kitchens) {
+      const longer = Math.max(k.width, k.height);
+      if (longer < MIN_D) {
+        const longerFt = (longer / ctx.ftToUnit).toFixed(1);
+        violations.push({
+          code: 'RB-073',
+          severity: 'warning',
+          message: `Kitchen "${roomLabel(k)}" is only ${longerFt} ft in its longer dimension — must be ≥ 8 ft to accommodate a valid NKBA work-triangle counter run.`,
+          roomIds: [k.id],
+          value: longer / ctx.ftToUnit,
+          threshold: 8,
+          suggestedFixes: [{
+            type: 'resizeRoom',
+            roomId: k.id,
+            targetW: k.width  > k.height ? MIN_D : k.width,
+            targetH: k.height > k.width  ? MIN_D : k.height,
+          }],
+        });
+      }
+    }
+    return violations;
+  },
+};
+
+/**
+ * RB-074 — LIVING_ROOM_ASPECT_RATIO
+ * Living room aspect ratio must be ≤ 2.5:1.
+ * A living room wider than 2.5× its shorter dimension cannot support a
+ * functional furniture layout — the sofa group cannot face a focal point
+ * without one cluster being in a dead zone. R-062 (Spatial Coherence
+ * Requirement) mandates an organizing principle legible to occupants;
+ * extreme elongation violates this principle.
+ * Rulebook ref: R-062 (Spatial Coherence Requirement)
+ */
+const RB_074: RuleCheck = {
+  id: 'RB-074',
+  ruleId: 'R-062',
+  title: 'Living Room Aspect Ratio',
+  severity: 'warning',
+  applies: layout => layout.rooms.some(r =>
+    (r.type === 'living' || r.type === 'living room') && r.width > 0 && r.height > 0
+  ),
+  check(layout) {
+    const rooms = validRooms(layout);
+    const living = rooms.filter(r => r.type === 'living' || r.type === 'living room');
+    const violations: Violation[] = [];
+    const MAX_RATIO = 2.5;
+    for (const l of living) {
+      const longer  = Math.max(l.width, l.height);
+      const shorter = Math.min(l.width, l.height);
+      if (shorter === 0) continue;
+      const ratio = longer / shorter;
+      if (ratio > MAX_RATIO) {
+        violations.push({
+          code: 'RB-074',
+          severity: 'warning',
+          message: `Living room "${roomLabel(l)}" has aspect ratio ${ratio.toFixed(1)}:1 — must be ≤ ${MAX_RATIO}:1 to support a functional seating group around a focal point (Spatial Coherence).`,
+          roomIds: [l.id],
+          value: ratio,
+          threshold: MAX_RATIO,
+          suggestedFixes: [{
+            type: 'resizeRoom',
+            roomId: l.id,
+            targetW: l.width  > l.height ? l.height * MAX_RATIO : l.width,
+            targetH: l.height > l.width  ? l.width  * MAX_RATIO : l.height,
+          }],
+        });
+      }
+    }
+    return violations;
+  },
+};
+
+/**
+ * RB-075 — GARAGE_MIN_DEPTH
+ * Each garage must be ≥ 18 ft in its longer dimension.
+ * A standard passenger vehicle is 14–17 ft long; 18 ft provides the minimum
+ * clear depth with 6 in buffer at each end per IRC Table R309 (20 ft
+ * recommended for mid-size vehicles). A garage shorter than 18 ft cannot
+ * fully contain a vehicle with the door closed.
+ * Rulebook ref: R-023 (Garage Stall Minimum — IRC R309)
+ */
+const RB_075: RuleCheck = {
+  id: 'RB-075',
+  ruleId: 'R-023',
+  title: 'Garage Minimum Depth',
+  severity: 'warning',
+  applies: layout => layout.rooms.some(r => r.type === 'garage' && r.width > 0 && r.height > 0),
+  check(layout, ctx) {
+    const rooms = validRooms(layout);
+    const garages = rooms.filter(r => r.type === 'garage');
+    const violations: Violation[] = [];
+    const MIN_D = 18 * ctx.ftToUnit; // 18 ft
+    for (const g of garages) {
+      const longer = Math.max(g.width, g.height);
+      if (longer < MIN_D) {
+        const longerFt = (longer / ctx.ftToUnit).toFixed(1);
+        violations.push({
+          code: 'RB-075',
+          severity: 'warning',
+          message: `Garage "${roomLabel(g)}" is only ${longerFt} ft deep — must be ≥ 18 ft to contain a standard vehicle with door clearance (IRC R309).`,
+          roomIds: [g.id],
+          value: longer / ctx.ftToUnit,
+          threshold: 18,
+          suggestedFixes: [{
+            type: 'resizeRoom',
+            roomId: g.id,
+            targetW: g.width  > g.height ? MIN_D : g.width,
+            targetH: g.height > g.width  ? MIN_D : g.height,
+          }],
+        });
+      }
+    }
+    return violations;
+  },
+};
+
+/**
+ * RB-076 — STAIR_MIN_AREA
+ * Stair rooms must have ≥ 40 sq ft of floor area.
+ * A functional residential stair requires a minimum run of 36-in clear width
+ * (IRC R311.7.1) × a flight depth of ≥ 9 ft (approx. 9 risers at 7 in each,
+ * 9 treads at 10 in each = 90 in). With framing, 40 sq ft is the minimum
+ * enclosure to contain a straight-run stair. Below this, the stair cannot
+ * meet rise/run geometry or landing requirements.
+ * Rulebook ref: R-014 (Stair Geometry Compliance)
+ */
+const RB_076: RuleCheck = {
+  id: 'RB-076',
+  ruleId: 'R-014',
+  title: 'Stair Minimum Area',
+  severity: 'error',
+  applies: layout => layout.rooms.some(r => r.type === 'stair' && r.width > 0 && r.height > 0),
+  check(layout, ctx) {
+    const rooms = validRooms(layout);
+    const stairs = rooms.filter(r => r.type === 'stair');
+    const violations: Violation[] = [];
+    const factor   = ctx.ftToUnit * ctx.ftToUnit;
+    const MIN_AREA = 40; // sq ft
+    for (const s of stairs) {
+      const areaSqFt = roomArea(s) / factor;
+      if (areaSqFt < MIN_AREA) {
+        violations.push({
+          code: 'RB-076',
+          severity: 'error',
+          message: `Stair "${roomLabel(s)}" is only ${areaSqFt.toFixed(0)} sq ft — must be ≥ ${MIN_AREA} sq ft to contain a code-compliant straight-run stair with required landings (IRC R311.7).`,
+          roomIds: [s.id],
+          value: areaSqFt,
+          threshold: MIN_AREA,
+          suggestedFixes: [{
+            type: 'resizeRoom',
+            roomId: s.id,
+            scaleX: Math.sqrt(MIN_AREA / areaSqFt) + 0.05,
+            scaleY: Math.sqrt(MIN_AREA / areaSqFt) + 0.05,
+          }],
+        });
+      }
+    }
+    return violations;
+  },
+};
+
+/**
+ * RB-077 — MAX_BEDROOMS_PER_BATH
+ * The ratio of bedrooms to bathrooms must not exceed 4:1.
+ * HUD Minimum Property Standards and Architectural Graphic Standards recommend
+ * at most 4 occupants per full bathroom. More than 4 bedrooms sharing a single
+ * bathroom creates peak-demand conflicts that are a habitability deficiency.
+ * Rulebook ref: null (HUD MPS / Architectural Graphic Standards)
+ */
+const RB_077: RuleCheck = {
+  id: 'RB-077',
+  ruleId: null,
+  title: 'Max Bedrooms Per Bathroom',
+  severity: 'warning',
+  applies: layout =>
+    layout.rooms.some(r => r.type === 'bedroom'  && r.width > 0 && r.height > 0) &&
+    layout.rooms.some(r => r.type === 'bathroom' && r.width > 0 && r.height > 0),
+  check(layout) {
+    const rooms    = validRooms(layout);
+    const bedCount = rooms.filter(r => r.type === 'bedroom').length;
+    const batCount = rooms.filter(r => r.type === 'bathroom').length;
+    if (batCount === 0) return [];
+    const ratio = bedCount / batCount;
+    const MAX   = 4;
+    if (ratio > MAX) {
+      const bedIds = rooms.filter(r => r.type === 'bedroom').map(r => r.id);
+      const batIds = rooms.filter(r => r.type === 'bathroom').map(r => r.id);
+      return [{
+        code: 'RB-077',
+        severity: 'warning',
+        message: `${bedCount} bedrooms share ${batCount} bathroom${batCount > 1 ? 's' : ''} — ratio ${ratio.toFixed(1)}:1 exceeds the 4:1 maximum (HUD MPS habitability standard). Add at least one more bathroom.`,
+        roomIds: [...bedIds, ...batIds],
+        value: ratio,
+        threshold: MAX,
+      }];
+    }
+    return [];
+  },
+};
+
+/**
+ * RB-078 — OFFICE_ASPECT_RATIO
+ * Home offices must have aspect ratio ≤ 2.5:1.
+ * An office wider than 2.5× its shorter dimension cannot simultaneously fit a
+ * desk against one wall, chair pull-out, and a 5-ft ADA turning circle without
+ * the workspace feeling like a corridor. R-046 (Social-Distance Workstation
+ * Compliance) requires adequate personal space geometry around each workstation.
+ * Rulebook ref: R-046 (Social-Distance Workstation Compliance)
+ */
+const RB_078: RuleCheck = {
+  id: 'RB-078',
+  ruleId: 'R-046',
+  title: 'Office Aspect Ratio',
+  severity: 'warning',
+  applies: layout => layout.rooms.some(r => r.type === 'office' && r.width > 0 && r.height > 0),
+  check(layout) {
+    const rooms = validRooms(layout);
+    const offices = rooms.filter(r => r.type === 'office');
+    const violations: Violation[] = [];
+    const MAX_RATIO = 2.5;
+    for (const o of offices) {
+      const longer  = Math.max(o.width, o.height);
+      const shorter = Math.min(o.width, o.height);
+      if (shorter === 0) continue;
+      const ratio = longer / shorter;
+      if (ratio > MAX_RATIO) {
+        violations.push({
+          code: 'RB-078',
+          severity: 'warning',
+          message: `Office "${roomLabel(o)}" has aspect ratio ${ratio.toFixed(1)}:1 — must be ≤ ${MAX_RATIO}:1 to support desk placement with chair pull-out and ADA turning clearance (Arch. Graphic Standards).`,
+          roomIds: [o.id],
+          value: ratio,
+          threshold: MAX_RATIO,
+          suggestedFixes: [{
+            type: 'resizeRoom',
+            roomId: o.id,
+            targetW: o.width  > o.height ? o.height * MAX_RATIO : o.width,
+            targetH: o.height > o.width  ? o.width  * MAX_RATIO : o.height,
+          }],
+        });
+      }
+    }
+    return violations;
+  },
+};
+
+/**
+ * RB-079 — ENTRY_ADJACENT_LIVING
+ * When both an entry and a living room are present, the entry should be
+ * adjacent to the living room. R-032 (Entry Sequence Primacy) requires the
+ * arrival sequence to transition directly into the primary social zone. An
+ * entry that bypasses the living room forces occupants and guests through
+ * private zones before reaching the public area — a common habitability
+ * complaint in residential design.
+ * Rulebook ref: R-032 (Entry Sequence Primacy)
+ */
+const RB_079: RuleCheck = {
+  id: 'RB-079',
+  ruleId: 'R-032',
+  title: 'Entry Adjacent to Living Room',
+  severity: 'info',
+  applies: layout =>
+    layout.rooms.some(r => r.type === 'entry' && r.width > 0 && r.height > 0) &&
+    layout.rooms.some(r => (r.type === 'living' || r.type === 'living room') && r.width > 0 && r.height > 0),
+  check(layout) {
+    const rooms   = validRooms(layout);
+    const entries = rooms.filter(r => r.type === 'entry');
+    const living  = rooms.filter(r => r.type === 'living' || r.type === 'living room');
+    const violations: Violation[] = [];
+    for (const e of entries) {
+      const adjToLiving = living.some(l => roomsAreAdjacent(e, l));
+      if (!adjToLiving) {
+        violations.push({
+          code: 'RB-079',
+          severity: 'info',
+          message: `Entry "${roomLabel(e)}" is not adjacent to the living room — the arrival sequence should lead directly into the primary social zone (Entry Sequence Primacy).`,
+          roomIds: [e.id, ...living.map(l => l.id)],
+          suggestedFixes: living.length > 0
+            ? [{ type: 'moveRoom' as const, roomId: e.id, dx: living[0].x - e.x, dy: living[0].y + living[0].height - e.y }]
+            : [],
+        });
+      }
+    }
+    return violations;
+  },
+};
+
+/**
+ * RB-080 — DINING_MIN_DEPTH
+ * The dining room must be ≥ 10 ft in its longer dimension.
+ * A 4-person rectangular table (36 × 72 in = 3 × 6 ft) plus 36-in chair
+ * pull-out on each long side requires 6 + 3 + 3 = 12 ft minimum along the
+ * table length, but 10 ft is the hard minimum for a round or square table
+ * with two-sided clearance (Architectural Graphic Standards — Dining Room
+ * Sizing; R-049 Collaborative Seating Orientation).
+ * Rulebook ref: R-049 (Collaborative Seating Orientation)
+ */
+const RB_080: RuleCheck = {
+  id: 'RB-080',
+  ruleId: 'R-049',
+  title: 'Dining Room Minimum Depth',
+  severity: 'warning',
+  applies: layout => layout.rooms.some(r => r.type === 'dining' && r.width > 0 && r.height > 0),
+  check(layout, ctx) {
+    const rooms = validRooms(layout);
+    const dinings = rooms.filter(r => r.type === 'dining');
+    const violations: Violation[] = [];
+    const MIN_D = 10 * ctx.ftToUnit; // 10 ft
+    for (const d of dinings) {
+      const longer = Math.max(d.width, d.height);
+      if (longer < MIN_D) {
+        const longerFt = (longer / ctx.ftToUnit).toFixed(1);
+        violations.push({
+          code: 'RB-080',
+          severity: 'warning',
+          message: `Dining room "${roomLabel(d)}" is only ${longerFt} ft in its longer dimension — must be ≥ 10 ft to fit a table with seating and required pull-out clearances on both sides (Arch. Graphic Standards).`,
+          roomIds: [d.id],
+          value: longer / ctx.ftToUnit,
+          threshold: 10,
+          suggestedFixes: [{
+            type: 'resizeRoom',
+            roomId: d.id,
+            targetW: d.width  > d.height ? MIN_D : d.width,
+            targetH: d.height > d.width  ? MIN_D : d.height,
+          }],
+        });
+      }
+    }
+    return violations;
+  },
+};
+
 // ── Auto-register all built-in checks ─────────────────────────────────────────
 
 registerChecks(
@@ -2823,4 +3268,6 @@ registerChecks(
   RB_056, RB_057, RB_058, RB_059, RB_060,
   RB_061, RB_062, RB_063, RB_064, RB_065,
   RB_066, RB_067, RB_068, RB_069, RB_070,
+  RB_071, RB_072, RB_073, RB_074, RB_075,
+  RB_076, RB_077, RB_078, RB_079, RB_080,
 );
