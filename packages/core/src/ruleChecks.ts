@@ -3251,6 +3251,437 @@ const RB_080: RuleCheck = {
   },
 };
 
+// ── Next 10 checks (RB-081..RB-090) ──────────────────────────────────────────
+
+/**
+ * RB-081 — LIVING_DINING_ADJACENT
+ * Living room and dining room should share a direct wall.
+ * Social health is supported when the primary meal space and the primary
+ * social space are directly connected — occupants can move freely between
+ * them during gatherings and daily routines. R-080 (Health-Centered Design
+ * Intent Declaration) requires design to explicitly support social health
+ * pathways; living–dining connectivity is the primary plan-level proxy.
+ * Rulebook ref: R-080 (Health-Centered Design Intent Declaration)
+ */
+const RB_081: RuleCheck = {
+  id: 'RB-081',
+  ruleId: 'R-080',
+  title: 'Living–Dining Adjacency',
+  severity: 'info',
+  applies: layout =>
+    layout.rooms.some(r => (r.type === 'living' || r.type === 'living room') && r.width > 0 && r.height > 0) &&
+    layout.rooms.some(r => r.type === 'dining' && r.width > 0 && r.height > 0),
+  check(layout) {
+    const rooms  = validRooms(layout);
+    const living = rooms.filter(r => r.type === 'living' || r.type === 'living room');
+    const dining = rooms.filter(r => r.type === 'dining');
+    const anyAdj = living.some(l => dining.some(d => roomsAreAdjacent(l, d)));
+    if (!anyAdj) {
+      return [{
+        code: 'RB-081',
+        severity: 'info',
+        message: 'Living room and dining room are not adjacent — connecting these zones supports social health pathways and daily social interaction (Health-Centered Design Intent).',
+        roomIds: [...living.map(r => r.id), ...dining.map(r => r.id)],
+        suggestedFixes: dining.length > 0 && living.length > 0
+          ? [{ type: 'moveRoom' as const, roomId: dining[0].id, dx: living[0].x + living[0].width - dining[0].x, dy: 0 }]
+          : [],
+      }];
+    }
+    return [];
+  },
+};
+
+/**
+ * RB-082 — STAIR_ACCESSIBLE_FROM_CIRCULATION
+ * When a stair room is present, it must be adjacent to at least one
+ * circulation-type room (hall, entry, or living/living room).
+ * A stair buried behind bedrooms or other private rooms violates the
+ * egress hierarchy: occupants must not pass through another room to reach
+ * vertical circulation. R-025 (Interior Circulation Hierarchy) requires
+ * clear path structure to all primary routes.
+ * Rulebook ref: R-025 (Interior Circulation Hierarchy Documentation)
+ */
+const RB_082: RuleCheck = {
+  id: 'RB-082',
+  ruleId: 'R-025',
+  title: 'Stair Accessible from Circulation',
+  severity: 'warning',
+  applies: layout => layout.rooms.some(r => r.type === 'stair' && r.width > 0 && r.height > 0),
+  check(layout) {
+    const rooms   = validRooms(layout);
+    const stairs  = rooms.filter(r => r.type === 'stair');
+    const circTypes = new Set(['hall', 'entry', 'living', 'living room']);
+    const circ    = rooms.filter(r => circTypes.has(r.type));
+    const violations: Violation[] = [];
+    for (const s of stairs) {
+      const accessible = circ.some(c => roomsAreAdjacent(s, c));
+      if (!accessible) {
+        violations.push({
+          code: 'RB-082',
+          severity: 'warning',
+          message: `Stair "${roomLabel(s)}" is not adjacent to any circulation space (hall, entry, or living) — stairs must be reachable without passing through private rooms (Interior Circulation Hierarchy).`,
+          roomIds: [s.id],
+          suggestedFixes: circ.length > 0
+            ? [{ type: 'moveRoom' as const, roomId: s.id, dx: circ[0].x + circ[0].width - s.x, dy: circ[0].y - s.y }]
+            : [],
+        });
+      }
+    }
+    return violations;
+  },
+};
+
+/**
+ * RB-083 — OFFICE_NOT_ADJACENT_LAUNDRY
+ * A home office should not be directly adjacent to a laundry room.
+ * Washer and dryer cycles produce vibration, noise (65–80 dB), and
+ * humidity spikes that degrade ergonomic workstation conditions and
+ * reduce cognitive performance. R-083 (User-Engaged Ergonomic Design
+ * Process) requires workstation environments to be free of interfering
+ * mechanical equipment.
+ * Rulebook ref: R-083 (User-Engaged Ergonomic Design Process)
+ */
+const RB_083: RuleCheck = {
+  id: 'RB-083',
+  ruleId: 'R-083',
+  title: 'Office Not Adjacent Laundry',
+  severity: 'warning',
+  applies: layout =>
+    layout.rooms.some(r => r.type === 'office'  && r.width > 0 && r.height > 0) &&
+    layout.rooms.some(r => r.type === 'laundry' && r.width > 0 && r.height > 0),
+  check(layout) {
+    const rooms    = validRooms(layout);
+    const offices  = rooms.filter(r => r.type === 'office');
+    const laundries = rooms.filter(r => r.type === 'laundry');
+    const violations: Violation[] = [];
+    for (const o of offices) {
+      for (const l of laundries) {
+        if (roomsAreAdjacent(o, l)) {
+          violations.push({
+            code: 'RB-083',
+            severity: 'warning',
+            message: `Office "${roomLabel(o)}" is adjacent to laundry "${roomLabel(l)}" — washer/dryer vibration and noise (65–80 dB) disrupt ergonomic workstation conditions (User-Engaged Ergonomic Design).`,
+            roomIds: [o.id, l.id],
+            suggestedFixes: [{ type: 'swapRooms' as const, roomIdA: o.id, roomIdB: l.id }],
+          });
+        }
+      }
+    }
+    return violations;
+  },
+};
+
+/**
+ * RB-084 — PANTRY_MIN_AREA
+ * Each pantry must have ≥ 15 sq ft of floor area.
+ * A standard reach-in pantry with two-sided shelving requires a minimum
+ * of 2 ft depth × 7 ft width = 14 sq ft clear; 15 sq ft accounts for
+ * door swing and threshold clearance. A pantry below this threshold
+ * cannot hold adequate stock depth and fails as a functional food-storage
+ * zone (Architectural Graphic Standards — Pantry Sizing).
+ * Rulebook ref: R-082 (Workstation Ergonomic Work-Triangle Optimization)
+ */
+const RB_084: RuleCheck = {
+  id: 'RB-084',
+  ruleId: 'R-082',
+  title: 'Pantry Minimum Area',
+  severity: 'warning',
+  applies: layout => layout.rooms.some(r => r.type === 'pantry' && r.width > 0 && r.height > 0),
+  check(layout, ctx) {
+    const rooms    = validRooms(layout);
+    const pantries = rooms.filter(r => r.type === 'pantry');
+    const violations: Violation[] = [];
+    const factor   = ctx.ftToUnit * ctx.ftToUnit;
+    const MIN_AREA = 15; // sq ft
+    for (const p of pantries) {
+      const areaSqFt = roomArea(p) / factor;
+      if (areaSqFt < MIN_AREA) {
+        violations.push({
+          code: 'RB-084',
+          severity: 'warning',
+          message: `Pantry "${roomLabel(p)}" is only ${areaSqFt.toFixed(0)} sq ft — must be ≥ ${MIN_AREA} sq ft to hold two-sided shelving with door clearance (Arch. Graphic Standards).`,
+          roomIds: [p.id],
+          value: areaSqFt,
+          threshold: MIN_AREA,
+          suggestedFixes: [{
+            type: 'resizeRoom',
+            roomId: p.id,
+            scaleX: Math.sqrt(MIN_AREA / areaSqFt) + 0.05,
+            scaleY: Math.sqrt(MIN_AREA / areaSqFt) + 0.05,
+          }],
+        });
+      }
+    }
+    return violations;
+  },
+};
+
+/**
+ * RB-085 — BATHROOM_NOT_ADJACENT_LIVING
+ * A bathroom should not be directly adjacent to the living room.
+ * Bathroom plumbing noise (toilet flush, 70–80 dB; drain gurgling) and
+ * odors intrude on the primary social zone. R-088 (Acoustic Noise Control
+ * Hierarchy) requires noise-sensitive zones to be buffered from noise
+ * sources at the source level; placing a bathroom wall-to-wall with a
+ * living room skips tiers 1–3 of the acoustic hierarchy.
+ * Rulebook ref: R-088 (Acoustic Noise Control Hierarchy)
+ */
+const RB_085: RuleCheck = {
+  id: 'RB-085',
+  ruleId: 'R-088',
+  title: 'Bathroom Not Adjacent Living Room',
+  severity: 'warning',
+  applies: layout =>
+    layout.rooms.some(r => r.type === 'bathroom' && r.width > 0 && r.height > 0) &&
+    layout.rooms.some(r => (r.type === 'living' || r.type === 'living room') && r.width > 0 && r.height > 0),
+  check(layout) {
+    const rooms  = validRooms(layout);
+    const baths  = rooms.filter(r => r.type === 'bathroom');
+    const living = rooms.filter(r => r.type === 'living' || r.type === 'living room');
+    const violations: Violation[] = [];
+    for (const b of baths) {
+      for (const l of living) {
+        if (roomsAreAdjacent(b, l)) {
+          violations.push({
+            code: 'RB-085',
+            severity: 'warning',
+            message: `Bathroom "${roomLabel(b)}" is adjacent to living room "${roomLabel(l)}" — plumbing noise and odor intrude on the primary social zone (Acoustic Noise Control Hierarchy).`,
+            roomIds: [b.id, l.id],
+            suggestedFixes: [{ type: 'swapRooms' as const, roomIdA: b.id, roomIdB: l.id }],
+          });
+        }
+      }
+    }
+    return violations;
+  },
+};
+
+/**
+ * RB-086 — LIVING_ROOM_MIN_DEPTH
+ * The living room must be ≥ 14 ft in its longer dimension.
+ * A living room with a long exterior wall (≥ 14 ft) can accommodate a
+ * meaningful window-wall for passive solar gain and daylighting. R-086
+ * (Passive Thermal Comfort Strategy Priority) requires thermal comfort
+ * to be addressed through passive means — orientation and solar access —
+ * before mechanical systems are sized. 14 ft is the minimum run for a
+ * standard sofa group plus one fenestration bay (Arch. Graphic Standards).
+ * Rulebook ref: R-086 (Passive Thermal Comfort Strategy Priority)
+ */
+const RB_086: RuleCheck = {
+  id: 'RB-086',
+  ruleId: 'R-086',
+  title: 'Living Room Minimum Depth',
+  severity: 'info',
+  applies: layout => layout.rooms.some(r =>
+    (r.type === 'living' || r.type === 'living room') && r.width > 0 && r.height > 0
+  ),
+  check(layout, ctx) {
+    const rooms  = validRooms(layout);
+    const living = rooms.filter(r => r.type === 'living' || r.type === 'living room');
+    const violations: Violation[] = [];
+    const MIN_D = 14 * ctx.ftToUnit; // 14 ft
+    for (const l of living) {
+      const longer = Math.max(l.width, l.height);
+      if (longer < MIN_D) {
+        const longerFt = (longer / ctx.ftToUnit).toFixed(1);
+        violations.push({
+          code: 'RB-086',
+          severity: 'info',
+          message: `Living room "${roomLabel(l)}" is only ${longerFt} ft in its longer dimension — ≥ 14 ft is recommended to support a meaningful window-wall for passive solar access and daylight (Passive Thermal Comfort Priority).`,
+          roomIds: [l.id],
+          value: longer / ctx.ftToUnit,
+          threshold: 14,
+          suggestedFixes: [{
+            type: 'resizeRoom',
+            roomId: l.id,
+            targetW: l.width  > l.height ? MIN_D : l.width,
+            targetH: l.height > l.width  ? MIN_D : l.height,
+          }],
+        });
+      }
+    }
+    return violations;
+  },
+};
+
+/**
+ * RB-087 — DINING_ROOM_ASPECT_RATIO
+ * Each dining room must have an aspect ratio ≤ 2:1.
+ * A dining room more than twice as long as it is wide cannot fit a
+ * standard rectangular table with pull-out clearance on all four sides —
+ * one or both short walls become unusable dead zones. R-049 (Collaborative
+ * Seating Orientation) requires seating groups to be oriented for face-to-face
+ * interaction; extreme elongation prevents the cross-table eye contact that
+ * defines a communal dining arrangement.
+ * Rulebook ref: R-049 (Collaborative Seating Orientation)
+ */
+const RB_087: RuleCheck = {
+  id: 'RB-087',
+  ruleId: 'R-049',
+  title: 'Dining Room Aspect Ratio',
+  severity: 'warning',
+  applies: layout => layout.rooms.some(r => r.type === 'dining' && r.width > 0 && r.height > 0),
+  check(layout) {
+    const rooms   = validRooms(layout);
+    const dinings = rooms.filter(r => r.type === 'dining');
+    const violations: Violation[] = [];
+    const MAX_RATIO = 2;
+    for (const d of dinings) {
+      const longer  = Math.max(d.width, d.height);
+      const shorter = Math.min(d.width, d.height);
+      if (shorter === 0) continue;
+      const ratio = longer / shorter;
+      if (ratio > MAX_RATIO) {
+        violations.push({
+          code: 'RB-087',
+          severity: 'warning',
+          message: `Dining room "${roomLabel(d)}" has aspect ratio ${ratio.toFixed(1)}:1 — must be ≤ ${MAX_RATIO}:1 to fit a table with pull-out clearances on all sides and face-to-face seating (Collaborative Seating Orientation).`,
+          roomIds: [d.id],
+          value: ratio,
+          threshold: MAX_RATIO,
+          suggestedFixes: [{
+            type: 'resizeRoom',
+            roomId: d.id,
+            targetW: d.width  > d.height ? d.height * MAX_RATIO : d.width,
+            targetH: d.height > d.width  ? d.width  * MAX_RATIO : d.height,
+          }],
+        });
+      }
+    }
+    return violations;
+  },
+};
+
+/**
+ * RB-088 — CLOSET_MIN_DEPTH
+ * Each closet must be ≥ 2 ft in its narrower dimension.
+ * Standard clothes hangers require a 22-in rod depth plus clearance;
+ * 24 in (2 ft) is the minimum closet depth per Architectural Graphic
+ * Standards. A closet narrower than 2 ft cannot accommodate hanging
+ * garments and functions only as a shelf niche — inadequate for the
+ * storage it is programmed to serve. R-047 (Semi-Fixed Furniture
+ * Adaptability) requires storage provision to meet occupant needs.
+ * Rulebook ref: R-047 (Semi-Fixed Furniture Adaptability)
+ */
+const RB_088: RuleCheck = {
+  id: 'RB-088',
+  ruleId: 'R-047',
+  title: 'Closet Minimum Depth',
+  severity: 'warning',
+  applies: layout => layout.rooms.some(r => r.type === 'closet' && r.width > 0 && r.height > 0),
+  check(layout, ctx) {
+    const rooms   = validRooms(layout);
+    const closets = rooms.filter(r => r.type === 'closet');
+    const violations: Violation[] = [];
+    const MIN_D = 2 * ctx.ftToUnit; // 2 ft
+    for (const c of closets) {
+      const narrow = Math.min(c.width, c.height);
+      if (narrow < MIN_D) {
+        const narrowFt = (narrow / ctx.ftToUnit).toFixed(1);
+        violations.push({
+          code: 'RB-088',
+          severity: 'warning',
+          message: `Closet "${roomLabel(c)}" is only ${narrowFt} ft deep — must be ≥ 2 ft to accommodate standard hanging rod depth (22 in + clearance; Arch. Graphic Standards).`,
+          roomIds: [c.id],
+          value: narrow / ctx.ftToUnit,
+          threshold: 2,
+          suggestedFixes: [{
+            type: 'resizeRoom',
+            roomId: c.id,
+            targetW: c.width  < c.height ? MIN_D : c.width,
+            targetH: c.height < c.width  ? MIN_D : c.height,
+          }],
+        });
+      }
+    }
+    return violations;
+  },
+};
+
+/**
+ * RB-089 — LAUNDRY_MIN_WIDTH
+ * Each laundry room must be ≥ 5 ft in its narrower dimension.
+ * Two side-by-side front-loading appliances (each ~27 in wide) require
+ * 54 in minimum — rounded to 5 ft to allow side-wall clearance and door
+ * swing. A laundry room narrower than 5 ft forces a stacked or single-
+ * appliance layout with no side access for maintenance. R-083 (User-
+ * Engaged Ergonomic Design Process) requires specialized workstations
+ * to support the actual workflow of their users.
+ * Rulebook ref: R-083 (User-Engaged Ergonomic Design Process)
+ */
+const RB_089: RuleCheck = {
+  id: 'RB-089',
+  ruleId: 'R-083',
+  title: 'Laundry Minimum Width',
+  severity: 'warning',
+  applies: layout => layout.rooms.some(r => r.type === 'laundry' && r.width > 0 && r.height > 0),
+  check(layout, ctx) {
+    const rooms     = validRooms(layout);
+    const laundries = rooms.filter(r => r.type === 'laundry');
+    const violations: Violation[] = [];
+    const MIN_W = 5 * ctx.ftToUnit; // 5 ft
+    for (const l of laundries) {
+      const narrow = Math.min(l.width, l.height);
+      if (narrow < MIN_W) {
+        const narrowFt = (narrow / ctx.ftToUnit).toFixed(1);
+        violations.push({
+          code: 'RB-089',
+          severity: 'warning',
+          message: `Laundry room "${roomLabel(l)}" is only ${narrowFt} ft wide — must be ≥ 5 ft to fit two side-by-side appliances (2 × 27 in) with wall clearance (User-Engaged Ergonomic Design).`,
+          roomIds: [l.id],
+          value: narrow / ctx.ftToUnit,
+          threshold: 5,
+          suggestedFixes: [{
+            type: 'resizeRoom',
+            roomId: l.id,
+            targetW: l.width  < l.height ? MIN_W : l.width,
+            targetH: l.height < l.width  ? MIN_W : l.height,
+          }],
+        });
+      }
+    }
+    return violations;
+  },
+};
+
+/**
+ * RB-090 — GROSS_AREA_PER_BEDROOM
+ * Total gross floor area divided by bedroom count must be ≥ 350 sq ft per
+ * bedroom. This ratio ensures each occupant has adequate shared space for
+ * social, work, and service activities beyond their bedroom. Plans with many
+ * bedrooms but minimal common area fail R-081 (Multi-Level Health Pathway
+ * Coverage) — individual sleep space exists but social-health and
+ * environmental-quality spaces are undersized.
+ * Rulebook ref: R-081 (Multi-Level Health Pathway Coverage)
+ */
+const RB_090: RuleCheck = {
+  id: 'RB-090',
+  ruleId: 'R-081',
+  title: 'Gross Area per Bedroom',
+  severity: 'warning',
+  applies: layout => layout.rooms.filter(r => r.type === 'bedroom' && r.width > 0 && r.height > 0).length >= 1,
+  check(layout, ctx) {
+    const rooms        = validRooms(layout);
+    const bedrooms     = rooms.filter(r => r.type === 'bedroom');
+    const factor       = ctx.ftToUnit * ctx.ftToUnit;
+    const totalSqFt    = rooms.reduce((s, r) => s + roomArea(r) / factor, 0);
+    const ratio        = totalSqFt / bedrooms.length;
+    const MIN_RATIO    = 350; // sq ft per bedroom
+    if (ratio < MIN_RATIO) {
+      const bedIds = bedrooms.map(r => r.id);
+      return [{
+        code: 'RB-090',
+        severity: 'warning',
+        message: `Plan has ${totalSqFt.toFixed(0)} sq ft across ${bedrooms.length} bedroom${bedrooms.length > 1 ? 's' : ''} — ${ratio.toFixed(0)} sq ft/bedroom is below the ${MIN_RATIO} sq ft/bedroom minimum for adequate shared social and service space (Multi-Level Health Coverage).`,
+        roomIds: bedIds,
+        value: ratio,
+        threshold: MIN_RATIO,
+      }];
+    }
+    return [];
+  },
+};
+
 // ── Auto-register all built-in checks ─────────────────────────────────────────
 
 registerChecks(
@@ -3270,4 +3701,6 @@ registerChecks(
   RB_066, RB_067, RB_068, RB_069, RB_070,
   RB_071, RB_072, RB_073, RB_074, RB_075,
   RB_076, RB_077, RB_078, RB_079, RB_080,
+  RB_081, RB_082, RB_083, RB_084, RB_085,
+  RB_086, RB_087, RB_088, RB_089, RB_090,
 );
