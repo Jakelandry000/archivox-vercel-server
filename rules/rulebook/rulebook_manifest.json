@@ -1103,6 +1103,156 @@
         "R-034",
         "R-062"
       ]
+    },
+    {
+      "checkId": "RB-071",
+      "ruleId": "R-032",
+      "title": "Entry Minimum Area",
+      "severity": "warning",
+      "category": "dimensions",
+      "implemented": true,
+      "confidence": "medium",
+      "notes": "R-032 (Entry Sequence Primacy). An entry foyer must be ≥ 20 sq ft to allow door swing, outerwear removal, and an accessible turning approach (5-ft diameter turning circle). Smaller entries fail basic functional habitability even before accessibility standards are applied.",
+      "source_hint": "Architectural_Graphic_Standards_11th.md — Entry/Foyer minimum dimensions; ADA Standards §304.3",
+      "related_ruleIds": [
+        "R-032",
+        "R-013"
+      ]
+    },
+    {
+      "checkId": "RB-072",
+      "ruleId": "R-013",
+      "title": "Bathroom Aspect Ratio",
+      "severity": "warning",
+      "category": "dimensions",
+      "implemented": true,
+      "confidence": "medium",
+      "notes": "R-013 (ADA Turning Radius at All Activity Nodes). Bathrooms with aspect ratio > 3:1 cannot simultaneously place a toilet, lavatory, and tub/shower with required fixture clearances while also maintaining a 5-ft ADA turning diameter. A 3:1 limit is the practical boundary for any compliant fixture layout per Architectural Graphic Standards — Bathroom Fixture Clearances.",
+      "source_hint": "Architectural_Graphic_Standards_11th.md — Bathroom Fixture Clearances; ADA Standards §604, §606",
+      "related_ruleIds": [
+        "R-013",
+        "R-020"
+      ]
+    },
+    {
+      "checkId": "RB-073",
+      "ruleId": "R-082",
+      "title": "Kitchen Minimum Depth",
+      "severity": "warning",
+      "category": "dimensions",
+      "implemented": true,
+      "confidence": "medium",
+      "notes": "R-082 (Workstation Ergonomic Work-Triangle Optimization). NKBA guidelines require at least one counter run of ≥ 8 ft to accommodate sink, range, and refrigerator with required clearances between them. A kitchen that is narrow in both dimensions cannot fit any valid work-triangle configuration.",
+      "source_hint": "NKBA Kitchen Planning Guidelines; Architectural_Graphic_Standards_11th.md — Kitchen Work Triangle",
+      "related_ruleIds": [
+        "R-082",
+        "R-015"
+      ]
+    },
+    {
+      "checkId": "RB-074",
+      "ruleId": "R-062",
+      "title": "Living Room Aspect Ratio",
+      "severity": "warning",
+      "category": "dimensions",
+      "implemented": true,
+      "confidence": "medium",
+      "notes": "R-062 (Spatial Coherence Requirement). A living room wider than 2.5× its shorter dimension cannot support a functional furniture layout — the sofa group cannot face a focal point without one cluster being in a dead zone. Extreme elongation violates the organizing-principle legibility required by R-062.",
+      "source_hint": "Architectural_Graphic_Standards_11th.md — Living Room furniture layout ratios; also Neufert Architects' Data",
+      "related_ruleIds": [
+        "R-062",
+        "R-049"
+      ]
+    },
+    {
+      "checkId": "RB-075",
+      "ruleId": "R-023",
+      "title": "Garage Minimum Depth",
+      "severity": "warning",
+      "category": "dimensions",
+      "implemented": true,
+      "confidence": "high",
+      "notes": "R-023 (Garage Stall Minimum — IRC R309). Standard passenger vehicles are 14–17 ft long; 18 ft provides the minimum clear depth with 6-in buffers at each end per IRC Table R309. A garage shorter than 18 ft cannot fully contain a standard vehicle with the door closed.",
+      "source_hint": "IRC 2021 R309 — Garage stall dimensions; Architectural_Graphic_Standards_11th.md — Parking/Garage",
+      "related_ruleIds": [
+        "R-023",
+        "R-001"
+      ]
+    },
+    {
+      "checkId": "RB-076",
+      "ruleId": "R-014",
+      "title": "Stair Minimum Area",
+      "severity": "error",
+      "category": "code",
+      "implemented": true,
+      "confidence": "high",
+      "notes": "R-014 (Stair Geometry Compliance — IRC R311.7). IRC R311.7.1 requires ≥ 36-in clear stair width; a compliant straight-run flight (9 risers at 7 in, 9 treads at 10 in = 90 in run) with framing requires ≥ 40 sq ft. Below this, the stair cannot meet rise/run geometry or landing requirements.",
+      "source_hint": "IRC 2021 R311.7 — Stair geometry; Architectural_Graphic_Standards_11th.md — Stair minimum dimensions",
+      "related_ruleIds": [
+        "R-014",
+        "R-024"
+      ]
+    },
+    {
+      "checkId": "RB-077",
+      "ruleId": null,
+      "title": "Max Bedrooms Per Bathroom",
+      "severity": "warning",
+      "category": "composition",
+      "implemented": true,
+      "confidence": "medium",
+      "notes": "HUD Minimum Property Standards (MPS 4910.1) and Architectural Graphic Standards recommend at most 4 occupants per full bathroom. Plans with more than 4 bedrooms sharing a single bathroom create peak-demand conflicts that are a habitability deficiency regardless of total square footage.",
+      "source_hint": "HUD MPS 4910.1 — Bathroom provision standards; Architectural_Graphic_Standards_11th.md — Residential plumbing fixture ratios",
+      "related_ruleIds": [
+        "R-013",
+        "R-025"
+      ]
+    },
+    {
+      "checkId": "RB-078",
+      "ruleId": "R-046",
+      "title": "Office Aspect Ratio",
+      "severity": "warning",
+      "category": "dimensions",
+      "implemented": true,
+      "confidence": "medium",
+      "notes": "R-046 (Social-Distance Workstation Compliance). An office wider than 2.5× its shorter dimension cannot simultaneously fit a desk against one wall, chair pull-out, and a 5-ft ADA turning circle without the workspace becoming corridor-like. Complements RB-065 (Office Minimum Width) which checks absolute dimension.",
+      "source_hint": "Architectural_Graphic_Standards_11th.md — Office/Study layout clearances; ADA Standards §304.3",
+      "related_ruleIds": [
+        "R-046",
+        "R-027"
+      ]
+    },
+    {
+      "checkId": "RB-079",
+      "ruleId": "R-032",
+      "title": "Entry Adjacent to Living Room",
+      "severity": "info",
+      "category": "adjacency",
+      "implemented": true,
+      "confidence": "medium",
+      "notes": "R-032 (Entry Sequence Primacy). The arrival sequence should transition directly into the primary social zone. An entry that bypasses the living room forces occupants and guests through private zones before reaching the public area — a common habitability complaint in residential design captured in post-occupancy evaluations.",
+      "source_hint": "Architectural_Graphic_Standards_11th.md — Residential circulation sequence; also Lynch (Image of the City) on path-sequence legibility",
+      "related_ruleIds": [
+        "R-032",
+        "R-004"
+      ]
+    },
+    {
+      "checkId": "RB-080",
+      "ruleId": "R-049",
+      "title": "Dining Room Minimum Depth",
+      "severity": "warning",
+      "category": "dimensions",
+      "implemented": true,
+      "confidence": "medium",
+      "notes": "R-049 (Collaborative Seating Orientation). A 4-person rectangular table (36 × 72 in = 3 × 6 ft) with 36-in chair pull-out on each long side requires 6 + 3 + 3 = 12 ft along the table length. 10 ft is the hard minimum for a round or square table with two-sided clearance per Architectural Graphic Standards — Dining Room Sizing.",
+      "source_hint": "Architectural_Graphic_Standards_11th.md — Dining Room minimum dimensions; also Neufert Architects' Data",
+      "related_ruleIds": [
+        "R-049",
+        "R-017"
+      ]
     }
   ]
 }
