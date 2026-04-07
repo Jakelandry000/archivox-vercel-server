@@ -1,0 +1,70 @@
+﻿INVENTORY_COMPLETE 2026-04-03T22:48:24 count=25 bytes=359660514
+BATCH1_START 2026-04-04T07:06:19Z
+PDF_DONE 05_Ch4_Wayfinding_With_people_in_mind_AC 2026-04-04T07:09:40Z
+PDF_DONE 06_Cognition_meets_Le_Corbusier 2026-04-04T07:10:11Z
+PDF_DONE Ching_Green_Building_Illustrated_book 2026-04-04T07:10:40Z
+PDF_DONE Architectural_Graphic_Standards_11th 2026-04-04T07:11:19Z
+BATCH1_DONE 2026-04-04T07:17:10Z
+BATCH2_START 2026-04-04T07:36:59Z
+PDF_DONE 04_Image_of_the_City_AC 2026-04-04T07:41:52Z
+PDF_DONE 02_ChX_Distances_in_man_Hidden_Dimension_AC-1 2026-04-04T07:41:52Z
+PDF_DONE 07_Ch11_Health_by_Design 2026-04-04T07:41:52Z
+PDF_DONE 11_Shepley_Chapter_5 2026-04-04T07:41:52Z
+BATCH2_DONE 2026-04-04T07:41:52Z
+BATCH3_START 2026-04-04T07:47:00Z
+BATCH3_DONE 2026-04-04T07:55:03Z
+PDF_DONE 01_Ch2_Finding_a_good_home_Origins_of_Architectural_Pleasure_AC 2026-04-04T07:55:03Z
+PDF_DONE 02_Ch1_Dimensions_elements_attributes_of_biophilic_design_AC 2026-04-04T07:55:03Z
+PDF_DONE 13_Site_Planning_Design_for_elderly_AC 2026-04-04T07:55:03Z
+PDF_DONE 14_Use_of_physical_environment_to_support_everyday_activities_for_people_with_dementia_AC 2026-04-04T07:55:03Z
+BATCH4_START 2026-04-04T08:17:35Z
+PDF_EXTRACT_START 08_Zhu_Chapter_1 2026-04-04T08:17:35Z
+PDF_EXTRACT_DONE 08_Zhu_Chapter_1 chars=31585 pages=15 scanned=False 2026-04-04T08:17:35Z
+PDF_DONE 08_Zhu_Chapter_1 2026-04-04T08:17:35Z
+PDF_EXTRACT_START 09_Zhu_Chapter_3 2026-04-04T08:17:35Z
+PDF_EXTRACT_DONE 09_Zhu_Chapter_3 chars=71307 pages=27 scanned=False 2026-04-04T08:17:35Z
+PDF_DONE 09_Zhu_Chapter_3 2026-04-04T08:17:35Z
+PDF_EXTRACT_START 10_Zhu_Chapter_4 2026-04-04T08:17:35Z
+PDF_EXTRACT_DONE 10_Zhu_Chapter_4 chars=52972 pages=19 scanned=False 2026-04-04T08:17:35Z
+PDF_DONE 10_Zhu_Chapter_4 2026-04-04T08:17:35Z
+PDF_EXTRACT_START 12_Zhu_Chapter_7 2026-04-04T08:17:35Z
+PDF_EXTRACT_DONE 12_Zhu_Chapter_7 chars=54496 pages=20 scanned=False 2026-04-04T08:17:35Z
+PDF_DONE 12_Zhu_Chapter_7 2026-04-04T08:17:35Z
+BATCH4_DONE rules_added=24 R080_to_R103 2026-04-04T08:17:35Z
+BATCH5_START 2026-04-04T17:39:27Z
+PDF_EXTRACT_START ARUP_Two_Degrees_book 2026-04-04T17:39:27Z
+PDF_EXTRACT_DONE ARUP_Two_Degrees_book chars=845288 pages=277 scanned=False 2026-04-04T17:39:27Z
+PDF_DONE ARUP_Two_Degrees_book 2026-04-04T17:39:27Z
+PDF_EXTRACT_START GZ_Brown_SWL_book 2026-04-04T17:39:27Z
+PDF_EXTRACT_DONE GZ_Brown_SWL_book chars=107858 pages=398 scanned=False 2026-04-04T17:39:27Z
+PDF_DONE GZ_Brown_SWL_book 2026-04-04T17:39:27Z
+PDF_EXTRACT_START IPCC_AR6_SYR_SPM 2026-04-04T17:39:27Z
+PDF_EXTRACT_DONE IPCC_AR6_SYR_SPM chars=147744 pages=42 scanned=False 2026-04-04T17:39:27Z
+PDF_DONE IPCC_AR6_SYR_SPM 2026-04-04T17:39:27Z
+PDF_EXTRACT_START Fundamentals_of_Building_Construction_Materials_an..._----_(Chapter_1_Making_Buildings) 2026-04-04T17:39:27Z
+PDF_EXTRACT_DONE Fundamentals_of_Building_Construction_Materials_an..._----_(Chapter_1_Making_Buildings) chars=129874 pages=30 scanned=False 2026-04-04T17:39:27Z
+PDF_DONE Fundamentals_of_Building_Construction_Materials_an..._----_(Chapter_1_Making_Buildings) 2026-04-04T17:39:27Z
+PDF_EXTRACT_START Fundamentals_of_Building_Construction_Materials_an..._----_(Chapter_3_Wood) 2026-04-04T17:39:27Z
+PDF_EXTRACT_DONE Fundamentals_of_Building_Construction_Materials_an..._----_(Chapter_3_Wood) chars=163457 pages=46 scanned=False 2026-04-04T17:39:27Z
+PDF_DONE Fundamentals_of_Building_Construction_Materials_an..._----_(Chapter_3_Wood) 2026-04-04T17:39:27Z
+BATCH5_DONE rules_added=25 R104_to_R128 2026-04-04T17:39:27Z
+BATCH6_START 2026-04-04T18:00:00Z
+PDF_EXTRACT_START Fundamentals_of_Building_Construction_Materials_an..._----_(Chapter_4_Heavy_Timber_and_Mass_Timber_Construction) 2026-04-04T18:00:00Z
+PDF_EXTRACT_DONE Fundamentals_of_Building_Construction_Materials_an..._----_(Chapter_4_Heavy_Timber_and_Mass_Timber_Construction) chars=70685 pages=26 scanned=False 2026-04-04T18:00:00Z
+PDF_DONE Fundamentals_of_Building_Construction_Materials_an..._----_(Chapter_4_Heavy_Timber_and_Mass_Timber_Construction) 2026-04-04T18:00:00Z
+PDF_EXTRACT_START Fundamentals_of_Building_Construction_Materials_an..._----_(Chapter_6_Exterior_Finishes_for_Wood_Light_Frame_Construction) 2026-04-04T18:00:00Z
+PDF_EXTRACT_DONE Fundamentals_of_Building_Construction_Materials_an..._----_(Chapter_6_Exterior_Finishes_for_Wood_Light_Frame_Construction) chars=87400 pages=34 scanned=False 2026-04-04T18:00:00Z
+PDF_DONE Fundamentals_of_Building_Construction_Materials_an..._----_(Chapter_6_Exterior_Finishes_for_Wood_Light_Frame_Construction) 2026-04-04T18:00:00Z
+PDF_EXTRACT_START Fundamentals_of_Building_Construction_Materials_an..._----_(Cover) 2026-04-04T18:00:00Z
+PDF_EXTRACT_DONE Fundamentals_of_Building_Construction_Materials_an..._----_(Cover) chars=1006 pages=4 scanned=False no_rules=True 2026-04-04T18:00:00Z
+PDF_DONE Fundamentals_of_Building_Construction_Materials_an..._----_(Cover) 2026-04-04T18:00:00Z
+PDF_EXTRACT_START The_Architects_Studio_Companion_Rules_of_Thumb_for_Preliminary_Design_5th_Edition_by_Edward_Allen_Joseph_Iano 2026-04-04T18:00:00Z
+PDF_EXTRACT_DONE The_Architects_Studio_Companion_Rules_of_Thumb_for_Preliminary_Design_5th_Edition_by_Edward_Allen_Joseph_Iano chars=1022215 pages=498 scanned=False 2026-04-04T18:00:00Z
+PDF_DONE The_Architects_Studio_Companion_Rules_of_Thumb_for_Preliminary_Design_5th_Edition_by_Edward_Allen_Joseph_Iano 2026-04-04T18:00:00Z
+BATCH6_DONE rules_added=17 R129_to_R145 2026-04-04T18:00:00Z
+NOTE: Cover PDF (pages=4, chars=1006) is front-matter only; zero rules generated from it.
+NOTE: New PDF detector script at _archivox_ruleset_output/detect_new_pdfs.py
+NOTE: Run: python detect_new_pdfs.py --update  (after each batch to refresh manifest)
+NOTE: Run: python detect_new_pdfs.py           (to check for new or changed PDFs)
+NOTE: Manifest file: _archivox_ruleset_output/processed_pdfs.json
+NOTE:   manifest tracks (filename, size_bytes, mtime_epoch) for all 25 observed PDFs.
