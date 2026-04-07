@@ -4104,6 +4104,424 @@ const RB_100: RuleCheck = {
   },
 };
 
+// ── RB-101..RB-110 ────────────────────────────────────────────────────────────
+
+/**
+ * RB-101 — HALL_AT_PRIMARY_CIRCULATION
+ * In plans with ≥ 5 rooms, at least one hall room must be adjacent to an entry
+ * room OR touch the exterior boundary. This proxies for R-101's requirement
+ * that stairs be "prominently located" at the main circulation path rather than
+ * hidden in a back corridor. A hall reachable only through interior rooms lacks
+ * the direct stairwell-at-entry visibility that drives increased stair use.
+ * Rulebook ref: R-101 (Workplace Active Design Features)
+ */
+const RB_101: RuleCheck = {
+  id: 'RB-101',
+  ruleId: 'R-101',
+  title: 'Hall at Primary Circulation',
+  severity: 'info',
+  applies: layout =>
+    layout.rooms.filter(r => r.width > 0 && r.height > 0).length >= 5 &&
+    layout.rooms.some(r => r.type === 'hall' && r.width > 0 && r.height > 0),
+  check(layout, ctx) {
+    const rooms  = validRooms(layout);
+    if (rooms.length < 5) return [];
+    const halls  = rooms.filter(r => r.type === 'hall');
+    if (halls.length === 0) return [];
+    const entries = rooms.filter(r => r.type === 'entry');
+    const anyHallAtPrimary = halls.some(h =>
+      touchesExterior(h, ctx.dimW, ctx.dimD) ||
+      entries.some(e => roomsAreAdjacent(h, e))
+    );
+    if (!anyHallAtPrimary) {
+      const hallIds = halls.map(h => h.id);
+      return [{
+        code: 'RB-101',
+        severity: 'info',
+        message: `No hall is adjacent to an entry or touches the exterior boundary — the primary circulation spine should reach the main entry so stairs remain visible and accessible (R-101 Active Design).`,
+        roomIds: hallIds,
+        suggestedFixes: [{ type: 'moveRoom', roomId: halls[0].id, dx: -halls[0].x, dy: 0 }],
+      }];
+    }
+    return [];
+  },
+};
+
+/**
+ * RB-102 — OUTDOOR_ROOM_EXTERIOR_ACCESS
+ * When ≥ 3 bedrooms and ≥ 1 'other' room are present, at least one 'other' room
+ * must touch the exterior boundary. R-102 (School Outdoor Physical Activity
+ * Priority) identifies outdoor environments as the highest-impact activity scale.
+ * 'other' is the model's proxy for outdoor courtyards, playgrounds, and activity
+ * areas; an 'other' room with no exterior contact cannot function as outdoor space.
+ * Distinct from RB-097 (which checks that 'other' is present); this checks that
+ * it is accessible from the building perimeter.
+ * Rulebook ref: R-102 (School Outdoor Physical Activity Priority)
+ */
+const RB_102: RuleCheck = {
+  id: 'RB-102',
+  ruleId: 'R-102',
+  title: 'Outdoor Room Exterior Access',
+  severity: 'info',
+  applies: layout =>
+    layout.rooms.filter(r => r.type === 'bedroom' && r.width > 0 && r.height > 0).length >= 3 &&
+    layout.rooms.some(r => r.type === 'other' && r.width > 0 && r.height > 0),
+  check(layout, ctx) {
+    const rooms  = validRooms(layout);
+    const beds   = rooms.filter(r => r.type === 'bedroom');
+    if (beds.length < 3) return [];
+    const others = rooms.filter(r => r.type === 'other');
+    if (others.length === 0) return [];
+    const anyExterior = others.some(o => touchesExterior(o, ctx.dimW, ctx.dimD));
+    if (!anyExterior) {
+      return [{
+        code: 'RB-102',
+        severity: 'info',
+        message: `No 'other' room (outdoor/activity space proxy) touches the exterior boundary — outdoor activity areas must be accessible from the building perimeter to serve as effective physical activity environments (R-102).`,
+        roomIds: others.map(o => o.id),
+        suggestedFixes: others.map(o => ({ type: 'moveRoom' as const, roomId: o.id, dx: -o.x, dy: 0 })),
+      }];
+    }
+    return [];
+  },
+};
+
+/**
+ * RB-103 — THREE_DOMAIN_PROGRAM_PRESENCE
+ * Plans with ≥ 6 rooms should contain at least one room from each of the three
+ * health co-benefit domains required by R-103 (Active Living Co-Benefits
+ * Documentation): (1) social health — living or dining room; (2) physical
+ * activity — 'other' room (gym/activity/courtyard proxy); (3) economic/
+ * productivity — office room. At the Mueller Community scale, all three domains
+ * must be represented for multi-domain co-benefits framing to hold. A plan
+ * missing any one domain lacks the full programmatic basis for that claim.
+ * Distinct from RB-098 (counts distinct types ≥ 4, regardless of category).
+ * Rulebook ref: R-103 (Active Living Co-Benefits Documentation)
+ */
+const RB_103: RuleCheck = {
+  id: 'RB-103',
+  ruleId: 'R-103',
+  title: 'Three-Domain Program Presence',
+  severity: 'info',
+  applies: layout =>
+    layout.rooms.filter(r => r.width > 0 && r.height > 0).length >= 6,
+  check(layout) {
+    const rooms = validRooms(layout);
+    if (rooms.length < 6) return [];
+    const hasSocial   = rooms.some(r => r.type === 'living' || r.type === 'living room' || r.type === 'dining');
+    const hasActivity = rooms.some(r => r.type === 'other');
+    const hasWork     = rooms.some(r => r.type === 'office');
+    const missing: string[] = [];
+    if (!hasSocial)   missing.push('social health space (living or dining)');
+    if (!hasActivity) missing.push('physical activity space (other/gym/courtyard)');
+    if (!hasWork)     missing.push('work/productivity space (office)');
+    if (missing.length === 0) return [];
+    return [{
+      code: 'RB-103',
+      severity: 'info',
+      message: `Large plan (${rooms.length} rooms) is missing program from ${missing.length} health co-benefit domain(s): ${missing.join('; ')}. All three domains (social, physical, economic) are needed for multi-domain co-benefits framing (R-103).`,
+      roomIds: [],
+      suggestedFixes: missing.map(m => ({ type: 'addRoom' as const, roomType: !hasSocial && m.startsWith('social') ? 'living' : !hasActivity && m.startsWith('physical') ? 'other' : 'office' })),
+    }];
+  },
+};
+
+/**
+ * RB-104 — PLAN_FORM_COMPACTNESS
+ * The floor plan's longer dimension should not exceed 3× the shorter dimension
+ * (aspect ratio ≤ 3:1). R-104 (Near-Zero Carbon Building Pathway) mandates that
+ * passive design load reduction comes first in the decarbonisation hierarchy, and
+ * compact building form is the primary passive measure: it minimises the
+ * surface-to-volume ratio and therefore both heating and cooling loads. An
+ * elongated plan with aspect ratio > 3:1 has disproportionate exposed surface
+ * area and defeats passive load reduction before any systems are sized.
+ * Rulebook ref: R-104 (Near-Zero Carbon Building Pathway)
+ */
+const RB_104: RuleCheck = {
+  id: 'RB-104',
+  ruleId: 'R-104',
+  title: 'Plan Form Compactness',
+  severity: 'info',
+  applies: layout =>
+    layout.rooms.filter(r => r.width > 0 && r.height > 0).length >= 3 &&
+    layout.dimensions.width > 0 && layout.dimensions.depth > 0,
+  check(layout) {
+    const { width, depth } = layout.dimensions;
+    if (width <= 0 || depth <= 0) return [];
+    const rooms = validRooms(layout);
+    if (rooms.length < 3) return [];
+    const longer  = Math.max(width, depth);
+    const shorter = Math.min(width, depth);
+    const MAX_RATIO = 3;
+    const ratio = longer / shorter;
+    if (ratio > MAX_RATIO) {
+      return [{
+        code: 'RB-104',
+        severity: 'info',
+        message: `Floor plan aspect ratio is ${ratio.toFixed(1)}:1 — must be ≤ ${MAX_RATIO}:1 to maintain a compact form that minimises surface-to-volume ratio and passive heating/cooling loads (R-104 Near-Zero Carbon hierarchy).`,
+        roomIds: [],
+        value: ratio,
+        threshold: MAX_RATIO,
+      }];
+    }
+    return [];
+  },
+};
+
+/**
+ * RB-105 — DOMINANT_ROOM_AREA_BALANCE
+ * In plans with ≥ 4 rooms, no single room should occupy > 35% of the total room
+ * area. R-105 (Embodied Carbon Assessment) requires that material selection
+ * consider embodied carbon alongside first cost; a room that dominates the
+ * program at > 35% of total area creates a disproportionate structural bay that
+ * requires oversized members and connections — a proxy for unchecked embodied
+ * carbon concentration in a single element. Balanced room sizing distributes
+ * structural loads more efficiently and reduces peak embodied carbon per sq ft.
+ * Rulebook ref: R-105 (Embodied Carbon Assessment)
+ */
+const RB_105: RuleCheck = {
+  id: 'RB-105',
+  ruleId: 'R-105',
+  title: 'Dominant Room Area Balance',
+  severity: 'info',
+  applies: layout =>
+    layout.rooms.filter(r => r.width > 0 && r.height > 0).length >= 4,
+  check(layout, ctx) {
+    const rooms = validRooms(layout);
+    if (rooms.length < 4) return [];
+    const factor   = ctx.ftToUnit * ctx.ftToUnit;
+    const totalSqFt = rooms.reduce((s, r) => s + roomArea(r) / factor, 0);
+    if (totalSqFt === 0) return [];
+    const MAX_FRAC = 0.35;
+    const violations: Violation[] = [];
+    for (const r of rooms) {
+      const areaSqFt = roomArea(r) / factor;
+      const frac = areaSqFt / totalSqFt;
+      if (frac > MAX_FRAC) {
+        violations.push({
+          code: 'RB-105',
+          severity: 'info',
+          message: `Room "${roomLabel(r)}" (${r.type}) occupies ${(frac * 100).toFixed(0)}% of total room area — must be ≤ ${MAX_FRAC * 100}% to maintain balanced structural distribution and limit embodied carbon concentration (R-105).`,
+          roomIds: [r.id],
+          value: frac,
+          threshold: MAX_FRAC,
+          suggestedFixes: [{
+            type: 'resizeRoom',
+            roomId: r.id,
+            scaleX: Math.sqrt(MAX_FRAC / frac) - 0.05,
+            scaleY: Math.sqrt(MAX_FRAC / frac) - 0.05,
+          }],
+        });
+      }
+    }
+    return violations;
+  },
+};
+
+/**
+ * RB-106 — INTERIOR_BUFFER_ROOM_PRESENT
+ * In plans with ≥ 5 rooms, at least one room should NOT touch any exterior wall
+ * (serving as an interior thermal buffer zone). R-106 (Dual Climate Strategy)
+ * requires both mitigation (carbon reduction) and adaptation (climate resilience)
+ * strategies. At the floor-plan scale, a plan where every room directly borders
+ * the exterior has no thermal buffer — all spaces are exposed to peak summer heat
+ * or winter cold with no interior zone providing temperature moderation. An
+ * interior room (hall, closet, bathroom, laundry) acts as a buffer between
+ * conditioned habitable spaces and the exterior envelope, reducing thermal load
+ * volatility during grid-outage events and extreme weather conditions.
+ * Rulebook ref: R-106 (Dual Climate Strategy: Adaptation and Mitigation)
+ */
+const RB_106: RuleCheck = {
+  id: 'RB-106',
+  ruleId: 'R-106',
+  title: 'Interior Buffer Room Present',
+  severity: 'info',
+  applies: layout =>
+    layout.rooms.filter(r => r.width > 0 && r.height > 0).length >= 5,
+  check(layout, ctx) {
+    const rooms = validRooms(layout);
+    if (rooms.length < 5) return [];
+    const hasInterior = rooms.some(r => !touchesExterior(r, ctx.dimW, ctx.dimD));
+    if (!hasInterior) {
+      return [{
+        code: 'RB-106',
+        severity: 'info',
+        message: `Every room in this plan touches an exterior wall — include at least one interior buffer room (hall, closet, or bathroom) to provide thermal buffering between the habitable spaces and the building envelope (R-106 Climate Adaptation).`,
+        roomIds: rooms.map(r => r.id),
+        suggestedFixes: [{ type: 'addRoom', roomType: 'hall' }],
+      }];
+    }
+    return [];
+  },
+};
+
+/**
+ * RB-107 — LAUNDRY_INTERIOR_ADJACENCY
+ * Laundry rooms should be adjacent to at least one interior room (hall or
+ * bathroom). R-107 (Flood Resilience Ground-Floor Design) requires that
+ * mechanical equipment and vulnerable program not be placed at maximum flood
+ * exposure. A laundry room isolated at the building perimeter with no interior
+ * adjacency is at maximum flood risk: it sits directly at the building envelope
+ * with no interior buffer between it and exterior flood ingress. Adjacency to
+ * a hall or bathroom ensures the laundry is within the protected interior zone.
+ * Distinct from RB-089 (garage internal access for fire separation per IRC R309).
+ * Rulebook ref: R-107 (Flood Resilience Ground-Floor Design)
+ */
+const RB_107: RuleCheck = {
+  id: 'RB-107',
+  ruleId: 'R-107',
+  title: 'Laundry Interior Adjacency',
+  severity: 'info',
+  applies: layout =>
+    layout.rooms.some(r => r.type === 'laundry' && r.width > 0 && r.height > 0),
+  check(layout) {
+    const rooms   = validRooms(layout);
+    const laundry = rooms.filter(r => r.type === 'laundry');
+    const interior = new Set(['hall', 'bathroom']);
+    const violations: Violation[] = [];
+    for (const l of laundry) {
+      const hasAdj = rooms.some(r => interior.has(r.type) && roomsAreAdjacent(l, r));
+      if (!hasAdj) {
+        violations.push({
+          code: 'RB-107',
+          severity: 'info',
+          message: `Laundry room "${roomLabel(l)}" is not adjacent to any hall or bathroom — mechanical equipment should be within the protected interior zone, not isolated at the building perimeter (R-107 Flood Resilience).`,
+          roomIds: [l.id],
+          suggestedFixes: [{ type: 'moveRoom', roomId: l.id, dx: 0, dy: 0 }],
+        });
+      }
+    }
+    return violations;
+  },
+};
+
+/**
+ * RB-108 — TWO_BATHROOMS_FOR_THREE_BEDROOMS
+ * Plans with ≥ 3 bedrooms must include ≥ 2 bathrooms. R-108 (Passive
+ * Survivability: 72-Hour Habitability Standard) requires that buildings remain
+ * habitable without active systems, including "access to potable water." Water
+ * access for sanitation requires sufficient bathroom facilities — a 3+ bedroom
+ * plan with only 1 bathroom creates a sanitation bottleneck during grid-outage
+ * events when occupants cannot leave the building. The 2-bathroom minimum for
+ * 3+ bedroom plans is also the HUD Minimum Property Standards sanitation
+ * requirement for multi-bedroom residential occupancy.
+ * Distinct from RB-064 (per-bedroom adjacency) and RB-018 (circulation access).
+ * Rulebook ref: R-108 (Passive Survivability: 72-Hour Habitability Standard)
+ */
+const RB_108: RuleCheck = {
+  id: 'RB-108',
+  ruleId: 'R-108',
+  title: 'Two Bathrooms for Three Bedrooms',
+  severity: 'info',
+  applies: layout =>
+    layout.rooms.filter(r => r.type === 'bedroom' && r.width > 0 && r.height > 0).length >= 3,
+  check(layout) {
+    const rooms    = validRooms(layout);
+    const beds     = rooms.filter(r => r.type === 'bedroom');
+    const baths    = rooms.filter(r => r.type === 'bathroom');
+    if (beds.length < 3) return [];
+    const MIN_BATHS = 2;
+    if (baths.length < MIN_BATHS) {
+      const bedIds = beds.map(b => b.id);
+      return [{
+        code: 'RB-108',
+        severity: 'info',
+        message: `Plan has ${beds.length} bedrooms but only ${baths.length} bathroom(s) — at least ${MIN_BATHS} bathrooms are required for a ${beds.length}-bedroom plan to maintain sanitation access during passive-survivability conditions (R-108).`,
+        roomIds: bedIds,
+        value: baths.length,
+        threshold: MIN_BATHS,
+        suggestedFixes: [{ type: 'addRoom', roomType: 'bathroom' }],
+      }];
+    }
+    return [];
+  },
+};
+
+/**
+ * RB-109 — OFFICE_EXTERIOR_ACCESS
+ * Office rooms should touch the exterior boundary (natural daylighting access).
+ * R-109 (Net Zero Carbon Verification Requirement) notes that the performance gap
+ * between designed and actual energy use averages 1.5–2× across the industry.
+ * Daylit offices are a primary driver of this gap: an interior office defaults
+ * entirely to artificial lighting during occupied hours, consuming 2–3× the
+ * energy of a daylit workspace. Placing office rooms at the exterior boundary is
+ * the most effective passive daylighting measure and must precede commissioning
+ * and metering plans (the M&V pathway of R-109) to be credible.
+ * Distinct from RB-004 (living), RB-005 (kitchen), RB-011 (bedrooms), RB-043.
+ * Rulebook ref: R-109 (Net Zero Carbon Verification Requirement)
+ */
+const RB_109: RuleCheck = {
+  id: 'RB-109',
+  ruleId: 'R-109',
+  title: 'Office Exterior Access',
+  severity: 'info',
+  applies: layout =>
+    layout.rooms.some(r => r.type === 'office' && r.width > 0 && r.height > 0),
+  check(layout, ctx) {
+    const rooms   = validRooms(layout);
+    const offices = rooms.filter(r => r.type === 'office');
+    const violations: Violation[] = [];
+    for (const o of offices) {
+      if (!touchesExterior(o, ctx.dimW, ctx.dimD)) {
+        violations.push({
+          code: 'RB-109',
+          severity: 'info',
+          message: `Office "${roomLabel(o)}" does not touch an exterior wall — interior offices rely entirely on artificial lighting, significantly increasing lighting energy load and widening the actual-vs-designed performance gap (R-109 Net Zero Verification).`,
+          roomIds: [o.id],
+          suggestedFixes: [{ type: 'moveRoom', roomId: o.id, dx: -o.x, dy: 0 }],
+        });
+      }
+    }
+    return violations;
+  },
+};
+
+/**
+ * RB-110 — ALL_FACADES_ACTIVATED
+ * In plans with ≥ 6 rooms, rooms should touch all 4 exterior boundary segments
+ * (left, right, top, bottom edges of the floor plan). R-110 (Site Microclimate
+ * Analysis Precondition) requires that solar access at all facades and prevailing
+ * wind direction be understood before massing decisions are made. A plan where
+ * rooms occupy only 2–3 sides of the floor plate implies the remaining facade(s)
+ * are entirely unused — the solar and wind conditions on those faces were not
+ * considered in the design. Full four-facade activation is the floor-plan proxy
+ * for a site-microclimate-informed massing that distributes programme around all
+ * cardinal orientations.
+ * Rulebook ref: R-110 (Site Microclimate Analysis Precondition)
+ */
+const RB_110: RuleCheck = {
+  id: 'RB-110',
+  ruleId: 'R-110',
+  title: 'All Facades Activated',
+  severity: 'info',
+  applies: layout =>
+    layout.rooms.filter(r => r.width > 0 && r.height > 0).length >= 6,
+  check(layout, ctx) {
+    const rooms = validRooms(layout);
+    if (rooms.length < 6) return [];
+    const tol = 0.5;
+    const { dimW, dimD } = ctx;
+    const touchLeft   = rooms.some(r => r.x <= tol);
+    const touchRight  = rooms.some(r => r.x + r.width  >= dimW - tol);
+    const touchTop    = rooms.some(r => r.y <= tol);
+    const touchBottom = rooms.some(r => r.y + r.height >= dimD - tol);
+    const inactive: string[] = [];
+    if (!touchLeft)   inactive.push('left');
+    if (!touchRight)  inactive.push('right');
+    if (!touchTop)    inactive.push('top');
+    if (!touchBottom) inactive.push('bottom');
+    if (inactive.length === 0) return [];
+    return [{
+      code: 'RB-110',
+      severity: 'info',
+      message: `${inactive.length} facade(s) have no adjacent room — inactive faces: ${inactive.join(', ')}. In a ≥ 6-room plan, all four building faces should have rooms to ensure solar and wind microclimate conditions on every facade were considered in the massing (R-110).`,
+      roomIds: [],
+      value: inactive.length,
+      threshold: 0,
+    }];
+  },
+};
+
 // ── Auto-register all built-in checks ─────────────────────────────────────────
 
 registerChecks(
@@ -4127,4 +4545,6 @@ registerChecks(
   RB_086, RB_087, RB_088, RB_089, RB_090,
   RB_091, RB_092, RB_093, RB_094, RB_095,
   RB_096, RB_097, RB_098, RB_099, RB_100,
+  RB_101, RB_102, RB_103, RB_104, RB_105,
+  RB_106, RB_107, RB_108, RB_109, RB_110,
 );

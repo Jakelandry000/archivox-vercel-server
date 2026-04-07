@@ -1543,6 +1543,148 @@
       "related_ruleIds": [
         "R-100"
       ]
+    },
+    {
+      "checkId": "RB-101",
+      "ruleId": "R-101",
+      "title": "Hall at Primary Circulation",
+      "severity": "info",
+      "category": "circulation",
+      "implemented": true,
+      "confidence": "medium",
+      "notes": "R-101 (Workplace Active Design Features) requires stairs to be prominently located at the main circulation path and well-lit. Checks: in plans with ≥ 5 rooms and ≥ 1 hall, at least one hall must be adjacent to an entry room OR touch the exterior boundary (stairwell-at-main-path proxy). A hall reachable only through interior rooms is analogous to a stairwell hidden in a back corridor, which R-101 identifies as a missed active design opportunity. Assumption: 'hall' room type = primary stair/circulation spine proxy in this data model.",
+      "source_hint": "12_Zhu_Chapter_7 (1).pdf (p. 10 / book p. 119)",
+      "related_ruleIds": [
+        "R-101",
+        "R-025"
+      ]
+    },
+    {
+      "checkId": "RB-102",
+      "ruleId": "R-102",
+      "title": "Outdoor Room Exterior Access",
+      "severity": "info",
+      "category": "adjacency",
+      "implemented": true,
+      "confidence": "medium",
+      "notes": "R-102 (School Outdoor Physical Activity Priority) identifies outdoor environments as the highest-impact scale for student physical activity. Checks: when ≥ 3 bedrooms and ≥ 1 'other' room are present, at least one 'other' room must touch the exterior boundary (outdoor/activity area accessible from the building perimeter). Assumption: 'other' room type = outdoor courtyard / playground / activity area proxy. Distinct from RB-097 (which checks that 'other' room is present); this checks exterior accessibility.",
+      "source_hint": "12_Zhu_Chapter_7 (1).pdf (p. 9 / book p. 118)",
+      "related_ruleIds": [
+        "R-102"
+      ]
+    },
+    {
+      "checkId": "RB-103",
+      "ruleId": "R-103",
+      "title": "Three-Domain Program Presence",
+      "severity": "info",
+      "category": "zoning",
+      "implemented": true,
+      "confidence": "medium",
+      "notes": "R-103 (Active Living Co-Benefits Documentation) requires that large institutional or campus projects document co-benefits across three domains: physical health, social health, and economic value. Checks: plans with ≥ 6 rooms must contain at least one room from each of: (1) social health — living or dining; (2) physical activity — 'other' (gym/courtyard proxy); (3) economic/productivity — office. A plan missing any one category cannot support multi-domain co-benefits framing. Assumption: 6-room threshold = minimum for institutional/campus program scale. Distinct from RB-098 (counts distinct types ≥ 4, regardless of category).",
+      "source_hint": "12_Zhu_Chapter_7 (1).pdf (p. 11, 14-15 / book p. 120, 123-124)",
+      "related_ruleIds": [
+        "R-103"
+      ]
+    },
+    {
+      "checkId": "RB-104",
+      "ruleId": "R-104",
+      "title": "Plan Form Compactness",
+      "severity": "info",
+      "category": "dimensions",
+      "implemented": true,
+      "confidence": "medium",
+      "notes": "R-104 (Near-Zero Carbon Building Pathway) mandates that passive design load reduction precede systems efficiency and renewables in the decarbonisation hierarchy. Compact building form (low surface-to-volume ratio) is the primary passive measure. Checks: in plans with ≥ 3 rooms, floor plan aspect ratio (longer dimension / shorter dimension of dimW × dimD) must be ≤ 3:1. A plan exceeding 3:1 has disproportionate exposed surface area, increasing heating and cooling loads before any systems are sized. Assumption: floor plan dimensions = building footprint proxy for surface-to-volume ratio.",
+      "source_hint": "ARUP_Two_Degrees_book.pdf (Ch. 2 — Pathways to 2 Degrees / passive design hierarchy)",
+      "related_ruleIds": [
+        "R-104"
+      ]
+    },
+    {
+      "checkId": "RB-105",
+      "ruleId": "R-105",
+      "title": "Dominant Room Area Balance",
+      "severity": "info",
+      "category": "dimensions",
+      "implemented": true,
+      "confidence": "medium",
+      "notes": "R-105 (Embodied Carbon Assessment) requires material selection to consider embodied carbon alongside first cost in high-performance buildings. Checks: in plans with ≥ 4 rooms, no single room may occupy > 35% of total room area. A room dominating > 35% of the plan area creates a disproportionate structural bay requiring oversized members — a proxy for unchecked embodied carbon concentration in a single element. Balanced room sizing distributes structural loads more efficiently and reduces peak embodied carbon per sq ft. Assumption: room area dominance = structural oversizing proxy.",
+      "source_hint": "ARUP_Two_Degrees_book.pdf (Ch. 3 — Embodied Carbon / lifecycle thinking section)",
+      "related_ruleIds": [
+        "R-105"
+      ]
+    },
+    {
+      "checkId": "RB-106",
+      "ruleId": "R-106",
+      "title": "Interior Buffer Room Present",
+      "severity": "info",
+      "category": "zoning",
+      "implemented": true,
+      "confidence": "medium",
+      "notes": "R-106 (Dual Climate Strategy: Adaptation and Mitigation) requires both mitigation and adaptation strategies. At floor-plan scale, a plan where every room directly borders the exterior has no thermal buffer zone — all spaces are exposed to peak weather conditions with no interior moderation layer. Checks: in plans with ≥ 5 rooms, at least one room must NOT touch any exterior boundary wall (interior buffer room proxy for climate adaptation thermal resilience). Assumption: interior room (hall, closet, bathroom, laundry) = thermal buffer between conditioned habitable spaces and the envelope. Distinct from RB-004/005/011/043 (which flag the ABSENCE of exterior access as violations).",
+      "source_hint": "ARUP_Two_Degrees_book.pdf (Ch. 1 — Two Degrees Framework / mitigation + adaptation)",
+      "related_ruleIds": [
+        "R-106"
+      ]
+    },
+    {
+      "checkId": "RB-107",
+      "ruleId": "R-107",
+      "title": "Laundry Interior Adjacency",
+      "severity": "info",
+      "category": "adjacency",
+      "implemented": true,
+      "confidence": "medium",
+      "notes": "R-107 (Flood Resilience Ground-Floor Design) requires that mechanical equipment not be placed at maximum flood exposure. Checks: laundry rooms (mechanical equipment proxy: washer, dryer, water heater) must be adjacent to at least one interior room (hall or bathroom). A laundry room with no interior adjacency sits at maximum envelope exposure with no interior protection from flood ingress. Distinct from RB-089 (garage internal access for fire separation per IRC R309.1, different room type and code basis).",
+      "source_hint": "ARUP_Two_Degrees_book.pdf (Ch. 4 — Flood Resilience / threshold heights)",
+      "related_ruleIds": [
+        "R-107"
+      ]
+    },
+    {
+      "checkId": "RB-108",
+      "ruleId": "R-108",
+      "title": "Two Bathrooms for Three Bedrooms",
+      "severity": "info",
+      "category": "zoning",
+      "implemented": true,
+      "confidence": "high",
+      "notes": "R-108 (Passive Survivability: 72-Hour Habitability Standard) requires habitability without active systems including 'access to potable water.' Sanitation access is a habitability prerequisite during grid-outage events. Checks: plans with ≥ 3 bedrooms must have ≥ 2 bathrooms. A 3+ bedroom plan with only 1 bathroom creates a sanitation bottleneck during extended outage scenarios and does not meet HUD Minimum Property Standards for multi-bedroom occupancy. Distinct from RB-064 (per-bedroom bathroom adjacency) and RB-018 (bathroom circulation access).",
+      "source_hint": "ARUP_Two_Degrees_book.pdf (Ch. 5 — Resilience / passive survivability); HUD MPS sanitation requirement",
+      "related_ruleIds": [
+        "R-108"
+      ]
+    },
+    {
+      "checkId": "RB-109",
+      "ruleId": "R-109",
+      "title": "Office Exterior Access",
+      "severity": "info",
+      "category": "adjacency",
+      "implemented": true,
+      "confidence": "medium",
+      "notes": "R-109 (Net Zero Carbon Verification Requirement) notes that the designed-vs-actual performance gap averages 1.5–2× across the industry, with lighting energy as a primary contributor. Checks: each office room must touch the exterior boundary (natural daylighting for workspaces). Interior offices rely entirely on artificial lighting, consuming 2–3× the energy of daylit workspaces and contributing directly to the performance gap. Passive daylighting of office space must precede commissioning and metering plans to be credible. Distinct from RB-004 (living), RB-005 (kitchen), RB-011 (bedrooms), RB-043 (bathroom).",
+      "source_hint": "ARUP_Two_Degrees_book.pdf (Ch. 6 — Net Zero / measurement and verification)",
+      "related_ruleIds": [
+        "R-109",
+        "R-021"
+      ]
+    },
+    {
+      "checkId": "RB-110",
+      "ruleId": "R-110",
+      "title": "All Facades Activated",
+      "severity": "info",
+      "category": "adjacency",
+      "implemented": true,
+      "confidence": "medium",
+      "notes": "R-110 (Site Microclimate Analysis Precondition) requires solar access analysis at all facades before massing decisions. Checks: in plans with ≥ 6 rooms, rooms must touch all 4 exterior boundary segments (left, right, top, bottom). A plan where 1–2 facades have no adjacent rooms implies those faces were not considered in the massing — solar and wind conditions on those orientations were ignored, violating the site microclimate precondition of R-110. Assumption: 6-room threshold = minimum program scale where full facade activation is expected.",
+      "source_hint": "GZ_Brown_SWL_book.pdf (Ch. 1 — Climate Analysis / site microclimate)",
+      "related_ruleIds": [
+        "R-110"
+      ]
     }
   ]
 }
