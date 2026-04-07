@@ -1253,6 +1253,149 @@
         "R-049",
         "R-017"
       ]
+    },
+    {
+      "checkId": "RB-081",
+      "ruleId": "R-062",
+      "title": "Bedroom Aspect Ratio",
+      "severity": "warning",
+      "category": "dimensions",
+      "implemented": true,
+      "confidence": "high",
+      "notes": "R-062 (Spatial Coherence Requirement). A bedroom longer than 2× its width cannot fit a standard bed (queen 5×7 ft) perpendicular to both walls while maintaining required 36-in circulation path. RB-003 catches extreme slivers (>5:1); RB-081 enforces the functional furniture-placement threshold of 2:1.",
+      "source_hint": "Architectural_Graphic_Standards_11th.md — Bedroom furniture layouts",
+      "related_ruleIds": [
+        "R-062",
+        "R-013"
+      ]
+    },
+    {
+      "checkId": "RB-082",
+      "ruleId": "R-014",
+      "title": "Stair Minimum Width",
+      "severity": "error",
+      "category": "egress",
+      "implemented": true,
+      "confidence": "high",
+      "notes": "R-014 (Stair Geometry Compliance). IRC R311.7.1 mandates a minimum 36-in clear stair width. A stair narrower than 3 ft cannot legally serve as a means of egress. Distinct from RB-076 (minimum area) and RB-053 (rise/run geometry).",
+      "source_hint": "Architectural_Graphic_Standards_11th.md — Stair section; IRC R311.7.1",
+      "related_ruleIds": [
+        "R-014",
+        "R-024"
+      ]
+    },
+    {
+      "checkId": "RB-083",
+      "ruleId": "R-049",
+      "title": "Dining Room Aspect Ratio",
+      "severity": "warning",
+      "category": "dimensions",
+      "implemented": true,
+      "confidence": "medium",
+      "notes": "R-049 (Collaborative Seating Orientation). A dining room more elongated than 2.5:1 cannot accommodate a rectangular table with seating on all four sides and required 36-in pull-out clearances. Distinct from RB-080 (min depth) and RB-062 (min width).",
+      "source_hint": "Architectural_Graphic_Standards_11th.md — Dining Room layouts",
+      "related_ruleIds": [
+        "R-049",
+        "R-062"
+      ]
+    },
+    {
+      "checkId": "RB-084",
+      "ruleId": null,
+      "title": "Plan Aspect Ratio",
+      "severity": "warning",
+      "category": "zoning",
+      "implemented": true,
+      "confidence": "medium",
+      "notes": "No single R-NNN match. Relates to R-004 (Legibility by Lynch Elements) and R-031 (Floor Plan Interconnection Density Limit). Plan aspect ratio >3:1 inflates envelope cost, forces single-loaded corridor configuration, and degrades wayfinding legibility. 3:1 is the practical upper bound for cost-effective residential construction.",
+      "source_hint": "04_Image_of_the_City_AC.md — Lynch legibility; The_Architects_Studio_Companion — proportion rules of thumb",
+      "related_ruleIds": [
+        "R-004",
+        "R-031"
+      ]
+    },
+    {
+      "checkId": "RB-085",
+      "ruleId": null,
+      "title": "Laundry Minimum Width",
+      "severity": "warning",
+      "category": "dimensions",
+      "implemented": true,
+      "confidence": "medium",
+      "notes": "No direct R-NNN match. HUD MPS and Architectural Graphic Standards laundry sizing. A side-by-side washer+dryer requires 5 ft clear interior width (2×~2 ft units + framing). Narrower forces stacking-only configuration. Distinct from RB-067 (minimum area).",
+      "source_hint": "Architectural_Graphic_Standards_11th.md — Laundry room sizing; HUD Minimum Property Standards",
+      "related_ruleIds": []
+    },
+    {
+      "checkId": "RB-086",
+      "ruleId": "R-046",
+      "title": "Office Minimum Depth",
+      "severity": "warning",
+      "category": "dimensions",
+      "implemented": true,
+      "confidence": "medium",
+      "notes": "R-046 (Social-Distance Workstation Compliance). An office must be ≥ 9 ft in its longer dimension to accommodate a desk run (5 ft) + ADA turning space (2.5 ft) + exit path (1.5 ft). Distinct from RB-065 (min width 8 ft) and RB-052 (min area).",
+      "source_hint": "Architectural_Graphic_Standards_11th.md — Office/workstation layouts; ADA §305",
+      "related_ruleIds": [
+        "R-046",
+        "R-082"
+      ]
+    },
+    {
+      "checkId": "RB-087",
+      "ruleId": "R-013",
+      "title": "Entry Minimum Width",
+      "severity": "warning",
+      "category": "egress",
+      "implemented": true,
+      "confidence": "high",
+      "notes": "R-013 (ADA Turning Radius at All Activity Nodes). Entry shorter dimension ≥ 4 ft provides comfortable two-person pass and accessible passage at the entry threshold (ADA §402.3 requires 36 in minimum; 4 ft is the recommended residential standard). Distinct from RB-071 (minimum entry area).",
+      "source_hint": "Architectural_Graphic_Standards_11th.md — Entry/foyer dimensions; ADA §402.3",
+      "related_ruleIds": [
+        "R-013",
+        "R-032"
+      ]
+    },
+    {
+      "checkId": "RB-088",
+      "ruleId": null,
+      "title": "Closet Minimum Depth",
+      "severity": "error",
+      "category": "dimensions",
+      "implemented": true,
+      "confidence": "high",
+      "notes": "No direct R-NNN match. Architectural Graphic Standards closet dimensions. Standard clothes hangers require 22–24 in (2 ft) clear depth. A closet shallower than 24 in cannot hang garments and is effectively a shelf niche. Distinct from RB-068 (minimum closet area).",
+      "source_hint": "Architectural_Graphic_Standards_11th.md — Closet dimensions (24-in hanger rod depth standard)",
+      "related_ruleIds": []
+    },
+    {
+      "checkId": "RB-089",
+      "ruleId": null,
+      "title": "Garage Internal Access",
+      "severity": "warning",
+      "category": "egress",
+      "implemented": true,
+      "confidence": "high",
+      "notes": "No direct R-NNN match. IRC R309.1 requires a solid fire-separation door between garage and dwelling interior. Without adjacency to an interior room (entry/hall/laundry/kitchen) this connection is impossible. Without internal access, occupants must use exterior paths — a significant safety and habitability deficiency.",
+      "source_hint": "IRC R309.1 — Garage/Dwelling Separation requirement",
+      "related_ruleIds": [
+        "R-036",
+        "R-032"
+      ]
+    },
+    {
+      "checkId": "RB-090",
+      "ruleId": null,
+      "title": "Bedroom Closet Coverage",
+      "severity": "info",
+      "category": "adjacency",
+      "implemented": true,
+      "confidence": "medium",
+      "notes": "No direct R-NNN match. Architectural Graphic Standards bedroom storage provision. When multiple bedrooms are present, each bedroom should have at least one adjacent closet. RB-006 only requires one closet adjacent to any single bedroom (plan-level minimum); RB-090 enforces per-bedroom dedicated storage. Severity is info because in small plans closets are sometimes shared across a hall.",
+      "source_hint": "Architectural_Graphic_Standards_11th.md — Bedroom storage provision; HUD MPS bedroom storage",
+      "related_ruleIds": [
+        "R-013"
+      ]
     }
   ]
 }
