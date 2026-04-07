@@ -3686,6 +3686,424 @@ const RB_090: RuleCheck = {
   },
 };
 
+// ── RB-091..RB-100 ────────────────────────────────────────────────────────────
+
+/**
+ * RB-091 — MBH_COMMUNAL_PROVISION
+ * When ≥ 4 bedrooms are present (proxy for a care-facility patient cluster),
+ * at least one communal room (living or dining) must exist.
+ * R-091 (MBH Small-Unit and Mixed Room-Type Configuration) requires communal
+ * areas, interaction furniture, and a public-to-private gradient in MBH
+ * inpatient clusters. The layout data model does not distinguish building type,
+ * so ≥ 4 bedrooms is used as the care-facility proxy.
+ * Rulebook ref: R-091 (MBH Small-Unit and Mixed Room-Type Configuration)
+ */
+const RB_091: RuleCheck = {
+  id: 'RB-091',
+  ruleId: 'R-091',
+  title: 'MBH Communal Space Provision',
+  severity: 'warning',
+  applies: layout =>
+    layout.rooms.filter(r => r.type === 'bedroom' && r.width > 0 && r.height > 0).length >= 4,
+  check(layout) {
+    const rooms = validRooms(layout);
+    const beds    = rooms.filter(r => r.type === 'bedroom');
+    if (beds.length < 4) return [];
+    const hasCommunal = rooms.some(
+      r => r.type === 'living' || r.type === 'living room' || r.type === 'dining'
+    );
+    if (!hasCommunal) {
+      const bedIds = beds.map(b => b.id);
+      return [{
+        code: 'RB-091',
+        severity: 'warning',
+        message: `Plan has ${beds.length} bedrooms but no communal room (living or dining) — MBH clusters require at least one shared social space per patient group (R-091).`,
+        roomIds: bedIds,
+        suggestedFixes: [{ type: 'addRoom', roomType: 'living' }],
+      }];
+    }
+    return [];
+  },
+};
+
+/**
+ * RB-092 — COMMUNAL_AREA_PER_BEDROOM
+ * When ≥ 2 bedrooms and ≥ 1 communal room (living or dining) are present, the
+ * combined living+dining area should be ≥ 40 sq ft per bedroom.
+ * Trauma-informed design (R-092) requires that communal space scales with
+ * resident count. 40 sq ft/bedroom is the minimum for a seat-and-table social
+ * grouping per resident (≈ one 20 sq ft armchair zone per person). Distinct from
+ * RB-017 (percentage-of-total-area) because this is an absolute per-occupant
+ * allocation.
+ * Rulebook ref: R-092 (Trauma-Informed Design Environmental Stress Reduction)
+ */
+const RB_092: RuleCheck = {
+  id: 'RB-092',
+  ruleId: 'R-092',
+  title: 'Communal Area Per Bedroom',
+  severity: 'info',
+  applies: layout =>
+    layout.rooms.filter(r => r.type === 'bedroom' && r.width > 0 && r.height > 0).length >= 2 &&
+    layout.rooms.some(
+      r => (r.type === 'living' || r.type === 'living room' || r.type === 'dining') && r.width > 0 && r.height > 0
+    ),
+  check(layout, ctx) {
+    const rooms       = validRooms(layout);
+    const beds        = rooms.filter(r => r.type === 'bedroom');
+    const communal    = rooms.filter(
+      r => r.type === 'living' || r.type === 'living room' || r.type === 'dining'
+    );
+    if (beds.length < 2 || communal.length === 0) return [];
+    const factor      = ctx.ftToUnit * ctx.ftToUnit;
+    const communalSqFt = communal.reduce((s, r) => s + roomArea(r) / factor, 0);
+    const MIN_PER_BED  = 40; // sq ft
+    const required     = beds.length * MIN_PER_BED;
+    if (communalSqFt < required) {
+      return [{
+        code: 'RB-092',
+        severity: 'info',
+        message: `Combined communal area ${communalSqFt.toFixed(0)} sq ft serves ${beds.length} bedrooms — must be ≥ ${required.toFixed(0)} sq ft (${MIN_PER_BED} sq ft/bedroom) for trauma-informed social space scaling (R-092).`,
+        roomIds: communal.map(r => r.id),
+        value: communalSqFt / beds.length,
+        threshold: MIN_PER_BED,
+        suggestedFixes: communal.map(r => ({
+          type: 'resizeRoom' as const, roomId: r.id, scaleX: 1.2, scaleY: 1.2,
+        })),
+      }];
+    }
+    return [];
+  },
+};
+
+/**
+ * RB-093 — LIVING_DINING_ADJACENCY
+ * When both a living room and a dining room are present, they should be
+ * adjacent (sharing a wall).
+ * R-093 (EmPATH Open Milieu Configuration) requires a continuous open social
+ * zone in psychiatric care environments — the dining and lounge areas should
+ * flow together without physical separation. In residential plans this is the
+ * standard open-plan social zone. Severity is info because some plans
+ * intentionally separate formal dining from informal living.
+ * Rulebook ref: R-093 (EmPATH Open Milieu Configuration)
+ */
+const RB_093: RuleCheck = {
+  id: 'RB-093',
+  ruleId: 'R-093',
+  title: 'Living–Dining Adjacency',
+  severity: 'info',
+  applies: layout =>
+    layout.rooms.some(r => (r.type === 'living' || r.type === 'living room') && r.width > 0 && r.height > 0) &&
+    layout.rooms.some(r => r.type === 'dining' && r.width > 0 && r.height > 0),
+  check(layout) {
+    const rooms    = validRooms(layout);
+    const living   = rooms.filter(r => r.type === 'living' || r.type === 'living room');
+    const dining   = rooms.filter(r => r.type === 'dining');
+    const anyAdj   = living.some(l => dining.some(d => roomsAreAdjacent(l, d)));
+    if (!anyAdj) {
+      return [{
+        code: 'RB-093',
+        severity: 'info',
+        message: 'Living room and dining room are not adjacent — an open social zone connecting the two supports EmPATH milieu configuration and general occupant well-being (R-093).',
+        roomIds: [...living.map(r => r.id), ...dining.map(r => r.id)],
+        suggestedFixes: [{ type: 'swapRooms', roomIdA: living[0].id, roomIdB: dining[0].id }],
+      }];
+    }
+    return [];
+  },
+};
+
+/**
+ * RB-094 — BEDROOM_TO_COMMON_ACCESS
+ * When ≥ 3 bedrooms are present and at least one public-zone room (hall, entry,
+ * living, or dining) exists, each bedroom should be directly adjacent to at
+ * least one public-zone room.
+ * R-094 (MBH Nurses' Station Open Integration) requires that all patient spaces
+ * be accessible from the shared/monitored zone without passing through other
+ * patient rooms. A bedroom with no public-zone adjacency is reachable only
+ * through private rooms — an isolation pattern.
+ * Rulebook ref: R-094 (MBH Nurses' Station Open Integration)
+ */
+const RB_094: RuleCheck = {
+  id: 'RB-094',
+  ruleId: 'R-094',
+  title: 'Bedroom to Common Zone Access',
+  severity: 'info',
+  applies: layout =>
+    layout.rooms.filter(r => r.type === 'bedroom' && r.width > 0 && r.height > 0).length >= 3 &&
+    layout.rooms.some(
+      r => (r.type === 'hall' || r.type === 'entry' || r.type === 'living' ||
+            r.type === 'living room' || r.type === 'dining') && r.width > 0 && r.height > 0
+    ),
+  check(layout) {
+    const rooms       = validRooms(layout);
+    const beds        = rooms.filter(r => r.type === 'bedroom');
+    if (beds.length < 3) return [];
+    const publicZone  = rooms.filter(
+      r => r.type === 'hall' || r.type === 'entry' ||
+           r.type === 'living' || r.type === 'living room' || r.type === 'dining'
+    );
+    if (publicZone.length === 0) return [];
+    const violations: Violation[] = [];
+    for (const b of beds) {
+      const adjToPublic = publicZone.some(p => roomsAreAdjacent(b, p));
+      if (!adjToPublic) {
+        violations.push({
+          code: 'RB-094',
+          severity: 'info',
+          message: `Bedroom "${roomLabel(b)}" has no direct adjacency to a public-zone room (hall/entry/living/dining) — all patient or resident rooms should be accessible from the shared zone without passing through other private rooms (R-094).`,
+          roomIds: [b.id],
+          suggestedFixes: [{ type: 'addHallwayConnection', nearRoomId: b.id }],
+        });
+      }
+    }
+    return violations;
+  },
+};
+
+/**
+ * RB-095 — KITCHEN_PRESENCE_MULTI_BEDROOM
+ * Plans with ≥ 3 bedrooms must include a kitchen.
+ * R-095 (CHIME-Aligned MBH Space Programming) requires that the Empowerment
+ * category be represented in care facility space programs — cooking and food
+ * preparation are primary Empowerment activities. A residential plan with
+ * 3+ bedrooms and no kitchen lacks the functional space for cooking activity,
+ * which is both a CHIME deficiency and a basic habitability gap.
+ * Rulebook ref: R-095 (CHIME-Aligned MBH Space Programming)
+ */
+const RB_095: RuleCheck = {
+  id: 'RB-095',
+  ruleId: 'R-095',
+  title: 'Kitchen Presence (Multi-Bedroom)',
+  severity: 'warning',
+  applies: layout =>
+    layout.rooms.filter(r => r.type === 'bedroom' && r.width > 0 && r.height > 0).length >= 3,
+  check(layout) {
+    const rooms = validRooms(layout);
+    const beds  = rooms.filter(r => r.type === 'bedroom');
+    if (beds.length < 3) return [];
+    const hasKitchen = rooms.some(r => r.type === 'kitchen');
+    if (!hasKitchen) {
+      return [{
+        code: 'RB-095',
+        severity: 'warning',
+        message: `Plan has ${beds.length} bedrooms but no kitchen — plans with 3+ bedrooms must include a kitchen for basic habitability and CHIME Empowerment (cooking/food activity) provision (R-095).`,
+        roomIds: beds.map(b => b.id),
+        suggestedFixes: [{ type: 'addRoom', roomType: 'kitchen' }],
+      }];
+    }
+    return [];
+  },
+};
+
+/**
+ * RB-096 — BEDROOM_LONGER_DIM_MIN
+ * Each bedroom must have its longer dimension ≥ 10 ft.
+ * R-096 (MBH Occupant Environmental Control Provision) operationalises
+ * empowerment through room-level environmental controls: a bedside thermostat,
+ * nightstand with a tablet control interface, and a dresser all require that
+ * the room has a functional length. 10 ft (the longer dim) accommodates a
+ * queen bed (7 ft) + 12-in headboard clearance + 18-in footboard/dresser access
+ * path. This is distinct from RB-060 (min width ≥ 8 ft, shorter dim) and
+ * RB-002 (min area).
+ * Rulebook ref: R-096 (MBH Occupant Environmental Control Provision)
+ */
+const RB_096: RuleCheck = {
+  id: 'RB-096',
+  ruleId: 'R-096',
+  title: 'Bedroom Longer Dimension Minimum',
+  severity: 'info',
+  applies: layout => layout.rooms.some(r => r.type === 'bedroom' && r.width > 0 && r.height > 0),
+  check(layout, ctx) {
+    const rooms = validRooms(layout);
+    const beds  = rooms.filter(r => r.type === 'bedroom');
+    const violations: Violation[] = [];
+    const MIN_L = 10 * ctx.ftToUnit; // 10 ft
+    for (const b of beds) {
+      const longer = Math.max(b.width, b.height);
+      if (longer < MIN_L) {
+        const longerFt = (longer / ctx.ftToUnit).toFixed(1);
+        violations.push({
+          code: 'RB-096',
+          severity: 'info',
+          message: `Bedroom "${roomLabel(b)}" is only ${longerFt} ft in its longer dimension — must be ≥ 10 ft to fit a bed, dresser, and bedside controls with required clearances (R-096).`,
+          roomIds: [b.id],
+          value: longer / ctx.ftToUnit,
+          threshold: 10,
+          suggestedFixes: [{
+            type: 'resizeRoom',
+            roomId: b.id,
+            targetW: b.width  > b.height ? MIN_L : b.width,
+            targetH: b.height > b.width  ? MIN_L : b.height,
+          }],
+        });
+      }
+    }
+    return violations;
+  },
+};
+
+/**
+ * RB-097 — PLAN_ACTIVITY_SPACE
+ * Plans with ≥ 4 bedrooms must include at least one room of type "other"
+ * (proxy for an outdoor courtyard, activity room, garden, or multipurpose space).
+ * R-097 (Trauma-Informed School Design) and R-057 (Behavioral Health Outdoor
+ * Access) both require accessible outdoor or activity space as part of a
+ * trauma-sensitive environment. The "other" room type is the closest available
+ * proxy in the layout data model; generation/review tools should interpret it
+ * as a non-assigned activity or outdoor space.
+ * Assumption: "other" room type = outdoor courtyard / activity area proxy.
+ * Rulebook ref: R-097 (Trauma-Informed School Design)
+ */
+const RB_097: RuleCheck = {
+  id: 'RB-097',
+  ruleId: 'R-097',
+  title: 'Activity Space Provision',
+  severity: 'info',
+  applies: layout =>
+    layout.rooms.filter(r => r.type === 'bedroom' && r.width > 0 && r.height > 0).length >= 4,
+  check(layout) {
+    const rooms = validRooms(layout);
+    const beds  = rooms.filter(r => r.type === 'bedroom');
+    if (beds.length < 4) return [];
+    const hasActivity = rooms.some(r => r.type === 'other');
+    if (!hasActivity) {
+      return [{
+        code: 'RB-097',
+        severity: 'info',
+        message: `Plan has ${beds.length} bedrooms but no activity/outdoor space ("other" room) — trauma-informed and MBH design requires accessible activity or outdoor space for recovery (R-097).`,
+        roomIds: beds.map(b => b.id),
+        suggestedFixes: [{ type: 'addRoom', roomType: 'other' }],
+      }];
+    }
+    return [];
+  },
+};
+
+/**
+ * RB-098 — ROOM_TYPE_DIVERSITY
+ * Plans with ≥ 5 rooms should have ≥ 4 distinct room-type categories.
+ * R-098 (Mixed-Use Walkability Density Standard) promotes mixed land uses
+ * and diverse destinations. At floor-plan scale, diversity of room types is
+ * the closest proxy: a plan with 5+ rooms but only 1–2 types (e.g. all
+ * bedrooms and bathrooms) lacks the variety of activities — cooking, working,
+ * socialising — that define a livable mixed-use environment.
+ * Rulebook ref: R-098 (Mixed-Use Walkability Density Standard)
+ */
+const RB_098: RuleCheck = {
+  id: 'RB-098',
+  ruleId: 'R-098',
+  title: 'Room Type Diversity',
+  severity: 'info',
+  applies: layout => layout.rooms.filter(r => r.width > 0 && r.height > 0).length >= 5,
+  check(layout) {
+    const rooms    = validRooms(layout);
+    if (rooms.length < 5) return [];
+    const types    = new Set(rooms.map(r => r.type));
+    const MIN_TYPES = 4;
+    if (types.size < MIN_TYPES) {
+      return [{
+        code: 'RB-098',
+        severity: 'info',
+        message: `Plan has ${rooms.length} rooms but only ${types.size} distinct room type${types.size > 1 ? 's' : ''} — plans with ≥ 5 rooms should include ≥ ${MIN_TYPES} distinct types (bedroom, bathroom, kitchen, living/dining, etc.) for programmatic diversity (R-098).`,
+        roomIds: [],
+        value: types.size,
+        threshold: MIN_TYPES,
+      }];
+    }
+    return [];
+  },
+};
+
+/**
+ * RB-099 — HALL_HUB_CONNECTIVITY
+ * In plans with ≥ 4 rooms, each hall should be adjacent to ≥ 3 other rooms
+ * (functioning as a distribution hub rather than a dead-end corridor appendage).
+ * R-099 (Complete Sidewalk Connectivity Requirement) demands complete,
+ * connected path networks. At floor-plan scale, a hall with only 1–2
+ * adjacencies is a stub corridor — it serves only the rooms immediately beside
+ * it and creates dead-end circulation. A hall adjacent to ≥ 3 rooms anchors a
+ * true branching circulation network (hub connectivity).
+ * Rulebook ref: R-099 (Complete Sidewalk Connectivity Requirement)
+ */
+const RB_099: RuleCheck = {
+  id: 'RB-099',
+  ruleId: 'R-099',
+  title: 'Hall Hub Connectivity',
+  severity: 'info',
+  applies: layout =>
+    layout.rooms.filter(r => r.width > 0 && r.height > 0).length >= 4 &&
+    layout.rooms.some(r => r.type === 'hall' && r.width > 0 && r.height > 0),
+  check(layout) {
+    const rooms   = validRooms(layout);
+    if (rooms.length < 4) return [];
+    const halls   = rooms.filter(r => r.type === 'hall');
+    const violations: Violation[] = [];
+    const MIN_ADJ = 3;
+    for (const h of halls) {
+      const adjCount = rooms.filter(r => r.id !== h.id && roomsAreAdjacent(h, r)).length;
+      if (adjCount < MIN_ADJ) {
+        violations.push({
+          code: 'RB-099',
+          severity: 'info',
+          message: `Hall "${roomLabel(h)}" is adjacent to only ${adjCount} room${adjCount !== 1 ? 's' : ''} — must connect to ≥ ${MIN_ADJ} rooms to function as a circulation hub rather than a dead-end stub (R-099).`,
+          roomIds: [h.id],
+          value: adjCount,
+          threshold: MIN_ADJ,
+        });
+      }
+    }
+    return violations;
+  },
+};
+
+/**
+ * RB-100 — LIVING_ROOM_LONGER_DIM_MIN
+ * Each living room must have its longer dimension ≥ 14 ft.
+ * R-100 (Park Proximity Standard) promotes on-site recreation as a compensating
+ * provision when no park is within range. The living room is the primary on-site
+ * recreation and social space. 14 ft in the longer dimension is the minimum for
+ * a functional furniture arrangement: sofa (84 in) + coffee table (24 in) +
+ * facing chairs (30 in) + 12-in wall clearance on each end = ~13.5 ft. This is
+ * distinct from RB-061 (min width ≥ 12 ft, shorter dim) and RB-046 (min area).
+ * Rulebook ref: R-100 (Park Proximity Standard)
+ */
+const RB_100: RuleCheck = {
+  id: 'RB-100',
+  ruleId: 'R-100',
+  title: 'Living Room Longer Dimension Minimum',
+  severity: 'info',
+  applies: layout => layout.rooms.some(
+    r => (r.type === 'living' || r.type === 'living room') && r.width > 0 && r.height > 0
+  ),
+  check(layout, ctx) {
+    const rooms   = validRooms(layout);
+    const living  = rooms.filter(r => r.type === 'living' || r.type === 'living room');
+    const violations: Violation[] = [];
+    const MIN_L   = 14 * ctx.ftToUnit; // 14 ft
+    for (const r of living) {
+      const longer = Math.max(r.width, r.height);
+      if (longer < MIN_L) {
+        const longerFt = (longer / ctx.ftToUnit).toFixed(1);
+        violations.push({
+          code: 'RB-100',
+          severity: 'info',
+          message: `Living room "${roomLabel(r)}" is only ${longerFt} ft in its longer dimension — must be ≥ 14 ft for a full sofa-and-seating arrangement with required clearances (R-100 on-site recreation provision).`,
+          roomIds: [r.id],
+          value: longer / ctx.ftToUnit,
+          threshold: 14,
+          suggestedFixes: [{
+            type: 'resizeRoom',
+            roomId: r.id,
+            targetW: r.width  > r.height ? MIN_L : r.width,
+            targetH: r.height > r.width  ? MIN_L : r.height,
+          }],
+        });
+      }
+    }
+    return violations;
+  },
+};
+
 // ── Auto-register all built-in checks ─────────────────────────────────────────
 
 registerChecks(
@@ -3707,4 +4125,6 @@ registerChecks(
   RB_076, RB_077, RB_078, RB_079, RB_080,
   RB_081, RB_082, RB_083, RB_084, RB_085,
   RB_086, RB_087, RB_088, RB_089, RB_090,
+  RB_091, RB_092, RB_093, RB_094, RB_095,
+  RB_096, RB_097, RB_098, RB_099, RB_100,
 );

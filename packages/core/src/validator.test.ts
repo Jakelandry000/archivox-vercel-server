@@ -2564,6 +2564,329 @@ test('RB-090: no violation for single-bedroom plan (rule only applies with 2+ be
   assert(v.length === 0, 'expected no RB-090 for single-bedroom plan');
 });
 
+// ── RB-091..RB-100 ────────────────────────────────────────────────────────────
+
+console.log('\nRB-091..RB-100');
+
+// RB-091: MBH_COMMUNAL_PROVISION
+test('RB-091: no violation when 4 bedrooms have a living room', () => {
+  const layout = makeLayout({
+    rooms: [
+      { id: 'b1', type: 'bedroom', x: 0,  y: 0, width: 10, height: 10 },
+      { id: 'b2', type: 'bedroom', x: 10, y: 0, width: 10, height: 10 },
+      { id: 'b3', type: 'bedroom', x: 20, y: 0, width: 10, height: 10 },
+      { id: 'b4', type: 'bedroom', x: 30, y: 0, width: 10, height: 10 },
+      { id: 'l1', type: 'living',  x: 0,  y: 10, width: 20, height: 12 },
+    ],
+  });
+  const v = runChecks(layout, ['RB-091']);
+  assert(v.length === 0, 'expected no RB-091 when 4 bedrooms have a living room');
+});
+
+test('RB-091: warning when 4 bedrooms have no communal room', () => {
+  const layout = makeLayout({
+    rooms: [
+      { id: 'b1', type: 'bedroom', x: 0,  y: 0, width: 10, height: 10 },
+      { id: 'b2', type: 'bedroom', x: 10, y: 0, width: 10, height: 10 },
+      { id: 'b3', type: 'bedroom', x: 20, y: 0, width: 10, height: 10 },
+      { id: 'b4', type: 'bedroom', x: 30, y: 0, width: 10, height: 10 },
+    ],
+  });
+  const v = runChecks(layout, ['RB-091']);
+  const match = v.find(x => x.code === 'RB-091');
+  assert(match !== undefined, 'expected RB-091 warning for 4 bedrooms without communal room');
+  assert(match!.severity === 'warning', `expected warning, got ${match!.severity}`);
+});
+
+test('RB-091: no violation for 3 bedrooms without communal room (rule only applies at 4+)', () => {
+  const layout = makeLayout({
+    rooms: [
+      { id: 'b1', type: 'bedroom', x: 0,  y: 0, width: 10, height: 10 },
+      { id: 'b2', type: 'bedroom', x: 10, y: 0, width: 10, height: 10 },
+      { id: 'b3', type: 'bedroom', x: 20, y: 0, width: 10, height: 10 },
+    ],
+  });
+  const v = runChecks(layout, ['RB-091']);
+  assert(v.length === 0, 'expected no RB-091 for 3 bedrooms');
+});
+
+// RB-092: COMMUNAL_AREA_PER_BEDROOM
+test('RB-092: no violation when communal area is ≥ 40 sq ft per bedroom', () => {
+  const layout = makeLayout({
+    rooms: [
+      { id: 'b1', type: 'bedroom', x: 0,  y: 0, width: 12, height: 12 },
+      { id: 'b2', type: 'bedroom', x: 12, y: 0, width: 12, height: 12 },
+      { id: 'l1', type: 'living',  x: 0,  y: 12, width: 20, height: 6  }, // 120 sq ft ≥ 80 (2×40)
+    ],
+  });
+  const v = runChecks(layout, ['RB-092']);
+  assert(v.length === 0, 'expected no RB-092 when communal area ≥ 40 sq ft per bedroom');
+});
+
+test('RB-092: info when communal area < 40 sq ft per bedroom', () => {
+  const layout = makeLayout({
+    rooms: [
+      { id: 'b1', type: 'bedroom', x: 0,  y: 0, width: 12, height: 12 },
+      { id: 'b2', type: 'bedroom', x: 12, y: 0, width: 12, height: 12 },
+      { id: 'b3', type: 'bedroom', x: 24, y: 0, width: 12, height: 12 },
+      { id: 'l1', type: 'living',  x: 0,  y: 12, width: 10, height: 8  }, // 80 sq ft < 120 (3×40)
+    ],
+  });
+  const v = runChecks(layout, ['RB-092']);
+  const match = v.find(x => x.code === 'RB-092');
+  assert(match !== undefined, 'expected RB-092 info when communal area < 40 sq ft per bedroom');
+  assert(match!.severity === 'info', `expected info, got ${match!.severity}`);
+  assert(match!.value !== undefined && match!.value < 40, `expected value < 40, got ${match!.value}`);
+});
+
+// RB-093: LIVING_DINING_ADJACENCY
+test('RB-093: no violation when living and dining are adjacent', () => {
+  const layout = makeLayout({
+    rooms: [
+      { id: 'l1', type: 'living', x: 0,  y: 0, width: 15, height: 15 },
+      { id: 'd1', type: 'dining', x: 15, y: 0, width: 10, height: 12 },
+    ],
+  });
+  const v = runChecks(layout, ['RB-093']);
+  assert(v.length === 0, 'expected no RB-093 when living and dining are adjacent');
+});
+
+test('RB-093: info when living and dining are not adjacent', () => {
+  const layout = makeLayout({
+    rooms: [
+      { id: 'l1', type: 'living',  x: 0,  y: 0, width: 15, height: 15 },
+      { id: 'h1', type: 'hall',    x: 15, y: 0, width: 4,  height: 15 },
+      { id: 'd1', type: 'dining',  x: 19, y: 0, width: 10, height: 12 },
+    ],
+  });
+  const v = runChecks(layout, ['RB-093']);
+  const match = v.find(x => x.code === 'RB-093');
+  assert(match !== undefined, 'expected RB-093 info when living and dining are not adjacent');
+  assert(match!.severity === 'info', `expected info, got ${match!.severity}`);
+});
+
+// RB-094: BEDROOM_TO_COMMON_ACCESS
+test('RB-094: no violation when each bedroom is adjacent to a hall (3+ bedrooms)', () => {
+  const layout = makeLayout({
+    rooms: [
+      { id: 'b1', type: 'bedroom', x: 0,  y: 0,  width: 12, height: 10 },
+      { id: 'b2', type: 'bedroom', x: 0,  y: 10, width: 12, height: 10 },
+      { id: 'b3', type: 'bedroom', x: 0,  y: 20, width: 12, height: 10 },
+      { id: 'h1', type: 'hall',    x: 12, y: 0,  width: 4,  height: 30 },
+    ],
+  });
+  const v = runChecks(layout, ['RB-094']);
+  assert(v.length === 0, 'expected no RB-094 when all bedrooms adjacent to hall');
+});
+
+test('RB-094: info when a bedroom has no public-zone adjacency (3+ bedrooms)', () => {
+  const layout = makeLayout({
+    rooms: [
+      { id: 'b1', type: 'bedroom', x: 0,  y: 0,  width: 12, height: 10 },
+      { id: 'b2', type: 'bedroom', x: 0,  y: 10, width: 12, height: 10 },
+      { id: 'b3', type: 'bedroom', x: 0,  y: 20, width: 12, height: 10 }, // isolated
+      { id: 'h1', type: 'hall',    x: 12, y: 0,  width: 4,  height: 20 }, // only reaches b1, b2
+    ],
+  });
+  const v = runChecks(layout, ['RB-094']);
+  const match = v.find(x => x.code === 'RB-094');
+  assert(match !== undefined, 'expected RB-094 info for isolated bedroom');
+  assert(match!.severity === 'info', `expected info, got ${match!.severity}`);
+  assert(match!.roomIds?.includes('b3'), 'expected b3 in roomIds');
+});
+
+// RB-095: KITCHEN_PRESENCE_MULTI_BEDROOM
+test('RB-095: no violation when 3 bedrooms have a kitchen', () => {
+  const layout = makeLayout({
+    rooms: [
+      { id: 'b1', type: 'bedroom', x: 0,  y: 0, width: 12, height: 10 },
+      { id: 'b2', type: 'bedroom', x: 12, y: 0, width: 12, height: 10 },
+      { id: 'b3', type: 'bedroom', x: 24, y: 0, width: 12, height: 10 },
+      { id: 'k1', type: 'kitchen', x: 0,  y: 10, width: 14, height: 10 },
+    ],
+  });
+  const v = runChecks(layout, ['RB-095']);
+  assert(v.length === 0, 'expected no RB-095 when kitchen is present');
+});
+
+test('RB-095: warning when 3 bedrooms have no kitchen', () => {
+  const layout = makeLayout({
+    rooms: [
+      { id: 'b1', type: 'bedroom', x: 0,  y: 0, width: 12, height: 10 },
+      { id: 'b2', type: 'bedroom', x: 12, y: 0, width: 12, height: 10 },
+      { id: 'b3', type: 'bedroom', x: 24, y: 0, width: 12, height: 10 },
+    ],
+  });
+  const v = runChecks(layout, ['RB-095']);
+  const match = v.find(x => x.code === 'RB-095');
+  assert(match !== undefined, 'expected RB-095 warning for 3 bedrooms without kitchen');
+  assert(match!.severity === 'warning', `expected warning, got ${match!.severity}`);
+});
+
+test('RB-095: no violation for 2 bedrooms without kitchen (rule only at 3+)', () => {
+  const layout = makeLayout({
+    rooms: [
+      { id: 'b1', type: 'bedroom', x: 0,  y: 0, width: 12, height: 10 },
+      { id: 'b2', type: 'bedroom', x: 12, y: 0, width: 12, height: 10 },
+    ],
+  });
+  const v = runChecks(layout, ['RB-095']);
+  assert(v.length === 0, 'expected no RB-095 for 2-bedroom plan without kitchen');
+});
+
+// RB-096: BEDROOM_LONGER_DIM_MIN
+test('RB-096: no violation for bedroom with 10 ft longer dimension', () => {
+  const layout = makeLayout({
+    rooms: [{ id: 'b1', type: 'bedroom', x: 0, y: 0, width: 8, height: 10 }], // longer = 10
+  });
+  const v = runChecks(layout, ['RB-096']);
+  assert(v.length === 0, 'expected no RB-096 for 10 ft longer dimension');
+});
+
+test('RB-096: info for bedroom with longer dimension under 10 ft', () => {
+  const layout = makeLayout({
+    rooms: [{ id: 'b1', type: 'bedroom', x: 0, y: 0, width: 8, height: 9 }], // longer = 9
+  });
+  const v = runChecks(layout, ['RB-096']);
+  const match = v.find(x => x.code === 'RB-096');
+  assert(match !== undefined, 'expected RB-096 info for 9 ft longer dimension');
+  assert(match!.severity === 'info', `expected info, got ${match!.severity}`);
+  assert(match!.value !== undefined && match!.value < 10, `expected value < 10, got ${match!.value}`);
+  assert(match!.suggestedFixes?.some(f => f.type === 'resizeRoom'), 'expected resizeRoom fix');
+});
+
+// RB-097: PLAN_ACTIVITY_SPACE
+test('RB-097: no violation when 4 bedrooms include an "other" room', () => {
+  const layout = makeLayout({
+    rooms: [
+      { id: 'b1', type: 'bedroom', x: 0,  y: 0, width: 12, height: 10 },
+      { id: 'b2', type: 'bedroom', x: 12, y: 0, width: 12, height: 10 },
+      { id: 'b3', type: 'bedroom', x: 24, y: 0, width: 12, height: 10 },
+      { id: 'b4', type: 'bedroom', x: 36, y: 0, width: 12, height: 10 },
+      { id: 'o1', type: 'other',   x: 0,  y: 10, width: 15, height: 12 },
+    ],
+  });
+  const v = runChecks(layout, ['RB-097']);
+  assert(v.length === 0, 'expected no RB-097 when "other" room is present');
+});
+
+test('RB-097: info when 4 bedrooms have no "other" room', () => {
+  const layout = makeLayout({
+    rooms: [
+      { id: 'b1', type: 'bedroom', x: 0,  y: 0, width: 12, height: 10 },
+      { id: 'b2', type: 'bedroom', x: 12, y: 0, width: 12, height: 10 },
+      { id: 'b3', type: 'bedroom', x: 24, y: 0, width: 12, height: 10 },
+      { id: 'b4', type: 'bedroom', x: 36, y: 0, width: 12, height: 10 },
+    ],
+  });
+  const v = runChecks(layout, ['RB-097']);
+  const match = v.find(x => x.code === 'RB-097');
+  assert(match !== undefined, 'expected RB-097 info for 4 bedrooms without "other" room');
+  assert(match!.severity === 'info', `expected info, got ${match!.severity}`);
+});
+
+// RB-098: ROOM_TYPE_DIVERSITY
+test('RB-098: no violation for plan with 5 rooms of 4 distinct types', () => {
+  const layout = makeLayout({
+    rooms: [
+      { id: 'b1', type: 'bedroom',  x: 0,  y: 0,  width: 12, height: 10 },
+      { id: 'b2', type: 'bedroom',  x: 12, y: 0,  width: 12, height: 10 },
+      { id: 'ba', type: 'bathroom', x: 0,  y: 10, width: 6,  height: 6  },
+      { id: 'k1', type: 'kitchen',  x: 6,  y: 10, width: 10, height: 8  },
+      { id: 'l1', type: 'living',   x: 16, y: 10, width: 14, height: 14 },
+    ],
+  });
+  const v = runChecks(layout, ['RB-098']);
+  assert(v.length === 0, 'expected no RB-098 for 4 distinct room types');
+});
+
+test('RB-098: info for plan with 5 rooms but only 2 distinct types', () => {
+  const layout = makeLayout({
+    rooms: [
+      { id: 'b1', type: 'bedroom', x: 0,  y: 0, width: 12, height: 10 },
+      { id: 'b2', type: 'bedroom', x: 12, y: 0, width: 12, height: 10 },
+      { id: 'b3', type: 'bedroom', x: 24, y: 0, width: 12, height: 10 },
+      { id: 'ba1', type: 'bathroom', x: 0,  y: 10, width: 6, height: 5 },
+      { id: 'ba2', type: 'bathroom', x: 6,  y: 10, width: 6, height: 5 },
+    ],
+  });
+  const v = runChecks(layout, ['RB-098']);
+  const match = v.find(x => x.code === 'RB-098');
+  assert(match !== undefined, 'expected RB-098 info for only 2 distinct room types');
+  assert(match!.severity === 'info', `expected info, got ${match!.severity}`);
+  assert(match!.value !== undefined && match!.value < 4, `expected value < 4, got ${match!.value}`);
+});
+
+test('RB-098: no violation for plan with fewer than 5 rooms (rule does not apply)', () => {
+  const layout = makeLayout({
+    rooms: [
+      { id: 'b1', type: 'bedroom',  x: 0,  y: 0, width: 12, height: 10 },
+      { id: 'ba', type: 'bathroom', x: 12, y: 0, width: 6,  height: 5  },
+    ],
+  });
+  const v = runChecks(layout, ['RB-098']);
+  assert(v.length === 0, 'expected no RB-098 for fewer than 5 rooms');
+});
+
+// RB-099: HALL_HUB_CONNECTIVITY
+test('RB-099: no violation when hall is adjacent to 3 rooms', () => {
+  const layout = makeLayout({
+    rooms: [
+      { id: 'b1', type: 'bedroom', x: 0,  y: 0,  width: 10, height: 10 },
+      { id: 'b2', type: 'bedroom', x: 0,  y: 10, width: 10, height: 10 },
+      { id: 'b3', type: 'bedroom', x: 0,  y: 20, width: 10, height: 10 },
+      { id: 'h1', type: 'hall',    x: 10, y: 0,  width: 4,  height: 30 },
+    ],
+  });
+  const v = runChecks(layout, ['RB-099']);
+  assert(v.length === 0, 'expected no RB-099 when hall is adjacent to 3 rooms');
+});
+
+test('RB-099: info when hall is adjacent to only 2 rooms (4+ room plan)', () => {
+  const layout = makeLayout({
+    rooms: [
+      { id: 'b1', type: 'bedroom',  x: 0,  y: 0,  width: 10, height: 10 },
+      { id: 'b2', type: 'bedroom',  x: 0,  y: 10, width: 10, height: 10 },
+      { id: 'h1', type: 'hall',     x: 10, y: 0,  width: 4,  height: 20 }, // only b1 + b2
+      { id: 'k1', type: 'kitchen',  x: 0,  y: 20, width: 10, height: 8  }, // not adjacent to hall
+    ],
+  });
+  const v = runChecks(layout, ['RB-099']);
+  const match = v.find(x => x.code === 'RB-099');
+  assert(match !== undefined, 'expected RB-099 info for hall with only 2 adjacencies');
+  assert(match!.severity === 'info', `expected info, got ${match!.severity}`);
+  assert(match!.value !== undefined && match!.value < 3, `expected value < 3, got ${match!.value}`);
+});
+
+// RB-100: LIVING_ROOM_LONGER_DIM_MIN
+test('RB-100: no violation for living room with 14 ft longer dimension', () => {
+  const layout = makeLayout({
+    rooms: [{ id: 'l1', type: 'living', x: 0, y: 0, width: 12, height: 14 }], // longer = 14
+  });
+  const v = runChecks(layout, ['RB-100']);
+  assert(v.length === 0, 'expected no RB-100 for 14 ft longer dimension');
+});
+
+test('RB-100: info for living room with longer dimension under 14 ft', () => {
+  const layout = makeLayout({
+    rooms: [{ id: 'l1', type: 'living', x: 0, y: 0, width: 12, height: 13 }], // longer = 13
+  });
+  const v = runChecks(layout, ['RB-100']);
+  const match = v.find(x => x.code === 'RB-100');
+  assert(match !== undefined, 'expected RB-100 info for 13 ft longer dimension');
+  assert(match!.severity === 'info', `expected info, got ${match!.severity}`);
+  assert(match!.value !== undefined && match!.value < 14, `expected value < 14, got ${match!.value}`);
+  assert(match!.suggestedFixes?.some(f => f.type === 'resizeRoom'), 'expected resizeRoom fix');
+});
+
+test('RB-100: no violation for living room with exactly 14 ft longer dimension', () => {
+  const layout = makeLayout({
+    rooms: [{ id: 'l1', type: 'living', x: 0, y: 0, width: 12, height: 14 }], // exactly 14
+  });
+  const v = runChecks(layout, ['RB-100']);
+  assert(v.length === 0, 'expected no RB-100 for exactly 14 ft longer dimension');
+});
+
 // ── Generator applyRepairAction pipeline sanity-check ────────────────────────
 // Verifies: invalid plan → violation with suggestedFix → apply fix → improves.
 // Import is dynamic so this file stays runnable without the generator package

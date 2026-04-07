@@ -1396,6 +1396,153 @@
       "related_ruleIds": [
         "R-013"
       ]
+    },
+    {
+      "checkId": "RB-091",
+      "ruleId": "R-091",
+      "title": "MBH Communal Space Provision",
+      "severity": "warning",
+      "category": "adjacency",
+      "implemented": true,
+      "confidence": "high",
+      "notes": "R-091 (MBH Small-Unit and Mixed Room-Type Configuration) requires communal areas, interaction furniture, and a public-to-private gradient in MBH inpatient clusters. Checks: when ≥ 4 bedrooms present (proxy for care-facility patient cluster), at least one living or dining room must exist. The layout data model does not distinguish building type; ≥ 4 bedrooms is used as the care-facility proxy.",
+      "source_hint": "10_Zhu_Chapter_4.pdf (p. 8 / book p. 62)",
+      "related_ruleIds": [
+        "R-091",
+        "R-055"
+      ]
+    },
+    {
+      "checkId": "RB-092",
+      "ruleId": "R-092",
+      "title": "Communal Area Per Bedroom",
+      "severity": "info",
+      "category": "dimensions",
+      "implemented": true,
+      "confidence": "medium",
+      "notes": "R-092 (Trauma-Informed Design Environmental Stress Reduction) requires communal space that scales with resident count. Checks: when ≥ 2 bedrooms and ≥ 1 communal room (living or dining) are present, combined communal area must be ≥ 40 sq ft per bedroom. 40 sq ft/bedroom is the minimum for one social seating zone per resident. Distinct from RB-017 (percentage-of-total ratio): this is an absolute per-occupant allocation threshold.",
+      "source_hint": "10_Zhu_Chapter_4.pdf (p. 6 / book p. 60)",
+      "related_ruleIds": [
+        "R-092"
+      ]
+    },
+    {
+      "checkId": "RB-093",
+      "ruleId": "R-093",
+      "title": "Living–Dining Adjacency",
+      "severity": "info",
+      "category": "adjacency",
+      "implemented": true,
+      "confidence": "high",
+      "notes": "R-093 (EmPATH Open Milieu Configuration) requires a continuous open social zone in psychiatric care environments — dining and lounge areas should flow together. Checks: when both living and dining rooms are present, they should share a wall. Severity is info because some plans intentionally separate formal dining from informal living.",
+      "source_hint": "10_Zhu_Chapter_4.pdf (p. 11 / book p. 65)",
+      "related_ruleIds": [
+        "R-093",
+        "R-041",
+        "R-055"
+      ]
+    },
+    {
+      "checkId": "RB-094",
+      "ruleId": "R-094",
+      "title": "Bedroom to Common Zone Access",
+      "severity": "info",
+      "category": "adjacency",
+      "implemented": true,
+      "confidence": "high",
+      "notes": "R-094 (MBH Nurses' Station Open Integration) requires that all patient spaces be accessible from the shared/monitored zone without passing through other patient rooms. Checks: when ≥ 3 bedrooms and ≥ 1 public-zone room (hall, entry, living, dining) are present, each bedroom should be adjacent to at least one public-zone room. Severity is info because small residential plans may intentionally have en-suite master suites.",
+      "source_hint": "10_Zhu_Chapter_4.pdf (p. 14 / book p. 68)",
+      "related_ruleIds": [
+        "R-094",
+        "R-032"
+      ]
+    },
+    {
+      "checkId": "RB-095",
+      "ruleId": "R-095",
+      "title": "Kitchen Presence (Multi-Bedroom)",
+      "severity": "warning",
+      "category": "zoning",
+      "implemented": true,
+      "confidence": "high",
+      "notes": "R-095 (CHIME-Aligned MBH Space Programming) requires that the Empowerment CHIME category be represented in care facility space programs — cooking and food preparation are primary Empowerment activities. Checks: plans with ≥ 3 bedrooms must include a kitchen. A 3+ bedroom plan without a kitchen is also a basic residential habitability gap (HUD MPS).",
+      "source_hint": "10_Zhu_Chapter_4.pdf (p. 14-15 / book p. 68-69); HUD MPS kitchen requirement",
+      "related_ruleIds": [
+        "R-095"
+      ]
+    },
+    {
+      "checkId": "RB-096",
+      "ruleId": "R-096",
+      "title": "Bedroom Longer Dimension Minimum",
+      "severity": "info",
+      "category": "dimensions",
+      "implemented": true,
+      "confidence": "medium",
+      "notes": "R-096 (MBH Occupant Environmental Control Provision) operationalises empowerment through room-level environmental controls. Checks: each bedroom's longer dimension must be ≥ 10 ft to accommodate a bed, dresser, and bedside control device with required clearances (queen bed 7 ft + 12-in headboard clearance + 18-in footboard access path). Distinct from RB-060 (min width ≥ 8 ft, shorter dim) and RB-002 (min area).",
+      "source_hint": "10_Zhu_Chapter_4.pdf (p. 15 / book p. 69); Architectural_Graphic_Standards_11th.md — Bedroom furniture clearances",
+      "related_ruleIds": [
+        "R-096",
+        "R-013"
+      ]
+    },
+    {
+      "checkId": "RB-097",
+      "ruleId": "R-097",
+      "title": "Activity Space Provision",
+      "severity": "info",
+      "category": "zoning",
+      "implemented": true,
+      "confidence": "medium",
+      "notes": "R-097 (Trauma-Informed School Design) requires accessible outdoor or activity space as part of a trauma-sensitive environment. Checks: plans with ≥ 4 bedrooms must include at least one 'other' room as proxy for outdoor courtyard, activity room, or multipurpose space. Assumption: 'other' room type = outdoor courtyard / activity area proxy in this data model.",
+      "source_hint": "10_Zhu_Chapter_4.pdf (p. 12-13 / book p. 66-67)",
+      "related_ruleIds": [
+        "R-097",
+        "R-057"
+      ]
+    },
+    {
+      "checkId": "RB-098",
+      "ruleId": "R-098",
+      "title": "Room Type Diversity",
+      "severity": "info",
+      "category": "zoning",
+      "implemented": true,
+      "confidence": "medium",
+      "notes": "R-098 (Mixed-Use Walkability Density Standard) promotes mixed land uses and diverse destinations. Checks: plans with ≥ 5 rooms should have ≥ 4 distinct room-type categories. At floor-plan scale, room type diversity proxies for programmatic diversity — a plan with 5+ rooms but only 1–2 types lacks the variety of activities (cooking, working, socialising) that define a livable environment.",
+      "source_hint": "12_Zhu_Chapter_7 (1).pdf (p. 5-6 / book p. 114-115)",
+      "related_ruleIds": [
+        "R-098"
+      ]
+    },
+    {
+      "checkId": "RB-099",
+      "ruleId": "R-099",
+      "title": "Hall Hub Connectivity",
+      "severity": "info",
+      "category": "circulation",
+      "implemented": true,
+      "confidence": "medium",
+      "notes": "R-099 (Complete Sidewalk Connectivity Requirement) demands complete, connected path networks. Checks: in plans with ≥ 4 rooms, each hall should be adjacent to ≥ 3 other rooms to function as a distribution hub rather than a dead-end stub corridor. A hall with < 3 adjacencies serves only the rooms beside it and creates dead-end circulation. Distinct from RB-066 (hall min width) and RB-007 (circulation connectivity per room).",
+      "source_hint": "12_Zhu_Chapter_7 (1).pdf (p. 7 / book p. 116); 05_Ch4_Wayfinding_With people in mind_AC.md",
+      "related_ruleIds": [
+        "R-099",
+        "R-031"
+      ]
+    },
+    {
+      "checkId": "RB-100",
+      "ruleId": "R-100",
+      "title": "Living Room Longer Dimension Minimum",
+      "severity": "info",
+      "category": "dimensions",
+      "implemented": true,
+      "confidence": "medium",
+      "notes": "R-100 (Park Proximity Standard) promotes on-site recreation as a compensating provision when no park is within range. Checks: each living room's longer dimension must be ≥ 14 ft for a functional sofa-and-seating arrangement (sofa 84 in + coffee table 24 in + facing chairs 30 in + 12-in wall clearance each end ≈ 13.5 ft). Distinct from RB-061 (min width ≥ 12 ft, shorter dim) and RB-046 (min area).",
+      "source_hint": "12_Zhu_Chapter_7 (1).pdf (p. 8 / book p. 117); Architectural_Graphic_Standards_11th.md — Living room furniture layout",
+      "related_ruleIds": [
+        "R-100"
+      ]
     }
   ]
 }
