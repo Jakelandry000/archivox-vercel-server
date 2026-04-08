@@ -1,7 +1,7 @@
 {
   "schemaVersion": "rulebook-manifest.v2",
-  "description": "Maps rulebook rule IDs (R-NNN) to code check IDs (RB-NNN) in packages/core/src/ruleChecks.ts. R-IDs reference rules/rulebook/extracted/RULEBOOK_DRAFT.md (145 rules from 25 source PDFs, Batches 1\u00e2\u20ac\u201c4).",
-  "extractedRuleCount": 130,
+  "description": "Maps rulebook rule IDs (R-NNN) to code check IDs (RB-NNN) in packages/core/src/ruleChecks.ts. R-IDs reference rules/rulebook/extracted/RULEBOOK_DRAFT.md (145 rules from 25 source PDFs, Batches 1–4).",
+  "extractedRuleCount": 140,
   "entries": [
     {
       "checkId": "RB-001",
@@ -12,7 +12,7 @@
       "implemented": true,
       "confidence": "low",
       "notes": "No direct match in extracted academic rulebook (R-001..R-103). Garage-to-conditioned-area ratio is a residential zoning convention (IRC / local codes) not covered in the 25 source PDFs. R-036 (Exterior Door Count Minimization) touches envelope proportions tangentially.",
-      "source_hint": "IRC / local residential zoning codes \u00e2\u20ac\u201d not in extracted PDF set",
+      "source_hint": "IRC / local residential zoning codes — not in extracted PDF set",
       "related_ruleIds": [
         "R-036"
       ]
@@ -26,7 +26,7 @@
       "implemented": true,
       "confidence": "low",
       "notes": "R-013 (ADA Turning Radius at All Activity Nodes) requires minimum clear floor dimensions at activity nodes; it motivates minimum room-size thinking but doesn't specify bedroom area thresholds. The 70 sq ft figure comes from IRC R304 / Architectural Graphic Standards. Closest academic source in extracted set.",
-      "source_hint": "Architectural_Graphic_Standards_11th.md \u00e2\u20ac\u201d Room Sizing chapter; also IRC R304",
+      "source_hint": "Architectural_Graphic_Standards_11th.md — Room Sizing chapter; also IRC R304",
       "related_ruleIds": [
         "R-013",
         "R-046"
@@ -40,8 +40,8 @@
       "category": "geometry",
       "implemented": true,
       "confidence": "low",
-      "notes": "R-062 (Spatial Coherence Requirement) states rooms must have an organizing principle legible to occupants \u00e2\u20ac\u201d degenerate aspect ratios violate spatial coherence. R-040 (Floor System Span-Depth Validation) also constrains bay proportions structurally. Neither specifies the 5:1 / 10:1 thresholds directly.",
-      "source_hint": "08_Zhu_Chapter_1.md \u00e2\u20ac\u201d spatial proportions; also Architectural Graphic Standards",
+      "notes": "R-062 (Spatial Coherence Requirement) states rooms must have an organizing principle legible to occupants — degenerate aspect ratios violate spatial coherence. R-040 (Floor System Span-Depth Validation) also constrains bay proportions structurally. Neither specifies the 5:1 / 10:1 thresholds directly.",
+      "source_hint": "08_Zhu_Chapter_1.md — spatial proportions; also Architectural Graphic Standards",
       "related_ruleIds": [
         "R-062",
         "R-040",
@@ -57,7 +57,7 @@
       "implemented": true,
       "confidence": "high",
       "notes": "R-021 (Daylighting Depth Rule) requires primary activity spaces to be within 1.5x ceiling height of a window wall. Touching an exterior wall is the plan-level proxy for this requirement. Also supported by R-066 (Dynamic Daylight Priority) and R-089 (Daylight Physical Health Integration Standard).",
-      "source_hint": "GZ_Brown_SWL_book.md \u00e2\u20ac\u201d Solar daylighting; Ching_Green_Building_Illustrated_book.md",
+      "source_hint": "GZ_Brown_SWL_book.md — Solar daylighting; Ching_Green_Building_Illustrated_book.md",
       "related_ruleIds": [
         "R-021",
         "R-066",
@@ -72,7 +72,7 @@
       "category": "daylight",
       "implemented": true,
       "confidence": "medium",
-      "notes": "Same daylighting driver as RB-004. Kitchen also benefits from natural ventilation per R-009 (Passive-First Energy Hierarchy) \u00e2\u20ac\u201d cross-ventilation and stack effect require exterior wall access. Severity is info because kitchens have mechanical ventilation fallback.",
+      "notes": "Same daylighting driver as RB-004. Kitchen also benefits from natural ventilation per R-009 (Passive-First Energy Hierarchy) — cross-ventilation and stack effect require exterior wall access. Severity is info because kitchens have mechanical ventilation fallback.",
       "source_hint": "GZ_Brown_SWL_book.md; Ching_Green_Building_Illustrated_book.md",
       "related_ruleIds": [
         "R-021",
@@ -89,7 +89,7 @@
       "implemented": true,
       "confidence": "low",
       "notes": "No direct match in extracted rulebook. R-082 (Workstation Ergonomic Work-Triangle Optimization) addresses adjacency of functional elements for efficiency, and R-047 (Semi-Fixed Furniture Adaptability) touches storage provision, but neither specifies closet-bedroom adjacency. This is a residential programming convention from Architectural Graphic Standards.",
-      "source_hint": "Architectural_Graphic_Standards_11th.md \u00e2\u20ac\u201d Residential room adjacency diagrams",
+      "source_hint": "Architectural_Graphic_Standards_11th.md — Residential room adjacency diagrams",
       "related_ruleIds": [
         "R-082",
         "R-047"
@@ -103,7 +103,7 @@
       "category": "circulation",
       "implemented": true,
       "confidence": "high",
-      "notes": "R-025 (Interior Circulation Hierarchy Documentation) requires a documented three-level circulation hierarchy \u00e2\u20ac\u201d every habitable room must be reachable from the primary/secondary network. R-031 (Floor Plan Interconnection Density Limit) provides the computable graph metric (ICD \u00e2\u2030\u00a4 1.50). Both rules directly motivate this check.",
+      "notes": "R-025 (Interior Circulation Hierarchy Documentation) requires a documented three-level circulation hierarchy — every habitable room must be reachable from the primary/secondary network. R-031 (Floor Plan Interconnection Density Limit) provides the computable graph metric (ICD ≤ 1.50). Both rules directly motivate this check.",
       "source_hint": "05_Ch4_Wayfinding_With people in mind_AC.md; 04_Image of the City_AC.md",
       "related_ruleIds": [
         "R-025",
@@ -120,7 +120,7 @@
       "implemented": true,
       "confidence": "low",
       "notes": "No direct academic rule match. The 25 source PDFs are theory/health/wayfinding focused and do not specify residential unit bedroom counts. R-091 (MBH Small-Unit and Mixed Room-Type Configuration) addresses mixed room types in behavioral health settings, not residential bedrooms. This is driven by IRC / HUD Minimum Property Standards.",
-      "source_hint": "Architectural_Graphic_Standards_11th.md \u00e2\u20ac\u201d Residential unit types; IRC habitable room definitions",
+      "source_hint": "Architectural_Graphic_Standards_11th.md — Residential unit types; IRC habitable room definitions",
       "related_ruleIds": [
         "R-091"
       ]
@@ -134,7 +134,7 @@
       "implemented": true,
       "confidence": "low",
       "notes": "No direct match in extracted rulebook. R-006 (Healthcare Single-Occupancy Default) and R-053 (Family Accommodation Zone Provision) address sanitation in healthcare contexts but not residential bathroom-to-bedroom ratios. This is an IRC / residential code requirement.",
-      "source_hint": "Architectural_Graphic_Standards_11th.md \u00e2\u20ac\u201d Plumbing fixture counts; IRC P2903",
+      "source_hint": "Architectural_Graphic_Standards_11th.md — Plumbing fixture counts; IRC P2903",
       "related_ruleIds": [
         "R-006",
         "R-053"
@@ -166,7 +166,7 @@
       "implemented": true,
       "confidence": "high",
       "notes": "R-021 (Daylighting Depth Rule) requires habitable rooms to be within 1.5x ceiling height of a window wall. Touching an exterior wall is the plan-level proxy. Bedrooms require natural light per IRC R303. Also supported by R-066 (Dynamic Daylight Priority) and R-089 (Daylight Physical Health Integration Standard).",
-      "source_hint": "GZ_Brown_SWL_book.md \u00e2\u20ac\u201d Solar daylighting; Ching_Green_Building_Illustrated_book.md",
+      "source_hint": "GZ_Brown_SWL_book.md — Solar daylighting; Ching_Green_Building_Illustrated_book.md",
       "related_ruleIds": [
         "R-021",
         "R-066",
@@ -181,7 +181,7 @@
       "category": "circulation",
       "implemented": true,
       "confidence": "high",
-      "notes": "R-032 (Entry Sequence Primacy) states that an entry must initiate a spatial hierarchy that progresses from public to private. An entry adjacent only to private rooms (bedrooms/bathrooms) violates the public\u00e2\u2020\u2019semi-public\u00e2\u2020\u2019private progression. R-025 (Interior Circulation Hierarchy Documentation) also motivates this check.",
+      "notes": "R-032 (Entry Sequence Primacy) states that an entry must initiate a spatial hierarchy that progresses from public to private. An entry adjacent only to private rooms (bedrooms/bathrooms) violates the public→semi-public→private progression. R-025 (Interior Circulation Hierarchy Documentation) also motivates this check.",
       "source_hint": "04_Image_of_the_City_AC.md; 05_Ch4_Wayfinding_AC.md",
       "related_ruleIds": [
         "R-032",
@@ -208,13 +208,13 @@
     {
       "checkId": "RB-014",
       "ruleId": null,
-      "title": "Bath\u00e2\u20ac\u201cBedroom Ratio",
+      "title": "Bath–Bedroom Ratio",
       "severity": "warning",
       "category": "program",
       "implemented": true,
       "confidence": "low",
       "notes": "No direct match in extracted rulebook. R-006 (Healthcare Single-Occupancy Default) and R-053 (Family Accommodation Zone Provision) address plumbing provision in healthcare contexts. The 2-bath for 3+ bedrooms threshold comes from IRC P2903 / HUD Minimum Property Standards for residential units.",
-      "source_hint": "Architectural_Graphic_Standards_11th.md \u00e2\u20ac\u201d Residential unit types; IRC P2903",
+      "source_hint": "Architectural_Graphic_Standards_11th.md — Residential unit types; IRC P2903",
       "related_ruleIds": [
         "R-006",
         "R-053"
@@ -244,8 +244,8 @@
       "category": "envelope",
       "implemented": true,
       "confidence": "high",
-      "notes": "R-036 (Exterior Door Count Minimization) requires that exterior door openings be coordinated with exterior walls \u00e2\u20ac\u201d an entry room with no exterior wall contact cannot have an exterior door, violating egress and code requirements. R-024 (Fire Egress Travel Distance Compliance) also motivates this check.",
-      "source_hint": "Ching_Green_Building_Illustrated_book.md; IBC 2021 \u00c2\u00a71003.3",
+      "notes": "R-036 (Exterior Door Count Minimization) requires that exterior door openings be coordinated with exterior walls — an entry room with no exterior wall contact cannot have an exterior door, violating egress and code requirements. R-024 (Fire Egress Travel Distance Compliance) also motivates this check.",
+      "source_hint": "Ching_Green_Building_Illustrated_book.md; IBC 2021 §1003.3",
       "related_ruleIds": [
         "R-036",
         "R-024",
@@ -260,8 +260,8 @@
       "category": "program",
       "implemented": true,
       "confidence": "medium",
-      "notes": "R-026 (Spatial Zone Count Limit) constrains the total number of zones to prevent spatial fragmentation \u00e2\u20ac\u201d adequate living+dining area consolidates the social zone. The 15% floor-area threshold is derived from Architectural Graphic Standards residential unit proportioning. R-049 (Collaborative Seating Orientation) also implies adequate social space area.",
-      "source_hint": "Architectural_Graphic_Standards_11th.md \u00e2\u20ac\u201d Residential proportioning; 08_Zhu_Chapter_1.md",
+      "notes": "R-026 (Spatial Zone Count Limit) constrains the total number of zones to prevent spatial fragmentation — adequate living+dining area consolidates the social zone. The 15% floor-area threshold is derived from Architectural Graphic Standards residential unit proportioning. R-049 (Collaborative Seating Orientation) also implies adequate social space area.",
+      "source_hint": "Architectural_Graphic_Standards_11th.md — Residential proportioning; 08_Zhu_Chapter_1.md",
       "related_ruleIds": [
         "R-026",
         "R-049",
@@ -276,8 +276,8 @@
       "category": "accessibility",
       "implemented": true,
       "confidence": "medium",
-      "notes": "R-013 (ADA Turning Radius at All Activity Nodes) requires that all activity nodes \u00e2\u20ac\u201d including bathrooms \u00e2\u20ac\u201d be reachable via a clear circulation path, not just through private spaces. A bathroom accessible only through a bedroom is inaccessible to guests and may violate accessible design intent. R-020 (Elderly Site Accessibility Gradient) further motivates accessible routing.",
-      "source_hint": "12_Disability_and_the_Built_Environment.md; ADA Standards \u00c2\u00a7604",
+      "notes": "R-013 (ADA Turning Radius at All Activity Nodes) requires that all activity nodes — including bathrooms — be reachable via a clear circulation path, not just through private spaces. A bathroom accessible only through a bedroom is inaccessible to guests and may violate accessible design intent. R-020 (Elderly Site Accessibility Gradient) further motivates accessible routing.",
+      "source_hint": "12_Disability_and_the_Built_Environment.md; ADA Standards §604",
       "related_ruleIds": [
         "R-013",
         "R-020",
@@ -292,8 +292,8 @@
       "category": "dimensions",
       "implemented": true,
       "confidence": "medium",
-      "notes": "R-082 (Workstation Ergonomic Work-Triangle Optimization) requires that the kitchen work triangle (sink\u00e2\u20ac\u201ccooktop\u00e2\u20ac\u201crefrigerator) fit within an ergonomic distance range, which implicitly requires a minimum floor area. The 60 sq ft recommended minimum comes from Architectural Graphic Standards. R-046 (Social-Distance Workstation Compliance) supports minimum clearances.",
-      "source_hint": "Architectural_Graphic_Standards_11th.md \u00e2\u20ac\u201d Kitchen layouts; 06_Ch6_Environmental_Psychology.md",
+      "notes": "R-082 (Workstation Ergonomic Work-Triangle Optimization) requires that the kitchen work triangle (sink–cooktop–refrigerator) fit within an ergonomic distance range, which implicitly requires a minimum floor area. The 60 sq ft recommended minimum comes from Architectural Graphic Standards. R-046 (Social-Distance Workstation Compliance) supports minimum clearances.",
+      "source_hint": "Architectural_Graphic_Standards_11th.md — Kitchen layouts; 06_Ch6_Environmental_Psychology.md",
       "related_ruleIds": [
         "R-082",
         "R-046",
@@ -308,7 +308,7 @@
       "category": "privacy",
       "implemented": true,
       "confidence": "high",
-      "notes": "R-032 (Entry Sequence Primacy) requires that entry initiate a public\u00e2\u2020\u2019private spatial hierarchy. Direct adjacency of a bedroom to an entry collapses this hierarchy, exposing private space at the threshold. R-001 (Prospect-Refuge Balance) also motivates protection of retreat spaces from immediate public access. This is a standard residential planning convention.",
+      "notes": "R-032 (Entry Sequence Primacy) requires that entry initiate a public→private spatial hierarchy. Direct adjacency of a bedroom to an entry collapses this hierarchy, exposing private space at the threshold. R-001 (Prospect-Refuge Balance) also motivates protection of retreat spaces from immediate public access. This is a standard residential planning convention.",
       "source_hint": "04_Image_of_the_City_AC.md; 01_Appleton_Prospect_Refuge.md",
       "related_ruleIds": [
         "R-032",
@@ -324,8 +324,8 @@
       "category": "acoustic",
       "implemented": true,
       "confidence": "medium",
-      "notes": "R-088 (Acoustic Noise Control Hierarchy) establishes source-avoidance as the first tier \u00e2\u20ac\u201d bathroom odor and noise are pollutants that must be separated from food-preparation and eating zones. R-048 (Acoustic-Visual Privacy Parity) reinforces that sensory separation (odor included) must match functional zoning. The bathroom-dining pairing is listed as discouraged in Architectural Graphic Standards residential adjacency diagrams.",
-      "source_hint": "07_Ch11_Health by Design.md; Architectural_Graphic_Standards_11th.md \u00e2\u20ac\u201d Residential adjacency matrix",
+      "notes": "R-088 (Acoustic Noise Control Hierarchy) establishes source-avoidance as the first tier — bathroom odor and noise are pollutants that must be separated from food-preparation and eating zones. R-048 (Acoustic-Visual Privacy Parity) reinforces that sensory separation (odor included) must match functional zoning. The bathroom-dining pairing is listed as discouraged in Architectural Graphic Standards residential adjacency diagrams.",
+      "source_hint": "07_Ch11_Health by Design.md; Architectural_Graphic_Standards_11th.md — Residential adjacency matrix",
       "related_ruleIds": [
         "R-088",
         "R-048",
@@ -341,7 +341,7 @@
       "implemented": true,
       "confidence": "medium",
       "notes": "R-088 (Acoustic Noise Control Hierarchy) requires separating noise-sensitive spaces from mechanical noise sources. A garage is a source of exhaust fumes, combustion odors, and motor noise; a bathroom is an occupied habitable room. ASHRAE 62.2 prohibits direct air-path connections between garages and habitable spaces. R-048 (Acoustic-Visual Privacy Parity) further reinforces sensory separation.",
-      "source_hint": "07_Ch11_Health by Design.md; ASHRAE 62.2 \u00c2\u00a74.4 (garage exhaust isolation)",
+      "source_hint": "07_Ch11_Health by Design.md; ASHRAE 62.2 §4.4 (garage exhaust isolation)",
       "related_ruleIds": [
         "R-088",
         "R-048",
@@ -356,8 +356,8 @@
       "category": "privacy",
       "implemented": true,
       "confidence": "medium",
-      "notes": "R-025 (Interior Circulation Hierarchy Documentation) requires a documented three-level circulation hierarchy; a bedroom 'wing' is the standard residential implementation of the private zone within that hierarchy. Isolated bedrooms with no shared hub disrupt the public\u00e2\u2020\u2019semi-public\u00e2\u2020\u2019private gradient required by R-032 (Entry Sequence Primacy) and R-033. Architectural Graphic Standards shows clustered bedroom zones as best practice.",
-      "source_hint": "05_Ch4_Wayfinding_With people in mind_AC.md; Architectural_Graphic_Standards_11th.md \u00e2\u20ac\u201d Residential zone diagrams",
+      "notes": "R-025 (Interior Circulation Hierarchy Documentation) requires a documented three-level circulation hierarchy; a bedroom 'wing' is the standard residential implementation of the private zone within that hierarchy. Isolated bedrooms with no shared hub disrupt the public→semi-public→private gradient required by R-032 (Entry Sequence Primacy) and R-033. Architectural Graphic Standards shows clustered bedroom zones as best practice.",
+      "source_hint": "05_Ch4_Wayfinding_With people in mind_AC.md; Architectural_Graphic_Standards_11th.md — Residential zone diagrams",
       "related_ruleIds": [
         "R-025",
         "R-032",
@@ -372,7 +372,7 @@
       "category": "circulation",
       "implemented": true,
       "confidence": "high",
-      "notes": "R-032 (Entry Sequence Primacy) requires the entry to initiate a spatial hierarchy that progresses public\u00e2\u2020\u2019semi-public\u00e2\u2020\u2019private. The canonical first transition is entry\u00e2\u2020\u2019living room, establishing an immediate sense of the social space before private rooms. A disconnected entry violates the expected spatial narrative described in 04_Image_of_the_City_AC.md and Prospect-Refuge theory (R-001).",
+      "notes": "R-032 (Entry Sequence Primacy) requires the entry to initiate a spatial hierarchy that progresses public→semi-public→private. The canonical first transition is entry→living room, establishing an immediate sense of the social space before private rooms. A disconnected entry violates the expected spatial narrative described in 04_Image_of_the_City_AC.md and Prospect-Refuge theory (R-001).",
       "source_hint": "04_Image_of_the_City_AC.md; 01_Appleton_Prospect_Refuge.md; Architectural_Graphic_Standards_11th.md",
       "related_ruleIds": [
         "R-032",
@@ -388,8 +388,8 @@
       "category": "program",
       "implemented": true,
       "confidence": "low",
-      "notes": "No direct match in extracted academic rulebook. R-047 (Semi-Fixed Furniture Adaptability) touches storage provision for adaptable layouts but does not specify closet counts. The 2-bedroom \u00e2\u2020\u2019 1-closet threshold comes from IRC / HUD Minimum Property Standards residential programming, not from the 25 source PDFs. Architectural Graphic Standards includes dedicated closet-to-bedroom ratios in residential unit type diagrams.",
-      "source_hint": "Architectural_Graphic_Standards_11th.md \u00e2\u20ac\u201d Residential unit types; IRC R304 habitable space requirements",
+      "notes": "No direct match in extracted academic rulebook. R-047 (Semi-Fixed Furniture Adaptability) touches storage provision for adaptable layouts but does not specify closet counts. The 2-bedroom → 1-closet threshold comes from IRC / HUD Minimum Property Standards residential programming, not from the 25 source PDFs. Architectural Graphic Standards includes dedicated closet-to-bedroom ratios in residential unit type diagrams.",
+      "source_hint": "Architectural_Graphic_Standards_11th.md — Residential unit types; IRC R304 habitable space requirements",
       "related_ruleIds": [
         "R-047",
         "R-082"
@@ -404,7 +404,7 @@
       "implemented": true,
       "confidence": "medium",
       "notes": "R-082 (Workstation Ergonomic Work-Triangle Optimization) generalizes to service-element clustering: plumbing-intensive rooms (kitchen, bathroom, laundry) share supply/drain stacks most efficiently when adjacent. Dispersed laundry increases pipe runs and cost. R-031 (Floor Plan Interconnection Density Limit) also supports functional clustering to reduce corridor distance. This is a standard residential plumbing-efficiency principle.",
-      "source_hint": "Architectural_Graphic_Standards_11th.md \u00e2\u20ac\u201d Plumbing zone clustering; 06_Cognition_meets_Le_Corbusier.md",
+      "source_hint": "Architectural_Graphic_Standards_11th.md — Plumbing zone clustering; 06_Cognition_meets_Le_Corbusier.md",
       "related_ruleIds": [
         "R-082",
         "R-031",
@@ -451,8 +451,8 @@
       "category": "dimensions",
       "implemented": true,
       "confidence": "medium",
-      "notes": "R-013 (ADA Turning Radius at All Activity Nodes) requires a minimum 60-in (5-ft) turning diameter at all activity nodes including bathrooms, which implies a minimum floor area. ADA Standards \u00c2\u00a7604 specifies accessible bathroom layouts requiring \u00e2\u2030\u00a530 sq ft clear floor for standard access. The 30 sq ft recommended minimum comes from Architectural Graphic Standards half-bath sizing. IRC P2903 implies fixture clearances that implicitly require minimum area.",
-      "source_hint": "Architectural_Graphic_Standards_11th.md \u00e2\u20ac\u201d Bathroom layouts; ADA Standards \u00c2\u00a7604; IRC P2903",
+      "notes": "R-013 (ADA Turning Radius at All Activity Nodes) requires a minimum 60-in (5-ft) turning diameter at all activity nodes including bathrooms, which implies a minimum floor area. ADA Standards §604 specifies accessible bathroom layouts requiring ≥30 sq ft clear floor for standard access. The 30 sq ft recommended minimum comes from Architectural Graphic Standards half-bath sizing. IRC P2903 implies fixture clearances that implicitly require minimum area.",
+      "source_hint": "Architectural_Graphic_Standards_11th.md — Bathroom layouts; ADA Standards §604; IRC P2903",
       "related_ruleIds": [
         "R-013",
         "R-046",
@@ -467,7 +467,7 @@
       "category": "circulation",
       "implemented": true,
       "confidence": "medium",
-      "notes": "R-025 (Interior Circulation Hierarchy Documentation) requires a documented three-level hierarchy (primary/secondary/tertiary). In large plans (\u00e2\u2030\u00a5800 sq ft, \u00e2\u2030\u00a53 bedrooms), a dedicated hallway implements the secondary circulation level that separates the public zone from the private bedroom wing. Without it, the public\u00e2\u2020\u2019private gradient of R-032 (Entry Sequence Primacy) cannot be maintained. R-031 (Floor Plan Interconnection Density Limit) also motivates clear circulation paths in larger plans.",
+      "notes": "R-025 (Interior Circulation Hierarchy Documentation) requires a documented three-level hierarchy (primary/secondary/tertiary). In large plans (≥800 sq ft, ≥3 bedrooms), a dedicated hallway implements the secondary circulation level that separates the public zone from the private bedroom wing. Without it, the public→private gradient of R-032 (Entry Sequence Primacy) cannot be maintained. R-031 (Floor Plan Interconnection Density Limit) also motivates clear circulation paths in larger plans.",
       "source_hint": "05_Ch4_Wayfinding_With people in mind_AC.md; 04_Image_of_the_City_AC.md; Architectural_Graphic_Standards_11th.md",
       "related_ruleIds": [
         "R-025",
@@ -483,8 +483,8 @@
       "category": "geometry",
       "implemented": true,
       "confidence": "medium",
-      "notes": "R-062 (Spatial Coherence Requirement) states that rooms must have a legible organizing principle. Near-containment (overlap \u00e2\u2030\u00a585% of smaller room without strict geometric containment) violates spatial coherence and indicates floating-point coordinate drift that could mask full containment. R-040 (Floor System Span-Depth Validation) also constrains degenerate bay overlaps. The 85% threshold is chosen to tolerate sub-unit measurement gaps while flagging near-total enclosure.",
-      "source_hint": "08_Zhu_Chapter_1.md \u00e2\u20ac\u201d spatial proportions and coherence; Architectural_Graphic_Standards_11th.md",
+      "notes": "R-062 (Spatial Coherence Requirement) states that rooms must have a legible organizing principle. Near-containment (overlap ≥85% of smaller room without strict geometric containment) violates spatial coherence and indicates floating-point coordinate drift that could mask full containment. R-040 (Floor System Span-Depth Validation) also constrains degenerate bay overlaps. The 85% threshold is chosen to tolerate sub-unit measurement gaps while flagging near-total enclosure.",
+      "source_hint": "08_Zhu_Chapter_1.md — spatial proportions and coherence; Architectural_Graphic_Standards_11th.md",
       "related_ruleIds": [
         "R-062",
         "R-040",
@@ -499,8 +499,8 @@
       "category": "geometry",
       "implemented": true,
       "confidence": "high",
-      "notes": "R-062 (Spatial Coherence Requirement) requires all rooms to have distinct, non-overlapping floor areas. When the aggregate of all pairwise overlap areas exceeds 2% of covered floor area, the plan's spatial coherence is fundamentally broken \u00e2\u20ac\u201d individual overlap checks may miss accumulated small overlaps. The 2% threshold is derived from construction tolerance conventions (\u00c2\u00b11% per room). R-040 (Floor System Span-Depth Validation) also constrains area accounting accuracy.",
-      "source_hint": "08_Zhu_Chapter_1.md \u00e2\u20ac\u201d spatial coherence; IRC R302 construction tolerance conventions",
+      "notes": "R-062 (Spatial Coherence Requirement) requires all rooms to have distinct, non-overlapping floor areas. When the aggregate of all pairwise overlap areas exceeds 2% of covered floor area, the plan's spatial coherence is fundamentally broken — individual overlap checks may miss accumulated small overlaps. The 2% threshold is derived from construction tolerance conventions (±1% per room). R-040 (Floor System Span-Depth Validation) also constrains area accounting accuracy.",
+      "source_hint": "08_Zhu_Chapter_1.md — spatial coherence; IRC R302 construction tolerance conventions",
       "related_ruleIds": [
         "R-062",
         "R-040"
@@ -514,7 +514,7 @@
       "category": "circulation",
       "implemented": true,
       "confidence": "high",
-      "notes": "R-025 (Interior Circulation Hierarchy Documentation) requires that each habitable room be reachable from the primary circulation network. For bedrooms specifically, the private-zone hub is a hall or entry \u00e2\u20ac\u201d not just any circulation room. A bedroom that cannot reach a hall or entry within 2 adjacency hops lacks a proper public-to-private transition buffer. R-032 (Entry Sequence Primacy) reinforces that the private zone must be reached through a structured circulation sequence.",
+      "notes": "R-025 (Interior Circulation Hierarchy Documentation) requires that each habitable room be reachable from the primary circulation network. For bedrooms specifically, the private-zone hub is a hall or entry — not just any circulation room. A bedroom that cannot reach a hall or entry within 2 adjacency hops lacks a proper public-to-private transition buffer. R-032 (Entry Sequence Primacy) reinforces that the private zone must be reached through a structured circulation sequence.",
       "source_hint": "05_Ch4_Wayfinding_With people in mind_AC.md; 04_Image_of_the_City_AC.md",
       "related_ruleIds": [
         "R-025",
@@ -525,13 +525,13 @@
     {
       "checkId": "RB-034",
       "ruleId": "R-088",
-      "title": "Bath\u00e2\u20ac\u201cKitchen Buffer Required",
+      "title": "Bath–Kitchen Buffer Required",
       "severity": "warning",
       "category": "acoustic",
       "implemented": true,
       "confidence": "high",
-      "notes": "R-088 (Acoustic Noise Control Hierarchy) establishes source-avoidance as the first tier: sanitation odors and plumbing noise from bathrooms must be separated from food-preparation zones. R-048 (Acoustic-Visual Privacy Parity) reinforces that sensory separation (odor included) must match functional zoning. ASHRAE 62.2 \u00c2\u00a74.4 prohibits direct air-path connections between sanitation and food zones. A hall or closet buffer is the minimum required separation. Unlike the base ADJACENCY_DISCOURAGED check, RB-034 provides a structured suggestedFix.",
-      "source_hint": "07_Ch11_Health by Design.md; ASHRAE 62.2 \u00c2\u00a74.4; Architectural_Graphic_Standards_11th.md \u00e2\u20ac\u201d adjacency matrix",
+      "notes": "R-088 (Acoustic Noise Control Hierarchy) establishes source-avoidance as the first tier: sanitation odors and plumbing noise from bathrooms must be separated from food-preparation zones. R-048 (Acoustic-Visual Privacy Parity) reinforces that sensory separation (odor included) must match functional zoning. ASHRAE 62.2 §4.4 prohibits direct air-path connections between sanitation and food zones. A hall or closet buffer is the minimum required separation. Unlike the base ADJACENCY_DISCOURAGED check, RB-034 provides a structured suggestedFix.",
+      "source_hint": "07_Ch11_Health by Design.md; ASHRAE 62.2 §4.4; Architectural_Graphic_Standards_11th.md — adjacency matrix",
       "related_ruleIds": [
         "R-088",
         "R-048",
@@ -541,13 +541,13 @@
     {
       "checkId": "RB-035",
       "ruleId": "R-082",
-      "title": "Kitchen\u00e2\u20ac\u201cPantry Adjacency",
+      "title": "Kitchen–Pantry Adjacency",
       "severity": "info",
       "category": "efficiency",
       "implemented": true,
       "confidence": "high",
       "notes": "R-082 (Workstation Ergonomic Work-Triangle Optimization) requires that storage components of the kitchen work triangle (including pantry/dry-goods storage) be within ergonomic reach of the primary preparation surface. A pantry separated from the kitchen forces unnecessary cross-traffic and breaks the ergonomic triangle. R-046 (Social-Distance Workstation Compliance) supports minimum-travel-distance adjacency between related functional elements.",
-      "source_hint": "Architectural_Graphic_Standards_11th.md \u00e2\u20ac\u201d Kitchen work triangle layouts; 06_Ch6_Environmental_Psychology.md",
+      "source_hint": "Architectural_Graphic_Standards_11th.md — Kitchen work triangle layouts; 06_Ch6_Environmental_Psychology.md",
       "related_ruleIds": [
         "R-082",
         "R-046",
@@ -563,7 +563,7 @@
       "implemented": true,
       "confidence": "medium",
       "notes": "R-082 (Workstation Ergonomic Work-Triangle Optimization) generalizes to plumbing-intensive room clustering: kitchen, bathrooms, and laundry share supply/drain stacks most efficiently when co-located. R-031 (Floor Plan Interconnection Density Limit) also motivates functional clustering to reduce corridor distance and plumbing runs. When the bounding box of all wet rooms exceeds 50% of the floor plan area, plumbing runs are excessively long. The 50% threshold is derived from residential plumbing stack consolidation guidelines in Architectural Graphic Standards.",
-      "source_hint": "Architectural_Graphic_Standards_11th.md \u00e2\u20ac\u201d Plumbing zone clustering; 06_Cognition_meets_Le_Corbusier.md",
+      "source_hint": "Architectural_Graphic_Standards_11th.md — Plumbing zone clustering; 06_Cognition_meets_Le_Corbusier.md",
       "related_ruleIds": [
         "R-082",
         "R-031",
@@ -578,8 +578,8 @@
       "category": "privacy",
       "implemented": true,
       "confidence": "medium",
-      "notes": "R-001 (Prospect-Refuge Balance) requires retreat spaces to provide enclosure and privacy \u00e2\u20ac\u201d a bedroom with 3+ shared walls is functionally a pass-through corridor, destroying the refuge quality. R-033 (Visual Privacy Threshold Distance) further requires that private rooms maintain a visual buffer from public circulation. R-048 (Acoustic-Visual Privacy Parity) confirms that acoustic privacy must match the functional privacy level of a bedroom. The \u00e2\u2030\u00a53 adjacency threshold is a proxy for pass-through use derived from residential planning literature.",
-      "source_hint": "01_Appleton_Prospect_Refuge.md; Architectural_Graphic_Standards_11th.md \u00e2\u20ac\u201d Residential privacy zoning",
+      "notes": "R-001 (Prospect-Refuge Balance) requires retreat spaces to provide enclosure and privacy — a bedroom with 3+ shared walls is functionally a pass-through corridor, destroying the refuge quality. R-033 (Visual Privacy Threshold Distance) further requires that private rooms maintain a visual buffer from public circulation. R-048 (Acoustic-Visual Privacy Parity) confirms that acoustic privacy must match the functional privacy level of a bedroom. The ≥3 adjacency threshold is a proxy for pass-through use derived from residential planning literature.",
+      "source_hint": "01_Appleton_Prospect_Refuge.md; Architectural_Graphic_Standards_11th.md — Residential privacy zoning",
       "related_ruleIds": [
         "R-001",
         "R-033",
@@ -594,7 +594,7 @@
       "category": "privacy",
       "implemented": true,
       "confidence": "medium",
-      "notes": "R-001 (Prospect-Refuge Balance) applies to bathrooms as highly private spaces \u00e2\u20ac\u201d a bathroom with 3+ adjacencies is used as a corridor junction, which violates hygiene, privacy, and acoustic separation requirements. R-088 (Acoustic Noise Control Hierarchy) confirms that plumbing noise sources should not be co-located with high-traffic circulation paths. R-048 (Acoustic-Visual Privacy Parity) reinforces sensory isolation requirements. The \u00e2\u2030\u00a53 adjacency threshold identifies pass-through configurations.",
+      "notes": "R-001 (Prospect-Refuge Balance) applies to bathrooms as highly private spaces — a bathroom with 3+ adjacencies is used as a corridor junction, which violates hygiene, privacy, and acoustic separation requirements. R-088 (Acoustic Noise Control Hierarchy) confirms that plumbing noise sources should not be co-located with high-traffic circulation paths. R-048 (Acoustic-Visual Privacy Parity) reinforces sensory isolation requirements. The ≥3 adjacency threshold identifies pass-through configurations.",
       "source_hint": "07_Ch11_Health by Design.md; 01_Appleton_Prospect_Refuge.md",
       "related_ruleIds": [
         "R-001",
@@ -610,8 +610,8 @@
       "category": "privacy",
       "implemented": true,
       "confidence": "high",
-      "notes": "R-033 (Visual Privacy Threshold Distance) requires that private rooms (bedrooms) maintain a visual and acoustic separation from social/public zones. A bedroom directly adjacent to the living room collapses the public\u00e2\u2020\u2019semi-public\u00e2\u2020\u2019private gradient required by R-032 (Entry Sequence Primacy) and R-025 (Interior Circulation Hierarchy). R-001 (Prospect-Refuge Balance) further motivates buffering of retreat spaces from high-activity zones. A hallway or closet between bedroom and living room is the standard residential solution.",
-      "source_hint": "01_Appleton_Prospect_Refuge.md; 04_Image_of_the_City_AC.md; Architectural_Graphic_Standards_11th.md \u00e2\u20ac\u201d Residential zone diagrams",
+      "notes": "R-033 (Visual Privacy Threshold Distance) requires that private rooms (bedrooms) maintain a visual and acoustic separation from social/public zones. A bedroom directly adjacent to the living room collapses the public→semi-public→private gradient required by R-032 (Entry Sequence Primacy) and R-025 (Interior Circulation Hierarchy). R-001 (Prospect-Refuge Balance) further motivates buffering of retreat spaces from high-activity zones. A hallway or closet between bedroom and living room is the standard residential solution.",
+      "source_hint": "01_Appleton_Prospect_Refuge.md; 04_Image_of_the_City_AC.md; Architectural_Graphic_Standards_11th.md — Residential zone diagrams",
       "related_ruleIds": [
         "R-033",
         "R-032",
@@ -627,7 +627,7 @@
       "category": "circulation",
       "implemented": true,
       "confidence": "high",
-      "notes": "R-032 (Entry Sequence Primacy) requires that entry initiate a public\u00e2\u2020\u2019semi-public\u00e2\u2020\u2019private spatial hierarchy. In multi-bedroom plans (\u00e2\u2030\u00a52 bedrooms), a hallway adjacent to the entry is the canonical semi-public buffer that prevents the entry from opening directly into private rooms. R-025 (Interior Circulation Hierarchy Documentation) documents that the three-level hierarchy requires a secondary circulation tier between entry and private zones. Without a hall at the entry, the spatial hierarchy degenerates to public\u00e2\u2020\u2019private, violating the sequence.",
+      "notes": "R-032 (Entry Sequence Primacy) requires that entry initiate a public→semi-public→private spatial hierarchy. In multi-bedroom plans (≥2 bedrooms), a hallway adjacent to the entry is the canonical semi-public buffer that prevents the entry from opening directly into private rooms. R-025 (Interior Circulation Hierarchy Documentation) documents that the three-level hierarchy requires a secondary circulation tier between entry and private zones. Without a hall at the entry, the spatial hierarchy degenerates to public→private, violating the sequence.",
       "source_hint": "04_Image_of_the_City_AC.md; 05_Ch4_Wayfinding_With people in mind_AC.md; Architectural_Graphic_Standards_11th.md",
       "related_ruleIds": [
         "R-032",
@@ -638,13 +638,13 @@
     {
       "checkId": "RB-041",
       "ruleId": "R-088",
-      "title": "Garage\u00e2\u20ac\u201cBedroom Separation",
+      "title": "Garage–Bedroom Separation",
       "severity": "warning",
       "category": "acoustic",
       "implemented": true,
       "confidence": "high",
-      "notes": "R-088 (Acoustic Noise Control Hierarchy) establishes that noise-sensitive spaces must be separated from mechanical noise sources. A garage is a source of engine noise, exhaust fumes, and combustion odors; a bedroom is the highest-priority noise-sensitive space. ASHRAE 62.2 \u00c2\u00a74.4 prohibits direct air-path connections between garages and habitable spaces. R-048 (Acoustic-Visual Privacy Parity) confirms that acoustic separation must match functional privacy level. This is the bedroom-specific counterpart to RB-022 (Bathroom Not Adjacent Garage).",
-      "source_hint": "07_Ch11_Health by Design.md; ASHRAE 62.2 \u00c2\u00a74.4; Architectural_Graphic_Standards_11th.md \u00e2\u20ac\u201d residential zone diagrams",
+      "notes": "R-088 (Acoustic Noise Control Hierarchy) establishes that noise-sensitive spaces must be separated from mechanical noise sources. A garage is a source of engine noise, exhaust fumes, and combustion odors; a bedroom is the highest-priority noise-sensitive space. ASHRAE 62.2 §4.4 prohibits direct air-path connections between garages and habitable spaces. R-048 (Acoustic-Visual Privacy Parity) confirms that acoustic separation must match functional privacy level. This is the bedroom-specific counterpart to RB-022 (Bathroom Not Adjacent Garage).",
+      "source_hint": "07_Ch11_Health by Design.md; ASHRAE 62.2 §4.4; Architectural_Graphic_Standards_11th.md — residential zone diagrams",
       "related_ruleIds": [
         "R-088",
         "R-048",
@@ -654,13 +654,13 @@
     {
       "checkId": "RB-042",
       "ruleId": "R-082",
-      "title": "Kitchen\u00e2\u20ac\u201cLiving Adjacency",
+      "title": "Kitchen–Living Adjacency",
       "severity": "info",
       "category": "efficiency",
       "implemented": true,
       "confidence": "medium",
       "notes": "R-082 (Workstation Ergonomic Work-Triangle Optimization) extends to service-to-social adjacency: kitchen and living room should be adjacent for efficient food service, social hosting, and open-plan circulation. R-031 (Floor Plan Interconnection Density Limit) supports functional clustering of related activity nodes. A kitchen isolated from the living room forces cross-traffic and disrupts the social zone. Architectural Graphic Standards shows kitchen-living adjacency as the recommended residential arrangement.",
-      "source_hint": "Architectural_Graphic_Standards_11th.md \u00e2\u20ac\u201d Open-plan residential layouts; 06_Ch6_Environmental_Psychology.md",
+      "source_hint": "Architectural_Graphic_Standards_11th.md — Open-plan residential layouts; 06_Ch6_Environmental_Psychology.md",
       "related_ruleIds": [
         "R-082",
         "R-031",
@@ -676,7 +676,7 @@
       "implemented": true,
       "confidence": "medium",
       "notes": "R-021 (Daylighting Depth Rule) requires occupied spaces to be within 1.5x ceiling height of a window wall. Bathrooms are habitually occupied and generate moisture; natural ventilation via an exterior wall reduces mold risk and improves indoor air quality per ASHRAE 62.2. R-009 (Passive-First Energy Hierarchy) supports natural ventilation over mechanical extraction where possible. IRC R303 requires natural light or mechanical ventilation for bathrooms; exterior wall access enables both. Severity is info because mechanical ventilation is a code-compliant fallback.",
-      "source_hint": "GZ_Brown_SWL_book.md \u00e2\u20ac\u201d natural ventilation; Ching_Green_Building_Illustrated_book.md; IRC R303",
+      "source_hint": "GZ_Brown_SWL_book.md — natural ventilation; Ching_Green_Building_Illustrated_book.md; IRC R303",
       "related_ruleIds": [
         "R-021",
         "R-009",
@@ -691,8 +691,8 @@
       "category": "acoustic",
       "implemented": true,
       "confidence": "high",
-      "notes": "R-088 (Acoustic Noise Control Hierarchy) and food-safety principles require that food-preparation zones be separated from chemical and fume sources. A garage is a source of carbon monoxide, gasoline vapors, and exhaust \u00e2\u20ac\u201d all of which are health hazards in food-preparation areas. ASHRAE 62.2 \u00c2\u00a74.4 prohibits direct air-path connections between garages and habitable spaces; a kitchen-garage shared wall creates exactly this risk. R-048 (Acoustic-Visual Privacy Parity) confirms sensory separation must match functional zone separation.",
-      "source_hint": "07_Ch11_Health by Design.md; ASHRAE 62.2 \u00c2\u00a74.4; Architectural_Graphic_Standards_11th.md \u00e2\u20ac\u201d residential zone separation",
+      "notes": "R-088 (Acoustic Noise Control Hierarchy) and food-safety principles require that food-preparation zones be separated from chemical and fume sources. A garage is a source of carbon monoxide, gasoline vapors, and exhaust — all of which are health hazards in food-preparation areas. ASHRAE 62.2 §4.4 prohibits direct air-path connections between garages and habitable spaces; a kitchen-garage shared wall creates exactly this risk. R-048 (Acoustic-Visual Privacy Parity) confirms sensory separation must match functional zone separation.",
+      "source_hint": "07_Ch11_Health by Design.md; ASHRAE 62.2 §4.4; Architectural_Graphic_Standards_11th.md — residential zone separation",
       "related_ruleIds": [
         "R-088",
         "R-048",
@@ -707,8 +707,8 @@
       "category": "circulation",
       "implemented": true,
       "confidence": "medium",
-      "notes": "R-032 (Entry Sequence Primacy) requires that entry initiate a spatial hierarchy from public to private. Without a dedicated entry room, visitors transition directly from the exterior into functional living spaces, collapsing the public\u00e2\u2020\u2019semi-public\u00e2\u2020\u2019private gradient. R-025 (Interior Circulation Hierarchy Documentation) documents the three-level hierarchy that begins at the entry. A dedicated entry/foyer is the residential implementation of entry sequence primacy. Severity is info because single-room or open-plan studios may intentionally omit a distinct entry.",
-      "source_hint": "04_Image_of_the_City_AC.md; 05_Ch4_Wayfinding_With people in mind_AC.md; Architectural_Graphic_Standards_11th.md \u00e2\u20ac\u201d residential entry sequences",
+      "notes": "R-032 (Entry Sequence Primacy) requires that entry initiate a spatial hierarchy from public to private. Without a dedicated entry room, visitors transition directly from the exterior into functional living spaces, collapsing the public→semi-public→private gradient. R-025 (Interior Circulation Hierarchy Documentation) documents the three-level hierarchy that begins at the entry. A dedicated entry/foyer is the residential implementation of entry sequence primacy. Severity is info because single-room or open-plan studios may intentionally omit a distinct entry.",
+      "source_hint": "04_Image_of_the_City_AC.md; 05_Ch4_Wayfinding_With people in mind_AC.md; Architectural_Graphic_Standards_11th.md — residential entry sequences",
       "related_ruleIds": [
         "R-032",
         "R-025",
@@ -723,8 +723,8 @@
       "category": "dimensions",
       "implemented": true,
       "confidence": "medium",
-      "notes": "R-026 (Spatial Zone Count Limit) constrains social zones to prevent fragmentation; adequately sized living space consolidates the social zone. R-049 (Collaborative Seating Orientation) requires sufficient floor area to arrange furniture for social interaction \u00e2\u20ac\u201d Architectural Graphic Standards sets 120 sq ft as the minimum for a functional seating group and 180 sq ft as recommended for comfortable social space. R-013 (ADA Turning Radius at All Activity Nodes) implies minimum 5-ft clear diameter at activity nodes within the room.",
-      "source_hint": "Architectural_Graphic_Standards_11th.md \u00e2\u20ac\u201d Living room sizing; 06_Ch6_Environmental_Psychology.md; ADA Standards \u00c2\u00a7802",
+      "notes": "R-026 (Spatial Zone Count Limit) constrains social zones to prevent fragmentation; adequately sized living space consolidates the social zone. R-049 (Collaborative Seating Orientation) requires sufficient floor area to arrange furniture for social interaction — Architectural Graphic Standards sets 120 sq ft as the minimum for a functional seating group and 180 sq ft as recommended for comfortable social space. R-013 (ADA Turning Radius at All Activity Nodes) implies minimum 5-ft clear diameter at activity nodes within the room.",
+      "source_hint": "Architectural_Graphic_Standards_11th.md — Living room sizing; 06_Ch6_Environmental_Psychology.md; ADA Standards §802",
       "related_ruleIds": [
         "R-026",
         "R-049",
@@ -739,8 +739,8 @@
       "category": "circulation",
       "implemented": true,
       "confidence": "high",
-      "notes": "R-031 (Floor Plan Interconnection Density Limit) requires that all rooms be connected within the plan's circulation graph. A room with zero adjacencies to any other room is topologically disconnected \u00e2\u20ac\u201d it has no shared walls and is effectively floating in space. This violates both R-025 (Interior Circulation Hierarchy Documentation) and basic construction logic (all rooms must share at least one wall or be directly accessible). Orphan rooms indicate either a layout error or a detached outbuilding inadvertently included in the plan.",
-      "source_hint": "05_Ch4_Wayfinding_With people in mind_AC.md; 04_Image_of_the_City_AC.md; Architectural_Graphic_Standards_11th.md \u00e2\u20ac\u201d room connectivity",
+      "notes": "R-031 (Floor Plan Interconnection Density Limit) requires that all rooms be connected within the plan's circulation graph. A room with zero adjacencies to any other room is topologically disconnected — it has no shared walls and is effectively floating in space. This violates both R-025 (Interior Circulation Hierarchy Documentation) and basic construction logic (all rooms must share at least one wall or be directly accessible). Orphan rooms indicate either a layout error or a detached outbuilding inadvertently included in the plan.",
+      "source_hint": "05_Ch4_Wayfinding_With people in mind_AC.md; 04_Image_of_the_City_AC.md; Architectural_Graphic_Standards_11th.md — room connectivity",
       "related_ruleIds": [
         "R-031",
         "R-025",
@@ -755,8 +755,8 @@
       "category": "envelope",
       "implemented": true,
       "confidence": "high",
-      "notes": "R-036 (Exterior Door Count Minimization) requires that exterior door openings be coordinated with exterior walls \u00e2\u20ac\u201d a garage without exterior wall contact cannot have a vehicle door, making it non-functional as a garage. R-024 (Fire Egress Travel Distance Compliance) also requires that garages have direct exterior egress for emergency exit. An interior garage is a fundamental design error and violates both functional requirements and fire egress codes. Severity is error because a garage cannot function without exterior access.",
-      "source_hint": "Ching_Green_Building_Illustrated_book.md; IBC 2021 \u00c2\u00a71003.3; IRC R302 \u00e2\u20ac\u201d garage separation requirements",
+      "notes": "R-036 (Exterior Door Count Minimization) requires that exterior door openings be coordinated with exterior walls — a garage without exterior wall contact cannot have a vehicle door, making it non-functional as a garage. R-024 (Fire Egress Travel Distance Compliance) also requires that garages have direct exterior egress for emergency exit. An interior garage is a fundamental design error and violates both functional requirements and fire egress codes. Severity is error because a garage cannot function without exterior access.",
+      "source_hint": "Ching_Green_Building_Illustrated_book.md; IBC 2021 §1003.3; IRC R302 — garage separation requirements",
       "related_ruleIds": [
         "R-036",
         "R-024",
@@ -771,8 +771,8 @@
       "category": "acoustic",
       "implemented": true,
       "confidence": "medium",
-      "notes": "R-088 (Acoustic Noise Control Hierarchy) and food-safety principles require separation between laundry chemical storage/processing and food-preparation areas. Detergents, bleaches, and dryer lint are contamination risks in a food-prep environment. R-048 (Acoustic-Visual Privacy Parity) reinforces that sensory (odor/chemical) separation must match functional zone separation. This is a weaker constraint than RB-044 (Kitchen Not Adjacent Garage) \u00e2\u20ac\u201d mechanical ventilation can mitigate the risk \u00e2\u20ac\u201d so severity is info rather than warning.",
-      "source_hint": "07_Ch11_Health by Design.md; Architectural_Graphic_Standards_11th.md \u00e2\u20ac\u201d Residential zone adjacency matrix",
+      "notes": "R-088 (Acoustic Noise Control Hierarchy) and food-safety principles require separation between laundry chemical storage/processing and food-preparation areas. Detergents, bleaches, and dryer lint are contamination risks in a food-prep environment. R-048 (Acoustic-Visual Privacy Parity) reinforces that sensory (odor/chemical) separation must match functional zone separation. This is a weaker constraint than RB-044 (Kitchen Not Adjacent Garage) — mechanical ventilation can mitigate the risk — so severity is info rather than warning.",
+      "source_hint": "07_Ch11_Health by Design.md; Architectural_Graphic_Standards_11th.md — Residential zone adjacency matrix",
       "related_ruleIds": [
         "R-088",
         "R-048",
@@ -788,7 +788,7 @@
       "implemented": true,
       "confidence": "low",
       "notes": "No direct match in extracted academic rulebook. The 200 sq ft minimum gross area for a habitable dwelling is derived from IRC R304.1 (minimum floor area for habitable rooms) and HUD Minimum Property Standards for residential units. Plans below 200 sq ft of covered area cannot accommodate required habitable spaces and do not represent buildable residential dwellings. This check flags placeholder or empty plans before other rules run. R-046 (Social-Distance Workstation Compliance) implies minimum clearances that collectively require more than 200 sq ft, but does not specify a plan-level minimum.",
-      "source_hint": "Architectural_Graphic_Standards_11th.md \u00e2\u20ac\u201d Minimum dwelling units; IRC R304.1 minimum floor area",
+      "source_hint": "Architectural_Graphic_Standards_11th.md — Minimum dwelling units; IRC R304.1 minimum floor area",
       "related_ruleIds": [
         "R-046",
         "R-013"
@@ -962,8 +962,8 @@
       "category": "dimensions",
       "implemented": true,
       "confidence": "medium",
-      "notes": "R-016 (Living Space Minimum Width Requirement). 12 ft is the minimum living room width to seat a sofa (84\u00e2\u20ac\u201c96 in) opposite chairs with a coffee table and 36-in circulation clearances on each side per Architectural Graphic Standards \u00e2\u20ac\u201d Residential Space Planning.",
-      "source_hint": "Architectural_Graphic_Standards_11th.md \u00e2\u20ac\u201d Living Room minimum dimensions; also Neufert Architects' Data",
+      "notes": "R-016 (Living Space Minimum Width Requirement). 12 ft is the minimum living room width to seat a sofa (84–96 in) opposite chairs with a coffee table and 36-in circulation clearances on each side per Architectural Graphic Standards — Residential Space Planning.",
+      "source_hint": "Architectural_Graphic_Standards_11th.md — Living Room minimum dimensions; also Neufert Architects' Data",
       "related_ruleIds": [
         "R-016",
         "R-026"
@@ -977,8 +977,8 @@
       "category": "dimensions",
       "implemented": true,
       "confidence": "medium",
-      "notes": "R-017 (Dining Space Minimum Width Requirement). 9 ft accommodates a 4-person rectangular table (36 \u00c3\u2014 72 in) plus 36-in pull-out clearance on each long side per Architectural Graphic Standards \u00e2\u20ac\u201d Table Spacing.",
-      "source_hint": "Architectural_Graphic_Standards_11th.md \u00e2\u20ac\u201d Dining Room minimum dimensions; also Neufert Architects' Data",
+      "notes": "R-017 (Dining Space Minimum Width Requirement). 9 ft accommodates a 4-person rectangular table (36 × 72 in) plus 36-in pull-out clearance on each long side per Architectural Graphic Standards — Table Spacing.",
+      "source_hint": "Architectural_Graphic_Standards_11th.md — Dining Room minimum dimensions; also Neufert Architects' Data",
       "related_ruleIds": [
         "R-017",
         "R-049"
@@ -992,8 +992,8 @@
       "category": "geometry",
       "implemented": true,
       "confidence": "medium",
-      "notes": "R-015 (Kitchen Work-Triangle Geometry). NKBA guidelines require each work-triangle leg \u00e2\u2030\u00a5 4 ft and \u00e2\u2030\u00a4 9 ft with total \u00e2\u2030\u00a4 26 ft. Aspect ratios > 3:1 force work-triangle legs to exceed maximums or violate ergonomic efficiency of the kitchen work zone.",
-      "source_hint": "NKBA Kitchen Planning Guidelines; Architectural_Graphic_Standards_11th.md \u00e2\u20ac\u201d Kitchen Work Triangle",
+      "notes": "R-015 (Kitchen Work-Triangle Geometry). NKBA guidelines require each work-triangle leg ≥ 4 ft and ≤ 9 ft with total ≤ 26 ft. Aspect ratios > 3:1 force work-triangle legs to exceed maximums or violate ergonomic efficiency of the kitchen work zone.",
+      "source_hint": "NKBA Kitchen Planning Guidelines; Architectural_Graphic_Standards_11th.md — Kitchen Work Triangle",
       "related_ruleIds": [
         "R-015",
         "R-062"
@@ -1007,8 +1007,8 @@
       "category": "adjacency",
       "implemented": true,
       "confidence": "medium",
-      "notes": "R-019 (Master Suite Adjacency Requirement). Residential design convention and habitability standards require at least one bedroom to be directly accessible to a bathroom \u00e2\u20ac\u201d the master-suite concept. Plans with no bedroom-bathroom adjacency score poorly on functional liveability metrics.",
-      "source_hint": "Architectural_Graphic_Standards_11th.md \u00e2\u20ac\u201d Residential Suite Planning; also HUD MPS 4910.1",
+      "notes": "R-019 (Master Suite Adjacency Requirement). Residential design convention and habitability standards require at least one bedroom to be directly accessible to a bathroom — the master-suite concept. Plans with no bedroom-bathroom adjacency score poorly on functional liveability metrics.",
+      "source_hint": "Architectural_Graphic_Standards_11th.md — Residential Suite Planning; also HUD MPS 4910.1",
       "related_ruleIds": [
         "R-019",
         "R-025"
@@ -1022,8 +1022,8 @@
       "category": "dimensions",
       "implemented": true,
       "confidence": "medium",
-      "notes": "R-027 (Home Office Minimum Dimension). 8 ft accommodates a standard desk (60\u00e2\u20ac\u201c72 in wide) with a 36-in chair pull-out clearance and passage space. Below 8 ft, a home office cannot meet standard ergonomic workspace requirements (Arch. Graphic Standards \u00e2\u20ac\u201d Office Layouts).",
-      "source_hint": "Architectural_Graphic_Standards_11th.md \u00e2\u20ac\u201d Office/Study minimum dimensions",
+      "notes": "R-027 (Home Office Minimum Dimension). 8 ft accommodates a standard desk (60–72 in wide) with a 36-in chair pull-out clearance and passage space. Below 8 ft, a home office cannot meet standard ergonomic workspace requirements (Arch. Graphic Standards — Office Layouts).",
+      "source_hint": "Architectural_Graphic_Standards_11th.md — Office/Study minimum dimensions",
       "related_ruleIds": [
         "R-027",
         "R-046"
@@ -1037,8 +1037,8 @@
       "category": "code",
       "implemented": true,
       "confidence": "high",
-      "notes": "R-028 (Corridor Minimum Width \u00e2\u20ac\u201d IRC R311.6 / ADA \u00c2\u00a7402). IRC R311.6 requires minimum 36-in (3 ft) clear width for hallways in residential buildings. ADA \u00c2\u00a7402.2 requires 36-in minimum clear floor width for accessible routes. Violations are code errors, not merely warnings.",
-      "source_hint": "IRC 2021 R311.6 \u00e2\u20ac\u201d Hallway width; ADA Standards \u00c2\u00a7402.2; also Arch. Graphic Standards",
+      "notes": "R-028 (Corridor Minimum Width — IRC R311.6 / ADA §402). IRC R311.6 requires minimum 36-in (3 ft) clear width for hallways in residential buildings. ADA §402.2 requires 36-in minimum clear floor width for accessible routes. Violations are code errors, not merely warnings.",
+      "source_hint": "IRC 2021 R311.6 — Hallway width; ADA Standards §402.2; also Arch. Graphic Standards",
       "related_ruleIds": [
         "R-028",
         "R-007"
@@ -1052,8 +1052,8 @@
       "category": "dimensions",
       "implemented": true,
       "confidence": "medium",
-      "notes": "R-029 (Laundry Room Minimum Area). 30 sq ft is the minimum to accommodate a side-by-side washer (27 \u00c3\u2014 30 in) and dryer (27 \u00c3\u2014 30 in) with a 42-in front service clearance, per HUD Minimum Property Standards and Architectural Graphic Standards \u00e2\u20ac\u201d Laundry.",
-      "source_hint": "HUD MPS 4910.1 \u00e2\u20ac\u201d Laundry provisions; Architectural_Graphic_Standards_11th.md \u00e2\u20ac\u201d Laundry Room sizing",
+      "notes": "R-029 (Laundry Room Minimum Area). 30 sq ft is the minimum to accommodate a side-by-side washer (27 × 30 in) and dryer (27 × 30 in) with a 42-in front service clearance, per HUD Minimum Property Standards and Architectural Graphic Standards — Laundry.",
+      "source_hint": "HUD MPS 4910.1 — Laundry provisions; Architectural_Graphic_Standards_11th.md — Laundry Room sizing",
       "related_ruleIds": [
         "R-029",
         "R-013"
@@ -1067,8 +1067,8 @@
       "category": "dimensions",
       "implemented": true,
       "confidence": "medium",
-      "notes": "R-030 (Closet Minimum Area). 6 sq ft (e.g., 2 ft deep \u00c3\u2014 3 ft wide) is the minimum single-rod closet per Architectural Graphic Standards. Below this, standard clothes hangers (22-in rod depth + 2-in clearance) cannot be accommodated. Complements RB-006 (Closet Near Bedroom).",
-      "source_hint": "Architectural_Graphic_Standards_11th.md \u00e2\u20ac\u201d Closet minimum dimensions; Neufert Architects' Data",
+      "notes": "R-030 (Closet Minimum Area). 6 sq ft (e.g., 2 ft deep × 3 ft wide) is the minimum single-rod closet per Architectural Graphic Standards. Below this, standard clothes hangers (22-in rod depth + 2-in clearance) cannot be accommodated. Complements RB-006 (Closet Near Bedroom).",
+      "source_hint": "Architectural_Graphic_Standards_11th.md — Closet minimum dimensions; Neufert Architects' Data",
       "related_ruleIds": [
         "R-030",
         "R-006"
@@ -1082,8 +1082,8 @@
       "category": "dimensions",
       "implemented": true,
       "confidence": "high",
-      "notes": "R-023 (Garage Stall Minimum Width \u00e2\u20ac\u201d IRC R309). IRC Table R309 specifies 10 ft minimum stall width for a single-car garage (compact vehicle). Standard passenger cars are 6\u00e2\u20ac\u201c7 ft wide; 10 ft allows door-swing clearance on both sides. Complements RB-001 (Garage Area Ratio Max).",
-      "source_hint": "IRC 2021 R309 \u00e2\u20ac\u201d Garage stall dimensions; Architectural_Graphic_Standards_11th.md \u00e2\u20ac\u201d Parking/Garage",
+      "notes": "R-023 (Garage Stall Minimum Width — IRC R309). IRC Table R309 specifies 10 ft minimum stall width for a single-car garage (compact vehicle). Standard passenger cars are 6–7 ft wide; 10 ft allows door-swing clearance on both sides. Complements RB-001 (Garage Area Ratio Max).",
+      "source_hint": "IRC 2021 R309 — Garage stall dimensions; Architectural_Graphic_Standards_11th.md — Parking/Garage",
       "related_ruleIds": [
         "R-023",
         "R-001"
@@ -1097,8 +1097,8 @@
       "category": "composition",
       "implemented": true,
       "confidence": "medium",
-      "notes": "R-034 (Maximum Single-Room Area Dominance). Plans where one room exceeds 50% of total floor area are programmatically degenerate \u00e2\u20ac\u201d they cannot provide the spatial variety required for residential habitability. This is a space-planning quality metric from Architectural Graphic Standards.",
-      "source_hint": "Architectural_Graphic_Standards_11th.md \u00e2\u20ac\u201d Residential Space Planning ratios; also academic space-syntax analysis",
+      "notes": "R-034 (Maximum Single-Room Area Dominance). Plans where one room exceeds 50% of total floor area are programmatically degenerate — they cannot provide the spatial variety required for residential habitability. This is a space-planning quality metric from Architectural Graphic Standards.",
+      "source_hint": "Architectural_Graphic_Standards_11th.md — Residential Space Planning ratios; also academic space-syntax analysis",
       "related_ruleIds": [
         "R-034",
         "R-062"
@@ -1112,8 +1112,8 @@
       "category": "dimensions",
       "implemented": true,
       "confidence": "medium",
-      "notes": "R-032 (Entry Sequence Primacy). An entry foyer must be \u00e2\u2030\u00a5 20 sq ft to allow door swing, outerwear removal, and an accessible turning approach (5-ft diameter turning circle). Smaller entries fail basic functional habitability even before accessibility standards are applied.",
-      "source_hint": "Architectural_Graphic_Standards_11th.md \u00e2\u20ac\u201d Entry/Foyer minimum dimensions; ADA Standards \u00c2\u00a7304.3",
+      "notes": "R-032 (Entry Sequence Primacy). An entry foyer must be ≥ 20 sq ft to allow door swing, outerwear removal, and an accessible turning approach (5-ft diameter turning circle). Smaller entries fail basic functional habitability even before accessibility standards are applied.",
+      "source_hint": "Architectural_Graphic_Standards_11th.md — Entry/Foyer minimum dimensions; ADA Standards §304.3",
       "related_ruleIds": [
         "R-032",
         "R-013"
@@ -1127,8 +1127,8 @@
       "category": "dimensions",
       "implemented": true,
       "confidence": "medium",
-      "notes": "R-013 (ADA Turning Radius at All Activity Nodes). Bathrooms with aspect ratio > 3:1 cannot simultaneously place a toilet, lavatory, and tub/shower with required fixture clearances while also maintaining a 5-ft ADA turning diameter. A 3:1 limit is the practical boundary for any compliant fixture layout per Architectural Graphic Standards \u00e2\u20ac\u201d Bathroom Fixture Clearances.",
-      "source_hint": "Architectural_Graphic_Standards_11th.md \u00e2\u20ac\u201d Bathroom Fixture Clearances; ADA Standards \u00c2\u00a7604, \u00c2\u00a7606",
+      "notes": "R-013 (ADA Turning Radius at All Activity Nodes). Bathrooms with aspect ratio > 3:1 cannot simultaneously place a toilet, lavatory, and tub/shower with required fixture clearances while also maintaining a 5-ft ADA turning diameter. A 3:1 limit is the practical boundary for any compliant fixture layout per Architectural Graphic Standards — Bathroom Fixture Clearances.",
+      "source_hint": "Architectural_Graphic_Standards_11th.md — Bathroom Fixture Clearances; ADA Standards §604, §606",
       "related_ruleIds": [
         "R-013",
         "R-020"
@@ -1142,8 +1142,8 @@
       "category": "dimensions",
       "implemented": true,
       "confidence": "medium",
-      "notes": "R-082 (Workstation Ergonomic Work-Triangle Optimization). NKBA guidelines require at least one counter run of \u00e2\u2030\u00a5 8 ft to accommodate sink, range, and refrigerator with required clearances between them. A kitchen that is narrow in both dimensions cannot fit any valid work-triangle configuration.",
-      "source_hint": "NKBA Kitchen Planning Guidelines; Architectural_Graphic_Standards_11th.md \u00e2\u20ac\u201d Kitchen Work Triangle",
+      "notes": "R-082 (Workstation Ergonomic Work-Triangle Optimization). NKBA guidelines require at least one counter run of ≥ 8 ft to accommodate sink, range, and refrigerator with required clearances between them. A kitchen that is narrow in both dimensions cannot fit any valid work-triangle configuration.",
+      "source_hint": "NKBA Kitchen Planning Guidelines; Architectural_Graphic_Standards_11th.md — Kitchen Work Triangle",
       "related_ruleIds": [
         "R-082",
         "R-015"
@@ -1157,8 +1157,8 @@
       "category": "dimensions",
       "implemented": true,
       "confidence": "medium",
-      "notes": "R-062 (Spatial Coherence Requirement). A living room wider than 2.5\u00c3\u2014 its shorter dimension cannot support a functional furniture layout \u00e2\u20ac\u201d the sofa group cannot face a focal point without one cluster being in a dead zone. Extreme elongation violates the organizing-principle legibility required by R-062.",
-      "source_hint": "Architectural_Graphic_Standards_11th.md \u00e2\u20ac\u201d Living Room furniture layout ratios; also Neufert Architects' Data",
+      "notes": "R-062 (Spatial Coherence Requirement). A living room wider than 2.5× its shorter dimension cannot support a functional furniture layout — the sofa group cannot face a focal point without one cluster being in a dead zone. Extreme elongation violates the organizing-principle legibility required by R-062.",
+      "source_hint": "Architectural_Graphic_Standards_11th.md — Living Room furniture layout ratios; also Neufert Architects' Data",
       "related_ruleIds": [
         "R-062",
         "R-049"
@@ -1172,8 +1172,8 @@
       "category": "dimensions",
       "implemented": true,
       "confidence": "high",
-      "notes": "R-023 (Garage Stall Minimum \u00e2\u20ac\u201d IRC R309). Standard passenger vehicles are 14\u00e2\u20ac\u201c17 ft long; 18 ft provides the minimum clear depth with 6-in buffers at each end per IRC Table R309. A garage shorter than 18 ft cannot fully contain a standard vehicle with the door closed.",
-      "source_hint": "IRC 2021 R309 \u00e2\u20ac\u201d Garage stall dimensions; Architectural_Graphic_Standards_11th.md \u00e2\u20ac\u201d Parking/Garage",
+      "notes": "R-023 (Garage Stall Minimum — IRC R309). Standard passenger vehicles are 14–17 ft long; 18 ft provides the minimum clear depth with 6-in buffers at each end per IRC Table R309. A garage shorter than 18 ft cannot fully contain a standard vehicle with the door closed.",
+      "source_hint": "IRC 2021 R309 — Garage stall dimensions; Architectural_Graphic_Standards_11th.md — Parking/Garage",
       "related_ruleIds": [
         "R-023",
         "R-001"
@@ -1187,8 +1187,8 @@
       "category": "code",
       "implemented": true,
       "confidence": "high",
-      "notes": "R-014 (Stair Geometry Compliance \u00e2\u20ac\u201d IRC R311.7). IRC R311.7.1 requires \u00e2\u2030\u00a5 36-in clear stair width; a compliant straight-run flight (9 risers at 7 in, 9 treads at 10 in = 90 in run) with framing requires \u00e2\u2030\u00a5 40 sq ft. Below this, the stair cannot meet rise/run geometry or landing requirements.",
-      "source_hint": "IRC 2021 R311.7 \u00e2\u20ac\u201d Stair geometry; Architectural_Graphic_Standards_11th.md \u00e2\u20ac\u201d Stair minimum dimensions",
+      "notes": "R-014 (Stair Geometry Compliance — IRC R311.7). IRC R311.7.1 requires ≥ 36-in clear stair width; a compliant straight-run flight (9 risers at 7 in, 9 treads at 10 in = 90 in run) with framing requires ≥ 40 sq ft. Below this, the stair cannot meet rise/run geometry or landing requirements.",
+      "source_hint": "IRC 2021 R311.7 — Stair geometry; Architectural_Graphic_Standards_11th.md — Stair minimum dimensions",
       "related_ruleIds": [
         "R-014",
         "R-024"
@@ -1203,7 +1203,7 @@
       "implemented": true,
       "confidence": "medium",
       "notes": "HUD Minimum Property Standards (MPS 4910.1) and Architectural Graphic Standards recommend at most 4 occupants per full bathroom. Plans with more than 4 bedrooms sharing a single bathroom create peak-demand conflicts that are a habitability deficiency regardless of total square footage.",
-      "source_hint": "HUD MPS 4910.1 \u00e2\u20ac\u201d Bathroom provision standards; Architectural_Graphic_Standards_11th.md \u00e2\u20ac\u201d Residential plumbing fixture ratios",
+      "source_hint": "HUD MPS 4910.1 — Bathroom provision standards; Architectural_Graphic_Standards_11th.md — Residential plumbing fixture ratios",
       "related_ruleIds": [
         "R-013",
         "R-025"
@@ -1217,8 +1217,8 @@
       "category": "dimensions",
       "implemented": true,
       "confidence": "medium",
-      "notes": "R-046 (Social-Distance Workstation Compliance). An office wider than 2.5\u00c3\u2014 its shorter dimension cannot simultaneously fit a desk against one wall, chair pull-out, and a 5-ft ADA turning circle without the workspace becoming corridor-like. Complements RB-065 (Office Minimum Width) which checks absolute dimension.",
-      "source_hint": "Architectural_Graphic_Standards_11th.md \u00e2\u20ac\u201d Office/Study layout clearances; ADA Standards \u00c2\u00a7304.3",
+      "notes": "R-046 (Social-Distance Workstation Compliance). An office wider than 2.5× its shorter dimension cannot simultaneously fit a desk against one wall, chair pull-out, and a 5-ft ADA turning circle without the workspace becoming corridor-like. Complements RB-065 (Office Minimum Width) which checks absolute dimension.",
+      "source_hint": "Architectural_Graphic_Standards_11th.md — Office/Study layout clearances; ADA Standards §304.3",
       "related_ruleIds": [
         "R-046",
         "R-027"
@@ -1232,8 +1232,8 @@
       "category": "adjacency",
       "implemented": true,
       "confidence": "medium",
-      "notes": "R-032 (Entry Sequence Primacy). The arrival sequence should transition directly into the primary social zone. An entry that bypasses the living room forces occupants and guests through private zones before reaching the public area \u00e2\u20ac\u201d a common habitability complaint in residential design captured in post-occupancy evaluations.",
-      "source_hint": "Architectural_Graphic_Standards_11th.md \u00e2\u20ac\u201d Residential circulation sequence; also Lynch (Image of the City) on path-sequence legibility",
+      "notes": "R-032 (Entry Sequence Primacy). The arrival sequence should transition directly into the primary social zone. An entry that bypasses the living room forces occupants and guests through private zones before reaching the public area — a common habitability complaint in residential design captured in post-occupancy evaluations.",
+      "source_hint": "Architectural_Graphic_Standards_11th.md — Residential circulation sequence; also Lynch (Image of the City) on path-sequence legibility",
       "related_ruleIds": [
         "R-032",
         "R-004"
@@ -1247,8 +1247,8 @@
       "category": "dimensions",
       "implemented": true,
       "confidence": "medium",
-      "notes": "R-049 (Collaborative Seating Orientation). A 4-person rectangular table (36 \u00c3\u2014 72 in = 3 \u00c3\u2014 6 ft) with 36-in chair pull-out on each long side requires 6 + 3 + 3 = 12 ft along the table length. 10 ft is the hard minimum for a round or square table with two-sided clearance per Architectural Graphic Standards \u00e2\u20ac\u201d Dining Room Sizing.",
-      "source_hint": "Architectural_Graphic_Standards_11th.md \u00e2\u20ac\u201d Dining Room minimum dimensions; also Neufert Architects' Data",
+      "notes": "R-049 (Collaborative Seating Orientation). A 4-person rectangular table (36 × 72 in = 3 × 6 ft) with 36-in chair pull-out on each long side requires 6 + 3 + 3 = 12 ft along the table length. 10 ft is the hard minimum for a round or square table with two-sided clearance per Architectural Graphic Standards — Dining Room Sizing.",
+      "source_hint": "Architectural_Graphic_Standards_11th.md — Dining Room minimum dimensions; also Neufert Architects' Data",
       "related_ruleIds": [
         "R-049",
         "R-017"
@@ -1262,8 +1262,8 @@
       "category": "dimensions",
       "implemented": true,
       "confidence": "high",
-      "notes": "R-062 (Spatial Coherence Requirement). A bedroom longer than 2\u00c3\u2014 its width cannot fit a standard bed (queen 5\u00c3\u20147 ft) perpendicular to both walls while maintaining required 36-in circulation path. RB-003 catches extreme slivers (>5:1); RB-081 enforces the functional furniture-placement threshold of 2:1.",
-      "source_hint": "Architectural_Graphic_Standards_11th.md \u00e2\u20ac\u201d Bedroom furniture layouts",
+      "notes": "R-062 (Spatial Coherence Requirement). A bedroom longer than 2× its width cannot fit a standard bed (queen 5×7 ft) perpendicular to both walls while maintaining required 36-in circulation path. RB-003 catches extreme slivers (>5:1); RB-081 enforces the functional furniture-placement threshold of 2:1.",
+      "source_hint": "Architectural_Graphic_Standards_11th.md — Bedroom furniture layouts",
       "related_ruleIds": [
         "R-062",
         "R-013"
@@ -1278,7 +1278,7 @@
       "implemented": true,
       "confidence": "high",
       "notes": "R-014 (Stair Geometry Compliance). IRC R311.7.1 mandates a minimum 36-in clear stair width. A stair narrower than 3 ft cannot legally serve as a means of egress. Distinct from RB-076 (minimum area) and RB-053 (rise/run geometry).",
-      "source_hint": "Architectural_Graphic_Standards_11th.md \u00e2\u20ac\u201d Stair section; IRC R311.7.1",
+      "source_hint": "Architectural_Graphic_Standards_11th.md — Stair section; IRC R311.7.1",
       "related_ruleIds": [
         "R-014",
         "R-024"
@@ -1293,7 +1293,7 @@
       "implemented": true,
       "confidence": "medium",
       "notes": "R-049 (Collaborative Seating Orientation). A dining room more elongated than 2.5:1 cannot accommodate a rectangular table with seating on all four sides and required 36-in pull-out clearances. Distinct from RB-080 (min depth) and RB-062 (min width).",
-      "source_hint": "Architectural_Graphic_Standards_11th.md \u00e2\u20ac\u201d Dining Room layouts",
+      "source_hint": "Architectural_Graphic_Standards_11th.md — Dining Room layouts",
       "related_ruleIds": [
         "R-049",
         "R-062"
@@ -1308,7 +1308,7 @@
       "implemented": true,
       "confidence": "medium",
       "notes": "No single R-NNN match. Relates to R-004 (Legibility by Lynch Elements) and R-031 (Floor Plan Interconnection Density Limit). Plan aspect ratio >3:1 inflates envelope cost, forces single-loaded corridor configuration, and degrades wayfinding legibility. 3:1 is the practical upper bound for cost-effective residential construction.",
-      "source_hint": "04_Image_of_the_City_AC.md \u00e2\u20ac\u201d Lynch legibility; The_Architects_Studio_Companion \u00e2\u20ac\u201d proportion rules of thumb",
+      "source_hint": "04_Image_of_the_City_AC.md — Lynch legibility; The_Architects_Studio_Companion — proportion rules of thumb",
       "related_ruleIds": [
         "R-004",
         "R-031"
@@ -1322,8 +1322,8 @@
       "category": "dimensions",
       "implemented": true,
       "confidence": "medium",
-      "notes": "No direct R-NNN match. HUD MPS and Architectural Graphic Standards laundry sizing. A side-by-side washer+dryer requires 5 ft clear interior width (2\u00c3\u2014~2 ft units + framing). Narrower forces stacking-only configuration. Distinct from RB-067 (minimum area).",
-      "source_hint": "Architectural_Graphic_Standards_11th.md \u00e2\u20ac\u201d Laundry room sizing; HUD Minimum Property Standards",
+      "notes": "No direct R-NNN match. HUD MPS and Architectural Graphic Standards laundry sizing. A side-by-side washer+dryer requires 5 ft clear interior width (2×~2 ft units + framing). Narrower forces stacking-only configuration. Distinct from RB-067 (minimum area).",
+      "source_hint": "Architectural_Graphic_Standards_11th.md — Laundry room sizing; HUD Minimum Property Standards",
       "related_ruleIds": []
     },
     {
@@ -1334,8 +1334,8 @@
       "category": "dimensions",
       "implemented": true,
       "confidence": "medium",
-      "notes": "R-046 (Social-Distance Workstation Compliance). An office must be \u00e2\u2030\u00a5 9 ft in its longer dimension to accommodate a desk run (5 ft) + ADA turning space (2.5 ft) + exit path (1.5 ft). Distinct from RB-065 (min width 8 ft) and RB-052 (min area).",
-      "source_hint": "Architectural_Graphic_Standards_11th.md \u00e2\u20ac\u201d Office/workstation layouts; ADA \u00c2\u00a7305",
+      "notes": "R-046 (Social-Distance Workstation Compliance). An office must be ≥ 9 ft in its longer dimension to accommodate a desk run (5 ft) + ADA turning space (2.5 ft) + exit path (1.5 ft). Distinct from RB-065 (min width 8 ft) and RB-052 (min area).",
+      "source_hint": "Architectural_Graphic_Standards_11th.md — Office/workstation layouts; ADA §305",
       "related_ruleIds": [
         "R-046",
         "R-082"
@@ -1349,8 +1349,8 @@
       "category": "egress",
       "implemented": true,
       "confidence": "high",
-      "notes": "R-013 (ADA Turning Radius at All Activity Nodes). Entry shorter dimension \u00e2\u2030\u00a5 4 ft provides comfortable two-person pass and accessible passage at the entry threshold (ADA \u00c2\u00a7402.3 requires 36 in minimum; 4 ft is the recommended residential standard). Distinct from RB-071 (minimum entry area).",
-      "source_hint": "Architectural_Graphic_Standards_11th.md \u00e2\u20ac\u201d Entry/foyer dimensions; ADA \u00c2\u00a7402.3",
+      "notes": "R-013 (ADA Turning Radius at All Activity Nodes). Entry shorter dimension ≥ 4 ft provides comfortable two-person pass and accessible passage at the entry threshold (ADA §402.3 requires 36 in minimum; 4 ft is the recommended residential standard). Distinct from RB-071 (minimum entry area).",
+      "source_hint": "Architectural_Graphic_Standards_11th.md — Entry/foyer dimensions; ADA §402.3",
       "related_ruleIds": [
         "R-013",
         "R-032"
@@ -1364,8 +1364,8 @@
       "category": "dimensions",
       "implemented": true,
       "confidence": "high",
-      "notes": "No direct R-NNN match. Architectural Graphic Standards closet dimensions. Standard clothes hangers require 22\u00e2\u20ac\u201c24 in (2 ft) clear depth. A closet shallower than 24 in cannot hang garments and is effectively a shelf niche. Distinct from RB-068 (minimum closet area).",
-      "source_hint": "Architectural_Graphic_Standards_11th.md \u00e2\u20ac\u201d Closet dimensions (24-in hanger rod depth standard)",
+      "notes": "No direct R-NNN match. Architectural Graphic Standards closet dimensions. Standard clothes hangers require 22–24 in (2 ft) clear depth. A closet shallower than 24 in cannot hang garments and is effectively a shelf niche. Distinct from RB-068 (minimum closet area).",
+      "source_hint": "Architectural_Graphic_Standards_11th.md — Closet dimensions (24-in hanger rod depth standard)",
       "related_ruleIds": []
     },
     {
@@ -1376,8 +1376,8 @@
       "category": "egress",
       "implemented": true,
       "confidence": "high",
-      "notes": "No direct R-NNN match. IRC R309.1 requires a solid fire-separation door between garage and dwelling interior. Without adjacency to an interior room (entry/hall/laundry/kitchen) this connection is impossible. Without internal access, occupants must use exterior paths \u00e2\u20ac\u201d a significant safety and habitability deficiency.",
-      "source_hint": "IRC R309.1 \u00e2\u20ac\u201d Garage/Dwelling Separation requirement",
+      "notes": "No direct R-NNN match. IRC R309.1 requires a solid fire-separation door between garage and dwelling interior. Without adjacency to an interior room (entry/hall/laundry/kitchen) this connection is impossible. Without internal access, occupants must use exterior paths — a significant safety and habitability deficiency.",
+      "source_hint": "IRC R309.1 — Garage/Dwelling Separation requirement",
       "related_ruleIds": [
         "R-036",
         "R-032"
@@ -1392,7 +1392,7 @@
       "implemented": true,
       "confidence": "medium",
       "notes": "No direct R-NNN match. Architectural Graphic Standards bedroom storage provision. When multiple bedrooms are present, each bedroom should have at least one adjacent closet. RB-006 only requires one closet adjacent to any single bedroom (plan-level minimum); RB-090 enforces per-bedroom dedicated storage. Severity is info because in small plans closets are sometimes shared across a hall.",
-      "source_hint": "Architectural_Graphic_Standards_11th.md \u00e2\u20ac\u201d Bedroom storage provision; HUD MPS bedroom storage",
+      "source_hint": "Architectural_Graphic_Standards_11th.md — Bedroom storage provision; HUD MPS bedroom storage",
       "related_ruleIds": [
         "R-013"
       ]
@@ -1405,7 +1405,7 @@
       "category": "adjacency",
       "implemented": true,
       "confidence": "high",
-      "notes": "R-091 (MBH Small-Unit and Mixed Room-Type Configuration) requires communal areas, interaction furniture, and a public-to-private gradient in MBH inpatient clusters. Checks: when \u00e2\u2030\u00a5 4 bedrooms present (proxy for care-facility patient cluster), at least one living or dining room must exist. The layout data model does not distinguish building type; \u00e2\u2030\u00a5 4 bedrooms is used as the care-facility proxy.",
+      "notes": "R-091 (MBH Small-Unit and Mixed Room-Type Configuration) requires communal areas, interaction furniture, and a public-to-private gradient in MBH inpatient clusters. Checks: when ≥ 4 bedrooms present (proxy for care-facility patient cluster), at least one living or dining room must exist. The layout data model does not distinguish building type; ≥ 4 bedrooms is used as the care-facility proxy.",
       "source_hint": "10_Zhu_Chapter_4.pdf (p. 8 / book p. 62)",
       "related_ruleIds": [
         "R-091",
@@ -1420,7 +1420,7 @@
       "category": "dimensions",
       "implemented": true,
       "confidence": "medium",
-      "notes": "R-092 (Trauma-Informed Design Environmental Stress Reduction) requires communal space that scales with resident count. Checks: when \u00e2\u2030\u00a5 2 bedrooms and \u00e2\u2030\u00a5 1 communal room (living or dining) are present, combined communal area must be \u00e2\u2030\u00a5 40 sq ft per bedroom. 40 sq ft/bedroom is the minimum for one social seating zone per resident. Distinct from RB-017 (percentage-of-total ratio): this is an absolute per-occupant allocation threshold.",
+      "notes": "R-092 (Trauma-Informed Design Environmental Stress Reduction) requires communal space that scales with resident count. Checks: when ≥ 2 bedrooms and ≥ 1 communal room (living or dining) are present, combined communal area must be ≥ 40 sq ft per bedroom. 40 sq ft/bedroom is the minimum for one social seating zone per resident. Distinct from RB-017 (percentage-of-total ratio): this is an absolute per-occupant allocation threshold.",
       "source_hint": "10_Zhu_Chapter_4.pdf (p. 6 / book p. 60)",
       "related_ruleIds": [
         "R-092"
@@ -1429,12 +1429,12 @@
     {
       "checkId": "RB-093",
       "ruleId": "R-093",
-      "title": "Living\u00e2\u20ac\u201cDining Adjacency",
+      "title": "Living–Dining Adjacency",
       "severity": "info",
       "category": "adjacency",
       "implemented": true,
       "confidence": "high",
-      "notes": "R-093 (EmPATH Open Milieu Configuration) requires a continuous open social zone in psychiatric care environments \u00e2\u20ac\u201d dining and lounge areas should flow together. Checks: when both living and dining rooms are present, they should share a wall. Severity is info because some plans intentionally separate formal dining from informal living.",
+      "notes": "R-093 (EmPATH Open Milieu Configuration) requires a continuous open social zone in psychiatric care environments — dining and lounge areas should flow together. Checks: when both living and dining rooms are present, they should share a wall. Severity is info because some plans intentionally separate formal dining from informal living.",
       "source_hint": "10_Zhu_Chapter_4.pdf (p. 11 / book p. 65)",
       "related_ruleIds": [
         "R-093",
@@ -1450,7 +1450,7 @@
       "category": "adjacency",
       "implemented": true,
       "confidence": "high",
-      "notes": "R-094 (MBH Nurses' Station Open Integration) requires that all patient spaces be accessible from the shared/monitored zone without passing through other patient rooms. Checks: when \u00e2\u2030\u00a5 3 bedrooms and \u00e2\u2030\u00a5 1 public-zone room (hall, entry, living, dining) are present, each bedroom should be adjacent to at least one public-zone room. Severity is info because small residential plans may intentionally have en-suite master suites.",
+      "notes": "R-094 (MBH Nurses' Station Open Integration) requires that all patient spaces be accessible from the shared/monitored zone without passing through other patient rooms. Checks: when ≥ 3 bedrooms and ≥ 1 public-zone room (hall, entry, living, dining) are present, each bedroom should be adjacent to at least one public-zone room. Severity is info because small residential plans may intentionally have en-suite master suites.",
       "source_hint": "10_Zhu_Chapter_4.pdf (p. 14 / book p. 68)",
       "related_ruleIds": [
         "R-094",
@@ -1465,7 +1465,7 @@
       "category": "zoning",
       "implemented": true,
       "confidence": "high",
-      "notes": "R-095 (CHIME-Aligned MBH Space Programming) requires that the Empowerment CHIME category be represented in care facility space programs \u00e2\u20ac\u201d cooking and food preparation are primary Empowerment activities. Checks: plans with \u00e2\u2030\u00a5 3 bedrooms must include a kitchen. A 3+ bedroom plan without a kitchen is also a basic residential habitability gap (HUD MPS).",
+      "notes": "R-095 (CHIME-Aligned MBH Space Programming) requires that the Empowerment CHIME category be represented in care facility space programs — cooking and food preparation are primary Empowerment activities. Checks: plans with ≥ 3 bedrooms must include a kitchen. A 3+ bedroom plan without a kitchen is also a basic residential habitability gap (HUD MPS).",
       "source_hint": "10_Zhu_Chapter_4.pdf (p. 14-15 / book p. 68-69); HUD MPS kitchen requirement",
       "related_ruleIds": [
         "R-095"
@@ -1479,8 +1479,8 @@
       "category": "dimensions",
       "implemented": true,
       "confidence": "medium",
-      "notes": "R-096 (MBH Occupant Environmental Control Provision) operationalises empowerment through room-level environmental controls. Checks: each bedroom's longer dimension must be \u00e2\u2030\u00a5 10 ft to accommodate a bed, dresser, and bedside control device with required clearances (queen bed 7 ft + 12-in headboard clearance + 18-in footboard access path). Distinct from RB-060 (min width \u00e2\u2030\u00a5 8 ft, shorter dim) and RB-002 (min area).",
-      "source_hint": "10_Zhu_Chapter_4.pdf (p. 15 / book p. 69); Architectural_Graphic_Standards_11th.md \u00e2\u20ac\u201d Bedroom furniture clearances",
+      "notes": "R-096 (MBH Occupant Environmental Control Provision) operationalises empowerment through room-level environmental controls. Checks: each bedroom's longer dimension must be ≥ 10 ft to accommodate a bed, dresser, and bedside control device with required clearances (queen bed 7 ft + 12-in headboard clearance + 18-in footboard access path). Distinct from RB-060 (min width ≥ 8 ft, shorter dim) and RB-002 (min area).",
+      "source_hint": "10_Zhu_Chapter_4.pdf (p. 15 / book p. 69); Architectural_Graphic_Standards_11th.md — Bedroom furniture clearances",
       "related_ruleIds": [
         "R-096",
         "R-013"
@@ -1494,7 +1494,7 @@
       "category": "zoning",
       "implemented": true,
       "confidence": "medium",
-      "notes": "R-097 (Trauma-Informed School Design) requires accessible outdoor or activity space as part of a trauma-sensitive environment. Checks: plans with \u00e2\u2030\u00a5 4 bedrooms must include at least one 'other' room as proxy for outdoor courtyard, activity room, or multipurpose space. Assumption: 'other' room type = outdoor courtyard / activity area proxy in this data model.",
+      "notes": "R-097 (Trauma-Informed School Design) requires accessible outdoor or activity space as part of a trauma-sensitive environment. Checks: plans with ≥ 4 bedrooms must include at least one 'other' room as proxy for outdoor courtyard, activity room, or multipurpose space. Assumption: 'other' room type = outdoor courtyard / activity area proxy in this data model.",
       "source_hint": "10_Zhu_Chapter_4.pdf (p. 12-13 / book p. 66-67)",
       "related_ruleIds": [
         "R-097",
@@ -1509,7 +1509,7 @@
       "category": "zoning",
       "implemented": true,
       "confidence": "medium",
-      "notes": "R-098 (Mixed-Use Walkability Density Standard) promotes mixed land uses and diverse destinations. Checks: plans with \u00e2\u2030\u00a5 5 rooms should have \u00e2\u2030\u00a5 4 distinct room-type categories. At floor-plan scale, room type diversity proxies for programmatic diversity \u00e2\u20ac\u201d a plan with 5+ rooms but only 1\u00e2\u20ac\u201c2 types lacks the variety of activities (cooking, working, socialising) that define a livable environment.",
+      "notes": "R-098 (Mixed-Use Walkability Density Standard) promotes mixed land uses and diverse destinations. Checks: plans with ≥ 5 rooms should have ≥ 4 distinct room-type categories. At floor-plan scale, room type diversity proxies for programmatic diversity — a plan with 5+ rooms but only 1–2 types lacks the variety of activities (cooking, working, socialising) that define a livable environment.",
       "source_hint": "12_Zhu_Chapter_7 (1).pdf (p. 5-6 / book p. 114-115)",
       "related_ruleIds": [
         "R-098"
@@ -1523,7 +1523,7 @@
       "category": "circulation",
       "implemented": true,
       "confidence": "medium",
-      "notes": "R-099 (Complete Sidewalk Connectivity Requirement) demands complete, connected path networks. Checks: in plans with \u00e2\u2030\u00a5 4 rooms, each hall should be adjacent to \u00e2\u2030\u00a5 3 other rooms to function as a distribution hub rather than a dead-end stub corridor. A hall with < 3 adjacencies serves only the rooms beside it and creates dead-end circulation. Distinct from RB-066 (hall min width) and RB-007 (circulation connectivity per room).",
+      "notes": "R-099 (Complete Sidewalk Connectivity Requirement) demands complete, connected path networks. Checks: in plans with ≥ 4 rooms, each hall should be adjacent to ≥ 3 other rooms to function as a distribution hub rather than a dead-end stub corridor. A hall with < 3 adjacencies serves only the rooms beside it and creates dead-end circulation. Distinct from RB-066 (hall min width) and RB-007 (circulation connectivity per room).",
       "source_hint": "12_Zhu_Chapter_7 (1).pdf (p. 7 / book p. 116); 05_Ch4_Wayfinding_With people in mind_AC.md",
       "related_ruleIds": [
         "R-099",
@@ -1538,8 +1538,8 @@
       "category": "dimensions",
       "implemented": true,
       "confidence": "medium",
-      "notes": "R-100 (Park Proximity Standard) promotes on-site recreation as a compensating provision when no park is within range. Checks: each living room's longer dimension must be \u00e2\u2030\u00a5 14 ft for a functional sofa-and-seating arrangement (sofa 84 in + coffee table 24 in + facing chairs 30 in + 12-in wall clearance each end \u00e2\u2030\u02c6 13.5 ft). Distinct from RB-061 (min width \u00e2\u2030\u00a5 12 ft, shorter dim) and RB-046 (min area).",
-      "source_hint": "12_Zhu_Chapter_7 (1).pdf (p. 8 / book p. 117); Architectural_Graphic_Standards_11th.md \u00e2\u20ac\u201d Living room furniture layout",
+      "notes": "R-100 (Park Proximity Standard) promotes on-site recreation as a compensating provision when no park is within range. Checks: each living room's longer dimension must be ≥ 14 ft for a functional sofa-and-seating arrangement (sofa 84 in + coffee table 24 in + facing chairs 30 in + 12-in wall clearance each end ≈ 13.5 ft). Distinct from RB-061 (min width ≥ 12 ft, shorter dim) and RB-046 (min area).",
+      "source_hint": "12_Zhu_Chapter_7 (1).pdf (p. 8 / book p. 117); Architectural_Graphic_Standards_11th.md — Living room furniture layout",
       "related_ruleIds": [
         "R-100"
       ]
@@ -1552,7 +1552,7 @@
       "category": "circulation",
       "implemented": true,
       "confidence": "medium",
-      "notes": "R-101 (Workplace Active Design Features) requires stairs to be prominently located at the main circulation path and well-lit. Checks: in plans with \u00e2\u2030\u00a5 5 rooms and \u00e2\u2030\u00a5 1 hall, at least one hall must be adjacent to an entry room OR touch the exterior boundary (stairwell-at-main-path proxy). A hall reachable only through interior rooms is analogous to a stairwell hidden in a back corridor, which R-101 identifies as a missed active design opportunity. Assumption: 'hall' room type = primary stair/circulation spine proxy in this data model.",
+      "notes": "R-101 (Workplace Active Design Features) requires stairs to be prominently located at the main circulation path and well-lit. Checks: in plans with ≥ 5 rooms and ≥ 1 hall, at least one hall must be adjacent to an entry room OR touch the exterior boundary (stairwell-at-main-path proxy). A hall reachable only through interior rooms is analogous to a stairwell hidden in a back corridor, which R-101 identifies as a missed active design opportunity. Assumption: 'hall' room type = primary stair/circulation spine proxy in this data model.",
       "source_hint": "12_Zhu_Chapter_7 (1).pdf (p. 10 / book p. 119)",
       "related_ruleIds": [
         "R-101",
@@ -1567,7 +1567,7 @@
       "category": "adjacency",
       "implemented": true,
       "confidence": "medium",
-      "notes": "R-102 (School Outdoor Physical Activity Priority) identifies outdoor environments as the highest-impact scale for student physical activity. Checks: when \u00e2\u2030\u00a5 3 bedrooms and \u00e2\u2030\u00a5 1 'other' room are present, at least one 'other' room must touch the exterior boundary (outdoor/activity area accessible from the building perimeter). Assumption: 'other' room type = outdoor courtyard / playground / activity area proxy. Distinct from RB-097 (which checks that 'other' room is present); this checks exterior accessibility.",
+      "notes": "R-102 (School Outdoor Physical Activity Priority) identifies outdoor environments as the highest-impact scale for student physical activity. Checks: when ≥ 3 bedrooms and ≥ 1 'other' room are present, at least one 'other' room must touch the exterior boundary (outdoor/activity area accessible from the building perimeter). Assumption: 'other' room type = outdoor courtyard / playground / activity area proxy. Distinct from RB-097 (which checks that 'other' room is present); this checks exterior accessibility.",
       "source_hint": "12_Zhu_Chapter_7 (1).pdf (p. 9 / book p. 118)",
       "related_ruleIds": [
         "R-102"
@@ -1581,7 +1581,7 @@
       "category": "zoning",
       "implemented": true,
       "confidence": "medium",
-      "notes": "R-103 (Active Living Co-Benefits Documentation) requires that large institutional or campus projects document co-benefits across three domains: physical health, social health, and economic value. Checks: plans with \u00e2\u2030\u00a5 6 rooms must contain at least one room from each of: (1) social health \u00e2\u20ac\u201d living or dining; (2) physical activity \u00e2\u20ac\u201d 'other' (gym/courtyard proxy); (3) economic/productivity \u00e2\u20ac\u201d office. A plan missing any one category cannot support multi-domain co-benefits framing. Assumption: 6-room threshold = minimum for institutional/campus program scale. Distinct from RB-098 (counts distinct types \u00e2\u2030\u00a5 4, regardless of category).",
+      "notes": "R-103 (Active Living Co-Benefits Documentation) requires that large institutional or campus projects document co-benefits across three domains: physical health, social health, and economic value. Checks: plans with ≥ 6 rooms must contain at least one room from each of: (1) social health — living or dining; (2) physical activity — 'other' (gym/courtyard proxy); (3) economic/productivity — office. A plan missing any one category cannot support multi-domain co-benefits framing. Assumption: 6-room threshold = minimum for institutional/campus program scale. Distinct from RB-098 (counts distinct types ≥ 4, regardless of category).",
       "source_hint": "12_Zhu_Chapter_7 (1).pdf (p. 11, 14-15 / book p. 120, 123-124)",
       "related_ruleIds": [
         "R-103"
@@ -1595,8 +1595,8 @@
       "category": "dimensions",
       "implemented": true,
       "confidence": "medium",
-      "notes": "R-104 (Near-Zero Carbon Building Pathway) mandates that passive design load reduction precede systems efficiency and renewables in the decarbonisation hierarchy. Compact building form (low surface-to-volume ratio) is the primary passive measure. Checks: in plans with \u00e2\u2030\u00a5 3 rooms, floor plan aspect ratio (longer dimension / shorter dimension of dimW \u00c3\u2014 dimD) must be \u00e2\u2030\u00a4 3:1. A plan exceeding 3:1 has disproportionate exposed surface area, increasing heating and cooling loads before any systems are sized. Assumption: floor plan dimensions = building footprint proxy for surface-to-volume ratio.",
-      "source_hint": "ARUP_Two_Degrees_book.pdf (Ch. 2 \u00e2\u20ac\u201d Pathways to 2 Degrees / passive design hierarchy)",
+      "notes": "R-104 (Near-Zero Carbon Building Pathway) mandates that passive design load reduction precede systems efficiency and renewables in the decarbonisation hierarchy. Compact building form (low surface-to-volume ratio) is the primary passive measure. Checks: in plans with ≥ 3 rooms, floor plan aspect ratio (longer dimension / shorter dimension of dimW × dimD) must be ≤ 3:1. A plan exceeding 3:1 has disproportionate exposed surface area, increasing heating and cooling loads before any systems are sized. Assumption: floor plan dimensions = building footprint proxy for surface-to-volume ratio.",
+      "source_hint": "ARUP_Two_Degrees_book.pdf (Ch. 2 — Pathways to 2 Degrees / passive design hierarchy)",
       "related_ruleIds": [
         "R-104"
       ]
@@ -1609,8 +1609,8 @@
       "category": "dimensions",
       "implemented": true,
       "confidence": "medium",
-      "notes": "R-105 (Embodied Carbon Assessment) requires material selection to consider embodied carbon alongside first cost in high-performance buildings. Checks: in plans with \u00e2\u2030\u00a5 4 rooms, no single room may occupy > 35% of total room area. A room dominating > 35% of the plan area creates a disproportionate structural bay requiring oversized members \u00e2\u20ac\u201d a proxy for unchecked embodied carbon concentration in a single element. Balanced room sizing distributes structural loads more efficiently and reduces peak embodied carbon per sq ft. Assumption: room area dominance = structural oversizing proxy.",
-      "source_hint": "ARUP_Two_Degrees_book.pdf (Ch. 3 \u00e2\u20ac\u201d Embodied Carbon / lifecycle thinking section)",
+      "notes": "R-105 (Embodied Carbon Assessment) requires material selection to consider embodied carbon alongside first cost in high-performance buildings. Checks: in plans with ≥ 4 rooms, no single room may occupy > 35% of total room area. A room dominating > 35% of the plan area creates a disproportionate structural bay requiring oversized members — a proxy for unchecked embodied carbon concentration in a single element. Balanced room sizing distributes structural loads more efficiently and reduces peak embodied carbon per sq ft. Assumption: room area dominance = structural oversizing proxy.",
+      "source_hint": "ARUP_Two_Degrees_book.pdf (Ch. 3 — Embodied Carbon / lifecycle thinking section)",
       "related_ruleIds": [
         "R-105"
       ]
@@ -1623,8 +1623,8 @@
       "category": "zoning",
       "implemented": true,
       "confidence": "medium",
-      "notes": "R-106 (Dual Climate Strategy: Adaptation and Mitigation) requires both mitigation and adaptation strategies. At floor-plan scale, a plan where every room directly borders the exterior has no thermal buffer zone \u00e2\u20ac\u201d all spaces are exposed to peak weather conditions with no interior moderation layer. Checks: in plans with \u00e2\u2030\u00a5 5 rooms, at least one room must NOT touch any exterior boundary wall (interior buffer room proxy for climate adaptation thermal resilience). Assumption: interior room (hall, closet, bathroom, laundry) = thermal buffer between conditioned habitable spaces and the envelope. Distinct from RB-004/005/011/043 (which flag the ABSENCE of exterior access as violations).",
-      "source_hint": "ARUP_Two_Degrees_book.pdf (Ch. 1 \u00e2\u20ac\u201d Two Degrees Framework / mitigation + adaptation)",
+      "notes": "R-106 (Dual Climate Strategy: Adaptation and Mitigation) requires both mitigation and adaptation strategies. At floor-plan scale, a plan where every room directly borders the exterior has no thermal buffer zone — all spaces are exposed to peak weather conditions with no interior moderation layer. Checks: in plans with ≥ 5 rooms, at least one room must NOT touch any exterior boundary wall (interior buffer room proxy for climate adaptation thermal resilience). Assumption: interior room (hall, closet, bathroom, laundry) = thermal buffer between conditioned habitable spaces and the envelope. Distinct from RB-004/005/011/043 (which flag the ABSENCE of exterior access as violations).",
+      "source_hint": "ARUP_Two_Degrees_book.pdf (Ch. 1 — Two Degrees Framework / mitigation + adaptation)",
       "related_ruleIds": [
         "R-106"
       ]
@@ -1638,7 +1638,7 @@
       "implemented": true,
       "confidence": "medium",
       "notes": "R-107 (Flood Resilience Ground-Floor Design) requires that mechanical equipment not be placed at maximum flood exposure. Checks: laundry rooms (mechanical equipment proxy: washer, dryer, water heater) must be adjacent to at least one interior room (hall or bathroom). A laundry room with no interior adjacency sits at maximum envelope exposure with no interior protection from flood ingress. Distinct from RB-089 (garage internal access for fire separation per IRC R309.1, different room type and code basis).",
-      "source_hint": "ARUP_Two_Degrees_book.pdf (Ch. 4 \u00e2\u20ac\u201d Flood Resilience / threshold heights)",
+      "source_hint": "ARUP_Two_Degrees_book.pdf (Ch. 4 — Flood Resilience / threshold heights)",
       "related_ruleIds": [
         "R-107"
       ]
@@ -1651,8 +1651,8 @@
       "category": "zoning",
       "implemented": true,
       "confidence": "high",
-      "notes": "R-108 (Passive Survivability: 72-Hour Habitability Standard) requires habitability without active systems including 'access to potable water.' Sanitation access is a habitability prerequisite during grid-outage events. Checks: plans with \u00e2\u2030\u00a5 3 bedrooms must have \u00e2\u2030\u00a5 2 bathrooms. A 3+ bedroom plan with only 1 bathroom creates a sanitation bottleneck during extended outage scenarios and does not meet HUD Minimum Property Standards for multi-bedroom occupancy. Distinct from RB-064 (per-bedroom bathroom adjacency) and RB-018 (bathroom circulation access).",
-      "source_hint": "ARUP_Two_Degrees_book.pdf (Ch. 5 \u00e2\u20ac\u201d Resilience / passive survivability); HUD MPS sanitation requirement",
+      "notes": "R-108 (Passive Survivability: 72-Hour Habitability Standard) requires habitability without active systems including 'access to potable water.' Sanitation access is a habitability prerequisite during grid-outage events. Checks: plans with ≥ 3 bedrooms must have ≥ 2 bathrooms. A 3+ bedroom plan with only 1 bathroom creates a sanitation bottleneck during extended outage scenarios and does not meet HUD Minimum Property Standards for multi-bedroom occupancy. Distinct from RB-064 (per-bedroom bathroom adjacency) and RB-018 (bathroom circulation access).",
+      "source_hint": "ARUP_Two_Degrees_book.pdf (Ch. 5 — Resilience / passive survivability); HUD MPS sanitation requirement",
       "related_ruleIds": [
         "R-108"
       ]
@@ -1665,8 +1665,8 @@
       "category": "adjacency",
       "implemented": true,
       "confidence": "medium",
-      "notes": "R-109 (Net Zero Carbon Verification Requirement) notes that the designed-vs-actual performance gap averages 1.5\u00e2\u20ac\u201c2\u00c3\u2014 across the industry, with lighting energy as a primary contributor. Checks: each office room must touch the exterior boundary (natural daylighting for workspaces). Interior offices rely entirely on artificial lighting, consuming 2\u00e2\u20ac\u201c3\u00c3\u2014 the energy of daylit workspaces and contributing directly to the performance gap. Passive daylighting of office space must precede commissioning and metering plans to be credible. Distinct from RB-004 (living), RB-005 (kitchen), RB-011 (bedrooms), RB-043 (bathroom).",
-      "source_hint": "ARUP_Two_Degrees_book.pdf (Ch. 6 \u00e2\u20ac\u201d Net Zero / measurement and verification)",
+      "notes": "R-109 (Net Zero Carbon Verification Requirement) notes that the designed-vs-actual performance gap averages 1.5–2× across the industry, with lighting energy as a primary contributor. Checks: each office room must touch the exterior boundary (natural daylighting for workspaces). Interior offices rely entirely on artificial lighting, consuming 2–3× the energy of daylit workspaces and contributing directly to the performance gap. Passive daylighting of office space must precede commissioning and metering plans to be credible. Distinct from RB-004 (living), RB-005 (kitchen), RB-011 (bedrooms), RB-043 (bathroom).",
+      "source_hint": "ARUP_Two_Degrees_book.pdf (Ch. 6 — Net Zero / measurement and verification)",
       "related_ruleIds": [
         "R-109",
         "R-021"
@@ -1680,8 +1680,8 @@
       "category": "adjacency",
       "implemented": true,
       "confidence": "medium",
-      "notes": "R-110 (Site Microclimate Analysis Precondition) requires solar access analysis at all facades before massing decisions. Checks: in plans with \u00e2\u2030\u00a5 6 rooms, rooms must touch all 4 exterior boundary segments (left, right, top, bottom). A plan where 1\u00e2\u20ac\u201c2 facades have no adjacent rooms implies those faces were not considered in the massing \u00e2\u20ac\u201d solar and wind conditions on those orientations were ignored, violating the site microclimate precondition of R-110. Assumption: 6-room threshold = minimum program scale where full facade activation is expected.",
-      "source_hint": "GZ_Brown_SWL_book.pdf (Ch. 1 \u00e2\u20ac\u201d Climate Analysis / site microclimate)",
+      "notes": "R-110 (Site Microclimate Analysis Precondition) requires solar access analysis at all facades before massing decisions. Checks: in plans with ≥ 6 rooms, rooms must touch all 4 exterior boundary segments (left, right, top, bottom). A plan where 1–2 facades have no adjacent rooms implies those faces were not considered in the massing — solar and wind conditions on those orientations were ignored, violating the site microclimate precondition of R-110. Assumption: 6-room threshold = minimum program scale where full facade activation is expected.",
+      "source_hint": "GZ_Brown_SWL_book.pdf (Ch. 1 — Climate Analysis / site microclimate)",
       "related_ruleIds": [
         "R-110"
       ]
@@ -1967,6 +1967,146 @@
       "source_hint": "Fundamentals_of_Building_Construction_Materials_an...Chapter_4_Heavy_Timber_and_Mass_Timber_Construction.pdf (Ch. 4 — Mass Timber / acoustic performance)",
       "related_ruleIds": [
         "R-130"
+      ]
+    },
+    {
+      "checkId": "RB-131",
+      "ruleId": "R-131",
+      "title": "Joist Span Short Dim",
+      "severity": "info",
+      "category": "dimensions",
+      "implemented": true,
+      "confidence": "medium",
+      "notes": "R-131 (Light Wood Frame / Floor Joist Span Limits) identifies rooms whose shorter dimension exceeds the allowable clear span for standard 2x12 dimensional lumber floor joists (No. 2 Douglas Fir-Larch at 16in OC, 40-psf live load, L/360 deflection). Checks: no room shorter dimension should exceed 14 ft (4.3 m). Beyond this threshold, engineered joists (TJI, LVL) are required, implying a change of framing system beyond basic platform frame. The shorter room dimension approximates the dominant joist span direction. Applies unconditionally. Distinct from RB-124 (longer dimension > 22 ft triggering structural specification) and RB-115 (shorter dimension <= 25 ft for daylighting).",
+      "source_hint": "Fundamentals_of_Building_Construction_Materials_an...Chapter_5_Light_Wood_Frame_Construction.pdf (Ch. 5 - Light Wood Frame / Floor Joist Span Limits)",
+      "related_ruleIds": [
+        "R-131"
+      ]
+    },
+    {
+      "checkId": "RB-132",
+      "ruleId": "R-132",
+      "title": "Bidirectional Partitions",
+      "severity": "info",
+      "category": "adjacency",
+      "implemented": true,
+      "confidence": "medium",
+      "notes": "R-132 (Light Wood Frame / Interior Bearing Wall Layout) requires platform-frame bearing walls in both principal directions to create a two-way load path. Checks: in plans with >= 4 rooms, at least one pair of rooms must share a vertical edge (left/right boundary) AND at least one pair must share a horizontal edge (top/bottom boundary). A plan where all room boundaries align in only one axis produces a one-way spanning floor system that exceeds standard dimensional lumber capacity in the unsupported direction. Distinct from RB-128 (exterior facade coverage on >= 3 sides).",
+      "source_hint": "Fundamentals_of_Building_Construction_Materials_an...Chapter_5_Light_Wood_Frame_Construction.pdf (Ch. 5 - Light Wood Frame / Interior Bearing Wall Layout)",
+      "related_ruleIds": [
+        "R-132"
+      ]
+    },
+    {
+      "checkId": "RB-133",
+      "ruleId": "R-133",
+      "title": "Utility Plumbing Cluster",
+      "severity": "info",
+      "category": "adjacency",
+      "implemented": true,
+      "confidence": "medium",
+      "notes": "R-133 (Light Wood Frame / Plumbing Stack Consolidation) requires that plumbing fixtures share a single stack where possible within platform-frame cost and structural limits. Checks: when a plan contains a kitchen and at least one bathroom, laundry, or utility room, the kitchen must be adjacent to at least one of those wet rooms. Adjacent wet rooms share a single wet wall (a framed cavity with back-to-back supply and drain lines on a single stack). Non-adjacent kitchen and bath layouts require a second independent stack, adding structural penetrations and cost. Distinct from RB-013 (kitchen not adjacent to bedroom) and RB-126 (perimeter service room isolation).",
+      "source_hint": "Fundamentals_of_Building_Construction_Materials_an...Chapter_5_Light_Wood_Frame_Construction.pdf (Ch. 5 - Light Wood Frame / Plumbing Stack Consolidation)",
+      "related_ruleIds": [
+        "R-133"
+      ]
+    },
+    {
+      "checkId": "RB-134",
+      "ruleId": "R-134",
+      "title": "Closet Min Area",
+      "severity": "info",
+      "category": "dimensions",
+      "implemented": true,
+      "confidence": "medium",
+      "notes": "R-134 (Light Wood Frame / Built-In Storage Sizing) specifies the minimum closet area for standard 24-inch-deep rod-and-shelf systems. Checks: closet rooms must have area >= 16 sq ft (1.5 m2). A 4 ft x 4 ft (16 sq ft) closet is the smallest configuration that accommodates a rod-and-shelf unit on one wall with a 24-inch-deep shelf leaving a 24-inch clear access aisle, the minimum functional walk-in in platform-frame residential construction. Closets smaller than this are wall niches, not framed rooms, and are structurally inefficient within a stud-bay layout. Distinct from RB-129 (mass timber minimum short dimension 6 ft).",
+      "source_hint": "Fundamentals_of_Building_Construction_Materials_an...Chapter_5_Light_Wood_Frame_Construction.pdf (Ch. 5 - Light Wood Frame / Built-In Storage Sizing)",
+      "related_ruleIds": [
+        "R-134"
+      ]
+    },
+    {
+      "checkId": "RB-135",
+      "ruleId": "R-135",
+      "title": "Bedroom Bath Ratio",
+      "severity": "info",
+      "category": "zoning",
+      "implemented": true,
+      "confidence": "medium",
+      "notes": "R-135 (Light Wood Frame / Residential Program Balance) reflects standard residential platform-frame programming limits. Checks: in plans with >= 2 bedrooms and >= 1 bathroom, the number of bathrooms must not exceed bedrooms + 1. The maximum of one bathroom per bedroom plus one shared/powder room represents the upper limit before additional independent plumbing stacks are required, structural penetrations that exceed the capacity of a standard platform-frame floor-ceiling assembly. Distinct from RB-097 (room type count thresholds) and RB-133 (plumbing stack consolidation by adjacency).",
+      "source_hint": "Fundamentals_of_Building_Construction_Materials_an...Chapter_5_Light_Wood_Frame_Construction.pdf (Ch. 5 - Light Wood Frame / Residential Program Balance)",
+      "related_ruleIds": [
+        "R-135"
+      ]
+    },
+    {
+      "checkId": "RB-136",
+      "ruleId": "R-136",
+      "title": "Entry Required",
+      "severity": "info",
+      "category": "adjacency",
+      "implemented": true,
+      "confidence": "medium",
+      "notes": "R-136 (Light Wood Frame / Entry and Threshold Design) requires a dedicated transition space at the primary building entrance in platform-frame residential construction. Checks: plans with >= 5 rooms must include at least one room of type entry, foyer, vestibule, or hall. Without a separate transition space, the building envelope cannot achieve the air-lock effect that limits conditioned-air loss during door operation, a baseline requirement for the thermal performance of a platform-frame exterior wall. A >= 5 room program implies full residential occupancy where this transition is required. Distinct from RB-099 (hall hub connectivity >= 3) and RB-121 (service space for MEP).",
+      "source_hint": "Fundamentals_of_Building_Construction_Materials_an...Chapter_5_Light_Wood_Frame_Construction.pdf (Ch. 5 - Light Wood Frame / Entry and Threshold Design)",
+      "related_ruleIds": [
+        "R-136"
+      ]
+    },
+    {
+      "checkId": "RB-137",
+      "ruleId": "R-137",
+      "title": "Garage Fire Separation",
+      "severity": "warning",
+      "category": "adjacency",
+      "implemented": true,
+      "confidence": "medium",
+      "notes": "R-137 (Light Wood Frame / Garage Fire Separation) requires a rated fire-separation wall between an attached garage and habitable space. Checks: when a garage room is present, it must be adjacent to at least one non-garage room. The fire-separation wall is always a shared wall between the garage and an adjacent room in the plan. A garage with no adjacent rooms within the plan cannot define this fire wall and does not meet the platform-frame residential fire separation requirement (IBC Section 406). Distinct from RB-001 (garage area ratio <= 25%) and RB-126 (perimeter service room isolation).",
+      "source_hint": "Fundamentals_of_Building_Construction_Materials_an...Chapter_5_Light_Wood_Frame_Construction.pdf (Ch. 5 - Light Wood Frame / Garage and Fire Separation)",
+      "related_ruleIds": [
+        "R-137"
+      ]
+    },
+    {
+      "checkId": "RB-138",
+      "ruleId": "R-138",
+      "title": "Interior Room Share Max",
+      "severity": "info",
+      "category": "zoning",
+      "implemented": true,
+      "confidence": "medium",
+      "notes": "R-138 (Light Wood Frame / Natural Light Distribution) requires that platform-frame residential buildings provide natural light to the majority of habitable rooms through exterior windows. Checks: in plans with >= 4 rooms, interior rooms (not touching any exterior boundary) must not exceed 50% of total room count. An interior room can only borrow daylight through adjacent exterior rooms; if more than half the rooms are interior, the exterior rooms cannot distribute sufficient natural light to all interior spaces under standard platform-frame window sizing. Distinct from RB-119 (green buffer area >= 5% of total room area) and RB-106 (interior buffer room at any facade).",
+      "source_hint": "Fundamentals_of_Building_Construction_Materials_an...Chapter_5_Light_Wood_Frame_Construction.pdf (Ch. 5 - Light Wood Frame / Natural Light and Ventilation)",
+      "related_ruleIds": [
+        "R-138"
+      ]
+    },
+    {
+      "checkId": "RB-139",
+      "ruleId": "R-139",
+      "title": "Kitchen Living Adjacency",
+      "severity": "info",
+      "category": "adjacency",
+      "implemented": true,
+      "confidence": "medium",
+      "notes": "R-139 (Light Wood Frame / Open-Plan Living Zone) establishes the kitchen-living adjacency as the baseline spatial organization for platform-frame residential construction. Checks: in plans with >= 4 rooms containing both a kitchen and a living or dining room, the kitchen must be adjacent to at least one living or dining room. This adjacency enables shared HVAC returns, range exhaust routing, and reduces load-bearing partitions between kitchen and living areas. An isolated kitchen requires additional independent MEP routing and partitions, increasing structural complexity. Distinct from RB-133 (plumbing cluster / wet wall adjacency) and RB-013 (kitchen not adjacent to bedroom).",
+      "source_hint": "Fundamentals_of_Building_Construction_Materials_an...Chapter_5_Light_Wood_Frame_Construction.pdf (Ch. 5 - Light Wood Frame / Open-Plan Spatial Organization)",
+      "related_ruleIds": [
+        "R-139"
+      ]
+    },
+    {
+      "checkId": "RB-140",
+      "ruleId": "R-140",
+      "title": "Plan Coverage Ratio",
+      "severity": "info",
+      "category": "dimensions",
+      "implemented": true,
+      "confidence": "medium",
+      "notes": "R-140 (Light Wood Frame / Net-to-Gross Efficiency) specifies that the net-to-gross ratio for platform-frame residential construction must be >= 0.70. Checks: in plans with >= 3 rooms, total room area must be >= 70% of the plan bounding box area (dimensions.width x dimensions.depth). Plans with total room area below 70% of the gross plan area contain excessive void space that cannot be explained by standard platform-frame corridor allowances (typically 10-15% of gross area), signalling room layout misalignment with the structural grid. Distinct from RB-119 (green buffer area >= 5% of total room area) and RB-105 (max single room <= 35% of total room area).",
+      "source_hint": "Fundamentals_of_Building_Construction_Materials_an...Chapter_5_Light_Wood_Frame_Construction.pdf (Ch. 5 - Light Wood Frame / Net-to-Gross Floor Plan Efficiency)",
+      "related_ruleIds": [
+        "R-140"
       ]
     }
   ]

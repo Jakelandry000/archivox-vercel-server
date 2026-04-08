@@ -5340,6 +5340,436 @@ const RB_130: RuleCheck = {
   },
 };
 
+/**
+ * RB-131 — JOIST_SPAN_SHORT_DIM
+ * No room shorter dimension should exceed 14 ft (4.3 m). In light wood frame
+ * platform construction, standard 2×12 dimensional lumber floor joists at 16"
+ * on-center (No. 2 Douglas Fir-Larch) reach their allowable span limit at
+ * approximately 14 ft under 40-psf live load (L/360 deflection criterion).
+ * Beyond this, engineered joists (TJI, LVL) are required — a change of
+ * framing system beyond basic platform frame. The room shorter dimension
+ * approximates the dominant joist span direction. Applies unconditionally.
+ * Distinct from RB-124 (longer dimension > 22 ft triggering structural spec)
+ * and RB-115 (shorter dimension ≤ 25 ft for daylighting).
+ * Rulebook ref: R-131 (Light Wood Frame / Floor Joist Span Limits)
+ */
+const RB_131: RuleCheck = {
+  id: 'RB-131',
+  ruleId: 'R-131',
+  title: 'Joist Span Short Dim',
+  severity: 'info',
+  applies: () => true,
+  check(layout, ctx) {
+    const rooms = validRooms(layout);
+    const maxShort = ctx.units === 'meters' ? 4.3 : 14;
+    const violations: Violation[] = [];
+    for (const r of rooms) {
+      const shorter = Math.min(r.width, r.height);
+      if (shorter > maxShort) {
+        violations.push({
+          code: 'RB-131',
+          severity: 'info',
+          message: `${roomLabel(r)} has a shorter dimension of ${shorter.toFixed(1)} ${ctx.units}, exceeding the ${maxShort} ${ctx.units} standard floor joist span limit for light wood frame construction. Beyond this span, engineered joists (TJI, LVL) are required — a change of framing system beyond basic platform frame (R-131).`,
+          roomIds: [r.id],
+          value: shorter,
+          threshold: maxShort,
+        });
+      }
+    }
+    return violations;
+  },
+};
+
+/**
+ * RB-132 — BIDIRECTIONAL_PARTITIONS
+ * In plans with ≥ 4 rooms, interior partitions must run in both principal
+ * directions (at least one vertical shared edge and one horizontal shared edge
+ * between rooms). R-132 (Light Wood Frame / Interior Bearing Wall Layout)
+ * specifies that platform-frame bearing walls must be present in both
+ * directions to create a two-way load path. A plan where all room boundaries
+ * share only one axis results in a one-way spanning floor system that exceeds
+ * the capacity of standard dimensional lumber in the unsupported direction.
+ * Distinct from RB-128 (exterior facade coverage).
+ * Rulebook ref: R-132 (Light Wood Frame / Interior Bearing Wall Layout)
+ */
+const RB_132: RuleCheck = {
+  id: 'RB-132',
+  ruleId: 'R-132',
+  title: 'Bidirectional Partitions',
+  severity: 'info',
+  applies: layout =>
+    layout.rooms.filter(r => r.width > 0 && r.height > 0).length >= 4,
+  check(layout) {
+    const rooms = validRooms(layout);
+    if (rooms.length < 4) return [];
+    const tol = 0.5;
+    let hasVertical = false;
+    let hasHorizontal = false;
+    outer:
+    for (let i = 0; i < rooms.length; i++) {
+      for (let j = i + 1; j < rooms.length; j++) {
+        const a = rooms[i], b = rooms[j];
+        if (!hasVertical) {
+          const vertEdge =
+            (Math.abs(a.x + a.width - b.x) <= tol || Math.abs(b.x + b.width - a.x) <= tol) &&
+            a.y < b.y + b.height - tol && a.y + a.height > b.y + tol;
+          if (vertEdge) hasVertical = true;
+        }
+        if (!hasHorizontal) {
+          const horizEdge =
+            (Math.abs(a.y + a.height - b.y) <= tol || Math.abs(b.y + b.height - a.y) <= tol) &&
+            a.x < b.x + b.width - tol && a.x + a.width > b.x + tol;
+          if (horizEdge) hasHorizontal = true;
+        }
+        if (hasVertical && hasHorizontal) break outer;
+      }
+    }
+    if (hasVertical && hasHorizontal) return [];
+    const missing: string[] = [];
+    if (!hasVertical) missing.push('vertical (left/right)');
+    if (!hasHorizontal) missing.push('horizontal (top/bottom)');
+    return [{
+      code: 'RB-132',
+      severity: 'info',
+      message: `Plan has ≥ 4 rooms but interior partitions run in only one principal direction (missing: ${missing.join(', ')} shared walls). Platform-frame bearing walls must be present in both directions to create a two-way load path; a single-axis partition layout produces a one-way spanning floor system beyond standard dimensional lumber capacity in the unsupported direction (R-132).`,
+      roomIds: [],
+    }];
+  },
+};
+
+/**
+ * RB-133 — UTILITY_PLUMBING_CLUSTER
+ * When a plan contains a kitchen and at least one bathroom, laundry, or
+ * utility room, the kitchen must be adjacent to at least one of those wet
+ * rooms. R-133 (Light Wood Frame / Plumbing Stack Consolidation) requires
+ * that plumbing fixtures share a single stack (or as few stacks as possible)
+ * within platform-frame cost and structural limits. Adjacent wet rooms share
+ * a single wet wall — a framed cavity containing back-to-back supply and
+ * drain lines on a single stack. Non-adjacent kitchen and bath layouts force
+ * a second independent stack, adding cost and structural penetrations.
+ * Distinct from RB-013 (kitchen not adjacent to bedroom) and RB-126
+ * (perimeter service room isolation).
+ * Rulebook ref: R-133 (Light Wood Frame / Plumbing Stack Consolidation)
+ */
+const RB_133: RuleCheck = {
+  id: 'RB-133',
+  ruleId: 'R-133',
+  title: 'Utility Plumbing Cluster',
+  severity: 'info',
+  applies: layout => {
+    const vr = layout.rooms.filter(r => r.width > 0 && r.height > 0);
+    const WET = new Set(['bathroom', 'laundry', 'utility']);
+    return vr.some(r => r.type === 'kitchen') && vr.some(r => WET.has(r.type));
+  },
+  check(layout) {
+    const rooms = validRooms(layout);
+    const WET = new Set(['bathroom', 'laundry', 'utility']);
+    const kitchens = rooms.filter(r => r.type === 'kitchen');
+    const wetRooms = rooms.filter(r => WET.has(r.type));
+    if (kitchens.length === 0 || wetRooms.length === 0) return [];
+    const violations: Violation[] = [];
+    for (const k of kitchens) {
+      const adjacentToWet = wetRooms.some(w => roomsAreAdjacent(k, w));
+      if (!adjacentToWet) {
+        violations.push({
+          code: 'RB-133',
+          severity: 'info',
+          message: `${roomLabel(k)} is not adjacent to any bathroom, laundry, or utility room. In platform-frame construction, kitchen and wet rooms must share a common wet wall to consolidate plumbing onto a single stack; non-adjacent wet rooms require a second independent stack, adding framing penetrations and cost (R-133).`,
+          roomIds: [k.id],
+        });
+      }
+    }
+    return violations;
+  },
+};
+
+/**
+ * RB-134 — CLOSET_MIN_AREA
+ * Closet rooms must have an area ≥ 16 sq ft (1.5 m²). R-134 (Light Wood
+ * Frame / Built-In Storage Sizing) specifies the minimum closet area for
+ * standard 24-inch-deep rod-and-shelf systems. A 4 ft × 4 ft (16 sq ft)
+ * closet is the smallest configuration that accommodates a rod-and-shelf
+ * unit on one wall with a 24-inch-deep shelf plus a 24-inch clear access
+ * aisle — the minimum functional walk-in in platform-frame residential
+ * construction. Closets smaller than this are wall niches, not framed rooms,
+ * and are structurally inefficient within a stud-bay layout.
+ * Distinct from RB-129 (mass timber minimum short dim 6 ft).
+ * Rulebook ref: R-134 (Light Wood Frame / Built-In Storage Sizing)
+ */
+const RB_134: RuleCheck = {
+  id: 'RB-134',
+  ruleId: 'R-134',
+  title: 'Closet Min Area',
+  severity: 'info',
+  applies: layout => layout.rooms.some(r => r.type === 'closet' && r.width > 0 && r.height > 0),
+  check(layout, ctx) {
+    const rooms = validRooms(layout);
+    const closets = rooms.filter(r => r.type === 'closet');
+    if (closets.length === 0) return [];
+    const minArea = ctx.units === 'meters' ? 1.5 : 16;
+    const violations: Violation[] = [];
+    for (const c of closets) {
+      const area = roomArea(c);
+      if (area < minArea) {
+        violations.push({
+          code: 'RB-134',
+          severity: 'info',
+          message: `${roomLabel(c)} has an area of ${area.toFixed(1)} sq ${ctx.units} (${c.width.toFixed(1)} × ${c.height.toFixed(1)}), below the ${minArea} sq ${ctx.units} minimum for a functional rod-and-shelf closet in platform-frame construction. Closets smaller than 4 × 4 ft cannot accommodate standard 24-in-deep built-in storage and a clear access aisle (R-134).`,
+          roomIds: [c.id],
+          value: area,
+          threshold: minArea,
+        });
+      }
+    }
+    return violations;
+  },
+};
+
+/**
+ * RB-135 — BEDROOM_BATH_RATIO
+ * In plans with ≥ 2 bedrooms and ≥ 1 bathroom, the number of bathrooms must
+ * not exceed the number of bedrooms + 1. R-135 (Light Wood Frame / Residential
+ * Program Balance) reflects standard residential platform-frame programming:
+ * the maximum is one bathroom per bedroom plus one shared/powder room.
+ * Exceeding this ratio forces additional plumbing stacks, increasing structural
+ * penetrations beyond the capacity of a standard platform-frame floor/ceiling
+ * assembly. Distinct from RB-097 (room type count thresholds) and RB-133
+ * (plumbing stack consolidation).
+ * Rulebook ref: R-135 (Light Wood Frame / Residential Program Balance)
+ */
+const RB_135: RuleCheck = {
+  id: 'RB-135',
+  ruleId: 'R-135',
+  title: 'Bedroom Bath Ratio',
+  severity: 'info',
+  applies: layout => {
+    const vr = layout.rooms.filter(r => r.width > 0 && r.height > 0);
+    return (
+      vr.filter(r => r.type === 'bedroom').length >= 2 &&
+      vr.some(r => r.type === 'bathroom')
+    );
+  },
+  check(layout) {
+    const rooms = validRooms(layout);
+    const bedCount  = rooms.filter(r => r.type === 'bedroom').length;
+    const bathCount = rooms.filter(r => r.type === 'bathroom').length;
+    if (bedCount < 2 || bathCount === 0) return [];
+    if (bathCount <= bedCount + 1) return [];
+    return [{
+      code: 'RB-135',
+      severity: 'info',
+      message: `Plan has ${bathCount} bathroom(s) and ${bedCount} bedroom(s); bathrooms exceed the maximum of bedrooms + 1 (${bedCount + 1}). Over-programming wet areas forces additional plumbing stacks beyond the capacity of a standard platform-frame floor-ceiling assembly (R-135).`,
+      roomIds: rooms.filter(r => r.type === 'bathroom').map(r => r.id),
+      value: bathCount,
+      threshold: bedCount + 1,
+    }];
+  },
+};
+
+/**
+ * RB-136 — ENTRY_REQUIRED
+ * Plans with ≥ 5 rooms must include at least one room of type 'entry',
+ * 'foyer', 'vestibule', or 'hall'. R-136 (Light Wood Frame / Entry and
+ * Threshold Design) requires a dedicated transition space at the primary
+ * building entrance. Without a separate entry or hall, the building envelope
+ * cannot achieve the air-lock effect that limits conditioned-air loss during
+ * door operation — a baseline requirement for the thermal performance of a
+ * platform-frame exterior wall assembly. In plans with ≥ 5 rooms, program
+ * complexity implies a full residential occupancy where this transition is
+ * required. Distinct from RB-099 (hall hub connectivity ≥ 3) and RB-121
+ * (service space requirement).
+ * Rulebook ref: R-136 (Light Wood Frame / Entry and Threshold Design)
+ */
+const RB_136: RuleCheck = {
+  id: 'RB-136',
+  ruleId: 'R-136',
+  title: 'Entry Required',
+  severity: 'info',
+  applies: layout =>
+    layout.rooms.filter(r => r.width > 0 && r.height > 0).length >= 5,
+  check(layout) {
+    const rooms = validRooms(layout);
+    if (rooms.length < 5) return [];
+    const ENTRY_TYPES = new Set(['entry', 'foyer', 'vestibule', 'hall']);
+    if (rooms.some(r => ENTRY_TYPES.has(r.type))) return [];
+    return [{
+      code: 'RB-136',
+      severity: 'info',
+      message: `Plan has ${rooms.length} rooms but no dedicated entry, foyer, vestibule, or hall. In platform-frame residential construction, a ≥ 5-room program requires a transition space at the main entry to maintain the air-lock effect of the exterior wall assembly and prevent conditioned-air loss during door operation (R-136).`,
+      roomIds: [],
+    }];
+  },
+};
+
+/**
+ * RB-137 — GARAGE_FIRE_SEPARATION
+ * When a garage room is present, it must be adjacent to at least one
+ * non-garage room. R-137 (Light Wood Frame / Garage Fire Separation) requires
+ * a rated fire-separation wall between an attached garage and habitable space.
+ * The fire-separation wall is always a shared wall between the garage and an
+ * adjacent room within the plan. A garage with no adjacent rooms cannot define
+ * this fire wall and does not meet the platform-frame residential fire
+ * separation requirement. Distinct from RB-001 (garage area ratio ≤ 25%)
+ * and RB-126 (perimeter service room isolation).
+ * Rulebook ref: R-137 (Light Wood Frame / Garage Fire Separation)
+ */
+const RB_137: RuleCheck = {
+  id: 'RB-137',
+  ruleId: 'R-137',
+  title: 'Garage Fire Separation',
+  severity: 'warning',
+  applies: layout =>
+    layout.rooms.some(r => r.type === 'garage' && r.width > 0 && r.height > 0),
+  check(layout) {
+    const rooms = validRooms(layout);
+    const garages    = rooms.filter(r => r.type === 'garage');
+    const nonGarages = rooms.filter(r => r.type !== 'garage');
+    if (garages.length === 0) return [];
+    const violations: Violation[] = [];
+    for (const g of garages) {
+      const hasAdjacentRoom = nonGarages.some(r => roomsAreAdjacent(g, r));
+      if (!hasAdjacentRoom) {
+        violations.push({
+          code: 'RB-137',
+          severity: 'warning',
+          message: `${roomLabel(g)} is not adjacent to any non-garage room. An attached garage requires a rated fire-separation wall shared with an adjacent habitable space; a garage with no adjacency in the plan cannot define this fire wall and does not meet the platform-frame residential fire separation requirement (R-137).`,
+          roomIds: [g.id],
+        });
+      }
+    }
+    return violations;
+  },
+};
+
+/**
+ * RB-138 — INTERIOR_ROOM_SHARE_MAX
+ * In plans with ≥ 4 rooms, interior rooms (not touching any exterior boundary)
+ * must not exceed 50% of the total room count. R-138 (Light Wood Frame /
+ * Natural Light Distribution) requires that platform-frame residential
+ * buildings provide natural light to the majority of habitable rooms through
+ * exterior windows. An interior room can only borrow daylight through adjacent
+ * exterior rooms; if more than half the rooms are interior, the exterior rooms
+ * cannot distribute sufficient natural light to all interior spaces.
+ * Distinct from RB-119 (green buffer area 5%) and RB-106 (interior buffer
+ * at facade).
+ * Rulebook ref: R-138 (Light Wood Frame / Natural Light Distribution)
+ */
+const RB_138: RuleCheck = {
+  id: 'RB-138',
+  ruleId: 'R-138',
+  title: 'Interior Room Share Max',
+  severity: 'info',
+  applies: layout =>
+    layout.rooms.filter(r => r.width > 0 && r.height > 0).length >= 4,
+  check(layout, ctx) {
+    const rooms = validRooms(layout);
+    if (rooms.length < 4) return [];
+    const interiorRooms = rooms.filter(r => !touchesExterior(r, ctx.dimW, ctx.dimD));
+    const interiorShare = interiorRooms.length / rooms.length;
+    if (interiorShare <= 0.5) return [];
+    return [{
+      code: 'RB-138',
+      severity: 'info',
+      message: `${interiorRooms.length} of ${rooms.length} rooms (${Math.round(interiorShare * 100)}%) are interior rooms with no exterior boundary exposure. When more than 50% of rooms are interior, the exterior rooms cannot distribute sufficient natural light to all interior spaces under platform-frame window sizing — a platform-frame daylighting baseline violation (R-138).`,
+      roomIds: interiorRooms.map(r => r.id),
+      value: interiorShare,
+      threshold: 0.5,
+    }];
+  },
+};
+
+/**
+ * RB-139 — KITCHEN_LIVING_ADJACENCY
+ * In plans with ≥ 4 rooms that include both a kitchen and a living or dining
+ * room, the kitchen must be adjacent to at least one living or dining room.
+ * R-139 (Light Wood Frame / Open-Plan Living Zone) establishes the kitchen-
+ * living adjacency as the baseline spatial organization for platform-frame
+ * residential construction, enabling shared HVAC returns, range exhaust
+ * routing, and reducing load-bearing partitions between kitchen and living
+ * areas. A kitchen isolated from the living zone requires additional
+ * independent MEP routing and partitions, increasing cost and structural
+ * complexity. Distinct from RB-133 (plumbing cluster / wet wall) and RB-013
+ * (kitchen not adjacent to bedroom).
+ * Rulebook ref: R-139 (Light Wood Frame / Open-Plan Living Zone)
+ */
+const RB_139: RuleCheck = {
+  id: 'RB-139',
+  ruleId: 'R-139',
+  title: 'Kitchen Living Adjacency',
+  severity: 'info',
+  applies: layout => {
+    const vr = layout.rooms.filter(r => r.width > 0 && r.height > 0);
+    const LIVE_DINING = new Set(['living', 'living room', 'dining']);
+    return (
+      vr.length >= 4 &&
+      vr.some(r => r.type === 'kitchen') &&
+      vr.some(r => LIVE_DINING.has(r.type))
+    );
+  },
+  check(layout) {
+    const rooms = validRooms(layout);
+    if (rooms.length < 4) return [];
+    const LIVE_DINING = new Set(['living', 'living room', 'dining']);
+    const kitchens  = rooms.filter(r => r.type === 'kitchen');
+    const liveRooms = rooms.filter(r => LIVE_DINING.has(r.type));
+    if (kitchens.length === 0 || liveRooms.length === 0) return [];
+    const violations: Violation[] = [];
+    for (const k of kitchens) {
+      const adjacentToLiving = liveRooms.some(l => roomsAreAdjacent(k, l));
+      if (!adjacentToLiving) {
+        violations.push({
+          code: 'RB-139',
+          severity: 'info',
+          message: `${roomLabel(k)} is not adjacent to any living or dining room. Platform-frame residential construction uses the open kitchen-living zone as a baseline spatial strategy to share HVAC returns, range exhaust, and reduce load-bearing partitions; an isolated kitchen requires additional independent MEP routing (R-139).`,
+          roomIds: [k.id],
+          suggestedFixes: [{ type: 'swapRooms', roomIdA: k.id, roomIdB: liveRooms[0].id }],
+        });
+      }
+    }
+    return violations;
+  },
+};
+
+/**
+ * RB-140 — PLAN_COVERAGE_RATIO
+ * In plans with ≥ 3 rooms, total room area must be ≥ 70% of the plan bounding
+ * box area (dimensions.width × dimensions.depth). R-140 (Light Wood Frame /
+ * Net-to-Gross Efficiency) specifies that the net-to-gross ratio for
+ * platform-frame residential construction must be ≥ 0.70 — a standard
+ * residential programming threshold. Plans with total room area below 70% of
+ * the gross plan area contain excessive void space that cannot be explained by
+ * standard platform-frame corridor allowances (typically 10–15% of gross
+ * area), signalling room layout misalignment with the structural grid.
+ * Distinct from RB-119 (green buffer area 5%) and RB-105 (max room 35% of
+ * total room area).
+ * Rulebook ref: R-140 (Light Wood Frame / Net-to-Gross Efficiency)
+ */
+const RB_140: RuleCheck = {
+  id: 'RB-140',
+  ruleId: 'R-140',
+  title: 'Plan Coverage Ratio',
+  severity: 'info',
+  applies: layout =>
+    layout.rooms.filter(r => r.width > 0 && r.height > 0).length >= 3,
+  check(layout, ctx) {
+    const rooms = validRooms(layout);
+    if (rooms.length < 3) return [];
+    const planArea = ctx.dimW * ctx.dimD;
+    if (planArea <= 0) return [];
+    const totalRoomArea = rooms.reduce((sum, r) => sum + roomArea(r), 0);
+    const coverage = totalRoomArea / planArea;
+    if (coverage >= 0.70) return [];
+    return [{
+      code: 'RB-140',
+      severity: 'info',
+      message: `Total room area (${totalRoomArea.toFixed(1)} sq ${ctx.units}) is ${Math.round(coverage * 100)}% of the ${planArea.toFixed(1)} sq ${ctx.units} plan bounding box, below the 70% net-to-gross efficiency minimum for platform-frame residential construction. Plans with < 70% coverage contain excessive unaccounted void space beyond standard corridor allowances (10–15%) (R-140).`,
+      roomIds: [],
+      value: coverage,
+      threshold: 0.70,
+    }];
+  },
+};
+
 // ── Auto-register all built-in checks ─────────────────────────────────────────
 
 registerChecks(
@@ -5369,4 +5799,6 @@ registerChecks(
   RB_116, RB_117, RB_118, RB_119, RB_120,
   RB_121, RB_122, RB_123, RB_124, RB_125,
   RB_126, RB_127, RB_128, RB_129, RB_130,
+  RB_131, RB_132, RB_133, RB_134, RB_135,
+  RB_136, RB_137, RB_138, RB_139, RB_140,
 );
