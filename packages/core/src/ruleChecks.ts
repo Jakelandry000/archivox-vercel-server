@@ -5770,6 +5770,242 @@ const RB_140: RuleCheck = {
   },
 };
 
+// ── RB-141..RB-145 ────────────────────────────────────────────────────────────
+
+/**
+ * RB-141 — COMMERCIAL_MEP_ZONE
+ * In plans with 'office' rooms and a gross plan area ≥ 2,000 sq ft (186 m²),
+ * at least one room of type 'mechanical', 'mep', or 'utility' must be present
+ * to represent the MEP zone allocation required by R-141 (Floor-to-Floor Height
+ * Minimum for Structural, MEP, and Finish Assembly). Commercial floor-to-floor
+ * heights must budget an explicit structural zone + MEP zone (≥ 18 in for
+ * standard office ductwork; 24–30 in for hospital/data-center densities).
+ * Without a dedicated mechanical/MEP room in the plan, the MEP zone is
+ * unaccounted in the program — the most common cause of floor-to-floor budget
+ * overruns discovered at DD. Distinct from RB-121 (service space in complex
+ * residential plans) and RB-144 (mechanical room area allowance sizing).
+ * Rulebook ref: R-141 (Building Systems / Floor-to-Floor Height Minimum)
+ */
+const RB_141: RuleCheck = {
+  id: 'RB-141',
+  ruleId: 'R-141',
+  title: 'Commercial MEP Zone',
+  severity: 'info',
+  applies: layout => {
+    const vr = layout.rooms.filter(r => r.width > 0 && r.height > 0);
+    const hasOffice = vr.some(r => r.type === 'office');
+    const planArea = layout.dimensions.width * layout.dimensions.depth;
+    const threshold = layout.units === 'meters' ? 186 : 2000;
+    return hasOffice && planArea >= threshold;
+  },
+  check(layout, ctx) {
+    const rooms = validRooms(layout);
+    const hasOffice = rooms.some(r => r.type === 'office');
+    const planArea = ctx.dimW * ctx.dimD;
+    const threshold = ctx.units === 'meters' ? 186 : 2000;
+    if (!hasOffice || planArea < threshold) return [];
+    const MEP_TYPES = new Set(['mechanical', 'mep', 'utility']);
+    if (rooms.some(r => MEP_TYPES.has(r.type))) return [];
+    return [{
+      code: 'RB-141',
+      severity: 'info',
+      message: `Commercial plan (${planArea.toFixed(0)} sq ${ctx.units}, office occupancy) has no dedicated mechanical, mep, or utility room. Commercial floor-to-floor heights must budget an explicit MEP zone (≥ 18 in for standard office ductwork); without a service room in the program, the MEP zone is unaccounted and will force floor-to-floor revisions at DD (R-141).`,
+      roomIds: [],
+      suggestedFixes: [{ type: 'addRoom', roomType: 'mechanical' }],
+    }];
+  },
+};
+
+/**
+ * RB-142 — LATERAL_SYSTEM_CORE
+ * In plans with a gross area ≥ 15,000 sq ft (1,394 m²) — a scale implying
+ * multi-story commercial construction — at least one room of type 'stair',
+ * 'stairwell', 'elevator', 'core', or 'circulation core' must be present.
+ * R-142 (Lateral System Height Limits by System Type) requires that the
+ * lateral load-resisting system be matched to building height. For large
+ * floor-plate buildings, the structural core (housing stairs, elevators, and
+ * braced frames or shear walls) is the primary lateral system. A large-scale
+ * plan without a defined core cannot be assessed for lateral system adequacy —
+ * a critical SD-stage structural decision. Distinct from RB-145 (elevator
+ * count threshold) and RB-127 (exterior structural module).
+ * Rulebook ref: R-142 (Structural Systems / Lateral System Height Limits)
+ */
+const RB_142: RuleCheck = {
+  id: 'RB-142',
+  ruleId: 'R-142',
+  title: 'Lateral System Core',
+  severity: 'info',
+  applies: layout => {
+    const planArea = layout.dimensions.width * layout.dimensions.depth;
+    const threshold = layout.units === 'meters' ? 1394 : 15000;
+    return planArea >= threshold;
+  },
+  check(layout, ctx) {
+    const rooms = validRooms(layout);
+    const planArea = ctx.dimW * ctx.dimD;
+    const threshold = ctx.units === 'meters' ? 1394 : 15000;
+    if (planArea < threshold) return [];
+    const CORE_TYPES = new Set(['stair', 'stairwell', 'elevator', 'core', 'circulation core']);
+    if (rooms.some(r => CORE_TYPES.has(r.type))) return [];
+    return [{
+      code: 'RB-142',
+      severity: 'info',
+      message: `Plan area is ${planArea.toFixed(0)} sq ${ctx.units} (≥ ${threshold.toLocaleString()} sq ${ctx.units} commercial scale) but no structural core room (stair, stairwell, elevator, or core) is present. At this scale the core is the primary lateral load-resisting element; a plan without a defined core cannot be assessed for lateral system adequacy — a critical SD-stage structural risk (R-142).`,
+      roomIds: [],
+      suggestedFixes: [{ type: 'addRoom', roomType: 'stair' }],
+    }];
+  },
+};
+
+/**
+ * RB-143 — GROSS_TO_NET_EFFICIENCY
+ * In plans with ≥ 3 rooms, the ratio of total room area to the gross plan
+ * bounding-box area must fall within the occupancy-specific efficiency band:
+ * 0.75–0.90 for commercial office plans (containing 'office' rooms);
+ * 0.80–0.90 for residential plans (containing 'bedroom' rooms, no 'office');
+ * 0.70–0.90 for other mixed plans. R-143 (Gross-to-Net Efficiency Targets by
+ * Occupancy Type) establishes these bands as standard SD programming benchmarks.
+ * Plans outside the lower bound over-allocate circulation or structural void;
+ * plans above the upper bound under-allocate circulation, leaving no room for
+ * walls and corridors. Distinct from RB-140 (Plan Coverage Ratio ≥ 70%
+ * generic lower bound), which applies only the 70% floor; RB-143 applies
+ * occupancy-specific calibration to both the lower and upper bounds.
+ * Rulebook ref: R-143 (Building Systems / Gross-to-Net Efficiency Targets)
+ */
+const RB_143: RuleCheck = {
+  id: 'RB-143',
+  ruleId: 'R-143',
+  title: 'Gross To Net Efficiency',
+  severity: 'info',
+  applies: layout =>
+    layout.rooms.filter(r => r.width > 0 && r.height > 0).length >= 3,
+  check(layout, ctx) {
+    const rooms = validRooms(layout);
+    if (rooms.length < 3) return [];
+    const planArea = ctx.dimW * ctx.dimD;
+    if (planArea <= 0) return [];
+    const totalRoomArea = rooms.reduce((sum, r) => sum + roomArea(r), 0);
+    const gtn = totalRoomArea / planArea;
+    const hasOffice = rooms.some(r => r.type === 'office');
+    const hasBedroom = rooms.some(r => r.type === 'bedroom');
+    let loMin: number, hiMax: number, occupancy: string;
+    if (hasOffice) {
+      loMin = 0.75; hiMax = 0.90; occupancy = 'commercial office';
+    } else if (hasBedroom) {
+      loMin = 0.80; hiMax = 0.90; occupancy = 'residential';
+    } else {
+      loMin = 0.70; hiMax = 0.90; occupancy = 'mixed';
+    }
+    if (gtn >= loMin && gtn <= hiMax) return [];
+    const tooLow = gtn < loMin;
+    const bound = tooLow ? loMin : hiMax;
+    return [{
+      code: 'RB-143',
+      severity: 'info',
+      message: `Gross-to-net efficiency is ${Math.round(gtn * 100)}% (${tooLow ? 'below' : 'above'} the ${occupancy} target of ${Math.round(loMin * 100)}–${Math.round(hiMax * 100)}%). ${tooLow ? 'Over-allocated circulation or structural void signals a program that needs rationalization before client confirmation of rentable area.' : 'Under-allocated circulation leaves insufficient space for walls, corridors, and structure.'} (R-143)`,
+      roomIds: [],
+      value: Math.round(gtn * 100),
+      threshold: Math.round(bound * 100),
+    }];
+  },
+};
+
+/**
+ * RB-144 — MECH_ROOM_AREA_ALLOWANCE
+ * When a plan contains at least one room of type 'mechanical', 'mep', or
+ * 'utility', the combined area of those rooms must equal 3–8% of the gross
+ * plan bounding-box area. R-144 (Mechanical Room Area Allowance in Program)
+ * documents that mechanical room area is a consistent source of late-stage
+ * redesign conflict: the room is omitted or undersized in early programming
+ * because it is non-revenue space, and the conflict surfaces when the
+ * mechanical engineer provides an equipment room layout. The 3% lower bound
+ * applies to simple single-use buildings; 8% applies to hospitals and data
+ * centers. Distinct from RB-121 (service space presence in complex plans) and
+ * RB-141 (commercial MEP zone requirement in office-occupancy plans).
+ * Rulebook ref: R-144 (Building Systems / Mechanical Room Area Allowance)
+ */
+const RB_144: RuleCheck = {
+  id: 'RB-144',
+  ruleId: 'R-144',
+  title: 'Mech Room Area Allowance',
+  severity: 'info',
+  applies: layout => {
+    const MEP = new Set(['mechanical', 'mep', 'utility']);
+    return layout.rooms.some(r => r.width > 0 && r.height > 0 && MEP.has(r.type));
+  },
+  check(layout, ctx) {
+    const rooms = validRooms(layout);
+    const MEP = new Set(['mechanical', 'mep', 'utility']);
+    const mechRooms = rooms.filter(r => MEP.has(r.type));
+    if (mechRooms.length === 0) return [];
+    const planArea = ctx.dimW * ctx.dimD;
+    if (planArea <= 0) return [];
+    const mechArea = mechRooms.reduce((sum, r) => sum + roomArea(r), 0);
+    const ratio = mechArea / planArea;
+    if (ratio >= 0.03 && ratio <= 0.08) return [];
+    const tooLow = ratio < 0.03;
+    const bound = tooLow ? 0.03 : 0.08;
+    return [{
+      code: 'RB-144',
+      severity: 'info',
+      message: `Mechanical/utility rooms total ${mechArea.toFixed(1)} sq ${ctx.units} (${Math.round(ratio * 100)}% of ${planArea.toFixed(1)} sq ${ctx.units} plan area), ${tooLow ? 'below' : 'above'} the 3–8% target. ${tooLow ? 'Under-allocated mechanical space will require redesign when the MEP engineer provides an equipment schedule.' : 'Over-allocated mechanical space reduces rentable area beyond typical allowances.'} (R-144)`,
+      roomIds: mechRooms.map(r => r.id),
+      value: Math.round(ratio * 100),
+      threshold: Math.round(bound * 100),
+    }];
+  },
+};
+
+/**
+ * RB-145 — ELEVATOR_COUNT_MIN
+ * In plans with a gross area ≥ 45,000 sq ft (4,181 m²), at least one room of
+ * type 'elevator', 'lift', or 'elevator shaft' must be present; one additional
+ * elevator room is required per 47,500 sq ft (4,413 m²) of gross area beyond
+ * the first threshold (rounded up). R-145 (Elevator Count Rule of Thumb for
+ * Commercial Office) establishes that commercial office buildings must provide
+ * one elevator per 45,000–50,000 sq ft of gross building area. Under-
+ * provisioned elevator banks are discovered at DD when the consultant confirms
+ * unacceptable wait times — at which point adding a core bay requires
+ * significant floor plan revision. Distinct from RB-142 (lateral system core
+ * presence) and RB-099 (hall hub connectivity).
+ * Rulebook ref: R-145 (Building Systems / Elevator Count Rule of Thumb)
+ */
+const RB_145: RuleCheck = {
+  id: 'RB-145',
+  ruleId: 'R-145',
+  title: 'Elevator Count Min',
+  severity: 'info',
+  applies: layout => {
+    const planArea = layout.dimensions.width * layout.dimensions.depth;
+    const threshold = layout.units === 'meters' ? 4181 : 45000;
+    return planArea >= threshold;
+  },
+  check(layout, ctx) {
+    const rooms = validRooms(layout);
+    const planArea = ctx.dimW * ctx.dimD;
+    const perElevator = ctx.units === 'meters' ? 4413 : 47500;
+    const baseThreshold = ctx.units === 'meters' ? 4181 : 45000;
+    if (planArea < baseThreshold) return [];
+    const requiredElevators = Math.ceil(planArea / perElevator);
+    const ELEV_TYPES = new Set(['elevator', 'lift', 'elevator shaft']);
+    const elevCount = rooms.filter(r => ELEV_TYPES.has(r.type)).length;
+    if (elevCount >= requiredElevators) return [];
+    const fixes: RepairAction[] = Array.from(
+      { length: requiredElevators - elevCount },
+      () => ({ type: 'addRoom' as const, roomType: 'elevator' }),
+    );
+    return [{
+      code: 'RB-145',
+      severity: 'info',
+      message: `Plan area ${planArea.toFixed(0)} sq ${ctx.units} requires ${requiredElevators} elevator(s) (1 per ${perElevator.toLocaleString()} sq ${ctx.units}), but only ${elevCount} elevator room(s) found. Under-provisioned elevator banks are discovered at DD when the consultant confirms unacceptable wait times — adding a core bay then requires major floor plan revision (R-145).`,
+      roomIds: [],
+      value: elevCount,
+      threshold: requiredElevators,
+      suggestedFixes: fixes,
+    }];
+  },
+};
+
 // ── Auto-register all built-in checks ─────────────────────────────────────────
 
 registerChecks(
@@ -5801,4 +6037,5 @@ registerChecks(
   RB_126, RB_127, RB_128, RB_129, RB_130,
   RB_131, RB_132, RB_133, RB_134, RB_135,
   RB_136, RB_137, RB_138, RB_139, RB_140,
+  RB_141, RB_142, RB_143, RB_144, RB_145,
 );

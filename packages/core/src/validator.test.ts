@@ -4702,6 +4702,336 @@ test('RB-140: does not apply to plans with < 3 rooms', () => {
   assert(v.length === 0, 'expected no RB-140 for < 3 rooms');
 });
 
+// ── RB-141..RB-145 ────────────────────────────────────────────────────────────
+
+console.log('\nRB-141..RB-145');
+
+// RB-141: COMMERCIAL_MEP_ZONE
+test('RB-141: no violation when office plan has a mechanical room', () => {
+  const layout = makeLayout({
+    dimensions: { width: 60, depth: 40 }, // 2400 sq ft
+    rooms: [
+      { id: 'o1', type: 'office',     x: 0,  y: 0,  width: 30, height: 30 },
+      { id: 'o2', type: 'office',     x: 30, y: 0,  width: 30, height: 30 },
+      { id: 'm1', type: 'mechanical', x: 0,  y: 30, width: 60, height: 10 }, // MEP zone present
+    ],
+  });
+  const v = runChecks(layout, ['RB-141']);
+  assert(v.length === 0, 'expected no RB-141 when mechanical room present in office plan');
+});
+
+test('RB-141: info when office plan >= 2000 sq ft has no mechanical/mep/utility room', () => {
+  const layout = makeLayout({
+    dimensions: { width: 60, depth: 40 }, // 2400 sq ft
+    rooms: [
+      { id: 'o1', type: 'office', x: 0,  y: 0, width: 30, height: 40 },
+      { id: 'o2', type: 'office', x: 30, y: 0, width: 30, height: 40 },
+    ],
+  });
+  const v = runChecks(layout, ['RB-141']);
+  const match = v.find(x => x.code === 'RB-141');
+  assert(match !== undefined, 'expected RB-141 info for office plan without mechanical room');
+  assert(match!.severity === 'info', `expected info, got ${match!.severity}`);
+});
+
+test('RB-141: utility room also satisfies the MEP zone requirement', () => {
+  const layout = makeLayout({
+    dimensions: { width: 60, depth: 40 },
+    rooms: [
+      { id: 'o1', type: 'office',  x: 0,  y: 0,  width: 50, height: 40 },
+      { id: 'u1', type: 'utility', x: 50, y: 0,  width: 10, height: 40 }, // counts as MEP
+    ],
+  });
+  const v = runChecks(layout, ['RB-141']);
+  assert(v.length === 0, 'expected no RB-141 when utility room present');
+});
+
+test('RB-141: does not apply when no office rooms', () => {
+  const layout = makeLayout({
+    dimensions: { width: 60, depth: 40 },
+    rooms: [
+      { id: 'b1', type: 'bedroom', x: 0,  y: 0, width: 30, height: 40 },
+      { id: 'l1', type: 'living',  x: 30, y: 0, width: 30, height: 40 },
+    ],
+  });
+  const v = runChecks(layout, ['RB-141']);
+  assert(v.length === 0, 'expected no RB-141 when no office rooms');
+});
+
+test('RB-141: does not apply when plan area < 2000 sq ft', () => {
+  const layout = makeLayout({
+    dimensions: { width: 30, depth: 30 }, // 900 sq ft < 2000
+    rooms: [
+      { id: 'o1', type: 'office', x: 0, y: 0, width: 30, height: 30 },
+    ],
+  });
+  const v = runChecks(layout, ['RB-141']);
+  assert(v.length === 0, 'expected no RB-141 when plan area < 2000 sq ft');
+});
+
+// RB-142: LATERAL_SYSTEM_CORE
+test('RB-142: no violation when large plan has a stair room', () => {
+  const layout = makeLayout({
+    dimensions: { width: 200, depth: 80 }, // 16000 sq ft >= 15000
+    rooms: [
+      { id: 'o1', type: 'office', x: 0,   y: 0, width: 180, height: 80 },
+      { id: 's1', type: 'stair',  x: 180, y: 0, width: 20,  height: 80 },
+    ],
+  });
+  const v = runChecks(layout, ['RB-142']);
+  assert(v.length === 0, 'expected no RB-142 when stair room present');
+});
+
+test('RB-142: info when plan >= 15000 sq ft has no structural core room', () => {
+  const layout = makeLayout({
+    dimensions: { width: 200, depth: 80 }, // 16000 sq ft
+    rooms: [
+      { id: 'o1', type: 'office', x: 0, y: 0, width: 200, height: 80 },
+    ],
+  });
+  const v = runChecks(layout, ['RB-142']);
+  const match = v.find(x => x.code === 'RB-142');
+  assert(match !== undefined, 'expected RB-142 info for large plan with no core');
+  assert(match!.severity === 'info', `expected info, got ${match!.severity}`);
+});
+
+test('RB-142: elevator room also satisfies the core requirement', () => {
+  const layout = makeLayout({
+    dimensions: { width: 200, depth: 80 },
+    rooms: [
+      { id: 'o1', type: 'office',   x: 0,   y: 0, width: 180, height: 80 },
+      { id: 'e1', type: 'elevator', x: 180, y: 0, width: 20,  height: 80 },
+    ],
+  });
+  const v = runChecks(layout, ['RB-142']);
+  assert(v.length === 0, 'expected no RB-142 when elevator room present');
+});
+
+test('RB-142: does not apply when plan area < 15000 sq ft', () => {
+  const layout = makeLayout({
+    dimensions: { width: 100, depth: 100 }, // 10000 sq ft < 15000
+    rooms: [
+      { id: 'o1', type: 'office', x: 0, y: 0, width: 100, height: 100 },
+    ],
+  });
+  const v = runChecks(layout, ['RB-142']);
+  assert(v.length === 0, 'expected no RB-142 when plan area < 15000 sq ft');
+});
+
+// RB-143: GROSS_TO_NET_EFFICIENCY
+test('RB-143: no violation when GTN is within commercial office band (75-90%)', () => {
+  // Plan 40x30=1200; rooms cover 960 sq ft = 80% — within 75-90% office band
+  const layout = makeLayout({
+    dimensions: { width: 40, depth: 30 },
+    rooms: [
+      { id: 'o1', type: 'office', x: 0,  y: 0, width: 20, height: 30 }, // 600
+      { id: 'o2', type: 'office', x: 20, y: 0, width: 18, height: 20 }, // 360
+      // total 960 / 1200 = 80%, within 75-90%
+    ],
+  });
+  const v = runChecks(layout, ['RB-143']);
+  assert(v.length === 0, 'expected no RB-143 when GTN 80% is within office band');
+});
+
+test('RB-143: info when GTN is below commercial office lower bound (< 75%)', () => {
+  // Plan 40x30=1200; rooms cover 840 sq ft = 70% — below 75% office lower bound
+  const layout = makeLayout({
+    dimensions: { width: 40, depth: 30 },
+    rooms: [
+      { id: 'o1', type: 'office',  x: 0,  y: 0,  width: 20, height: 30 }, // 600
+      { id: 'o2', type: 'kitchen', x: 20, y: 0,  width: 8,  height: 20 }, // 160
+      { id: 'ba', type: 'bathroom',x: 20, y: 20, width: 8,  height: 10 }, // 80
+      // total 840 / 1200 = 70% < 75% — office lower bound violated
+    ],
+  });
+  const v = runChecks(layout, ['RB-143']);
+  const match = v.find(x => x.code === 'RB-143');
+  assert(match !== undefined, 'expected RB-143 info when GTN below office lower bound');
+  assert(match!.severity === 'info', `expected info, got ${match!.severity}`);
+});
+
+test('RB-143: info when GTN is above upper bound (> 90%)', () => {
+  // Plan 20x20=400; rooms cover 392 sq ft = 98% — above 90% upper bound
+  const layout = makeLayout({
+    dimensions: { width: 20, depth: 20 },
+    rooms: [
+      { id: 'b1', type: 'bedroom', x: 0,  y: 0,  width: 10, height: 20 }, // 200
+      { id: 'b2', type: 'bedroom', x: 10, y: 0,  width: 9,  height: 20 }, // 180
+      { id: 'ba', type: 'bathroom',x: 19, y: 0,  width: 1,  height: 12 }, // 12
+      // total 392 / 400 = 98% > 90%
+    ],
+  });
+  const v = runChecks(layout, ['RB-143']);
+  const match = v.find(x => x.code === 'RB-143');
+  assert(match !== undefined, 'expected RB-143 info when GTN above 90% upper bound');
+  assert(match!.severity === 'info', `expected info, got ${match!.severity}`);
+});
+
+test('RB-143: no violation for residential plan GTN within 80-90%', () => {
+  // Plan 20x20=400; rooms cover 340 sq ft = 85% — within residential 80-90% band
+  const layout = makeLayout({
+    dimensions: { width: 20, depth: 20 },
+    rooms: [
+      { id: 'b1', type: 'bedroom',  x: 0,  y: 0, width: 12, height: 20 }, // 240
+      { id: 'ba', type: 'bathroom', x: 12, y: 0, width: 5,  height: 20 }, // 100
+      { id: 'k1', type: 'kitchen',  x: 17, y: 0, width: 3,  height: 20 }, // 60 (edge)
+      // Wait: 12+5+3=20, all touching exterior, sum=400? No: 12*20+5*20+3*20=240+100+60=400=100%
+      // That's too high. Let me recalculate...
+    ],
+  });
+  // 100% is > 90%, would trigger. Let me use smaller rooms.
+  const layout2 = makeLayout({
+    dimensions: { width: 20, depth: 20 },
+    rooms: [
+      { id: 'b1', type: 'bedroom',  x: 0,  y: 0, width: 10, height: 17 }, // 170
+      { id: 'ba', type: 'bathroom', x: 10, y: 0, width: 7,  height: 17 }, // 119
+      { id: 'k1', type: 'kitchen',  x: 17, y: 0, width: 3,  height: 17 }, // 51
+      // total 340 / 400 = 85%, within residential 80-90%
+    ],
+  });
+  const v = runChecks(layout2, ['RB-143']);
+  assert(v.length === 0, 'expected no RB-143 when residential GTN 85% is within band');
+});
+
+test('RB-143: does not apply to plans with < 3 rooms', () => {
+  const layout = makeLayout({
+    rooms: [
+      { id: 'b1', type: 'bedroom', x: 0,  y: 0, width: 10, height: 10 },
+      { id: 'ba', type: 'bathroom',x: 10, y: 0, width: 6,  height: 10 },
+    ],
+  });
+  const v = runChecks(layout, ['RB-143']);
+  assert(v.length === 0, 'expected no RB-143 for < 3 rooms');
+});
+
+// RB-144: MECH_ROOM_AREA_ALLOWANCE
+test('RB-144: no violation when mechanical room area is 3-8% of plan area', () => {
+  // Plan 40x30=1200; mech room = 60 sq ft = 5%, within 3-8%
+  const layout = makeLayout({
+    dimensions: { width: 40, depth: 30 },
+    rooms: [
+      { id: 'o1', type: 'office',     x: 0,  y: 0,  width: 30, height: 30 }, // 900
+      { id: 'm1', type: 'mechanical', x: 30, y: 0,  width: 10, height: 6  }, // 60 = 5%
+      { id: 'l1', type: 'living',     x: 30, y: 6,  width: 10, height: 24 },
+    ],
+  });
+  const v = runChecks(layout, ['RB-144']);
+  assert(v.length === 0, 'expected no RB-144 when mechanical room is 5% of plan area');
+});
+
+test('RB-144: info when mechanical room area is too small (< 3%)', () => {
+  // Plan 40x30=1200; mech room = 24 sq ft = 2% < 3%
+  const layout = makeLayout({
+    dimensions: { width: 40, depth: 30 },
+    rooms: [
+      { id: 'o1', type: 'office',     x: 0,  y: 0, width: 36, height: 30 }, // 1080
+      { id: 'm1', type: 'mechanical', x: 36, y: 0, width: 4,  height: 6  }, // 24 = 2%
+      { id: 'l1', type: 'living',     x: 36, y: 6, width: 4,  height: 24 },
+    ],
+  });
+  const v = runChecks(layout, ['RB-144']);
+  const match = v.find(x => x.code === 'RB-144');
+  assert(match !== undefined, 'expected RB-144 info when mechanical room < 3%');
+  assert(match!.severity === 'info', `expected info, got ${match!.severity}`);
+});
+
+test('RB-144: info when mechanical room area is too large (> 8%)', () => {
+  // Plan 40x30=1200; mech room = 120 sq ft = 10% > 8%
+  const layout = makeLayout({
+    dimensions: { width: 40, depth: 30 },
+    rooms: [
+      { id: 'o1', type: 'office',     x: 0,  y: 0,  width: 28, height: 30 }, // 840
+      { id: 'm1', type: 'mechanical', x: 28, y: 0,  width: 12, height: 10 }, // 120 = 10%
+      { id: 'l1', type: 'living',     x: 28, y: 10, width: 12, height: 20 },
+    ],
+  });
+  const v = runChecks(layout, ['RB-144']);
+  const match = v.find(x => x.code === 'RB-144');
+  assert(match !== undefined, 'expected RB-144 info when mechanical room > 8%');
+  assert(match!.severity === 'info', `expected info, got ${match!.severity}`);
+});
+
+test('RB-144: does not apply when no mechanical/mep/utility rooms', () => {
+  const layout = makeLayout({
+    rooms: [
+      { id: 'o1', type: 'office',  x: 0,  y: 0, width: 20, height: 20 },
+      { id: 'l1', type: 'living',  x: 20, y: 0, width: 20, height: 20 },
+    ],
+  });
+  const v = runChecks(layout, ['RB-144']);
+  assert(v.length === 0, 'expected no RB-144 when no mechanical/mep/utility rooms');
+});
+
+// RB-145: ELEVATOR_COUNT_MIN
+test('RB-145: no violation when large plan has required number of elevators', () => {
+  // Plan 300x160 = 48000 sq ft; ceil(48000/47500) = 2 elevators required
+  const layout = makeLayout({
+    dimensions: { width: 300, depth: 160 },
+    rooms: [
+      { id: 'o1', type: 'office',   x: 0,   y: 0, width: 280, height: 160 },
+      { id: 'e1', type: 'elevator', x: 280, y: 0, width: 10,  height: 80  },
+      { id: 'e2', type: 'elevator', x: 280, y: 80,width: 10,  height: 80  },
+    ],
+  });
+  const v = runChecks(layout, ['RB-145']);
+  assert(v.length === 0, 'expected no RB-145 when elevator count meets requirement');
+});
+
+test('RB-145: info when plan >= 45000 sq ft has no elevator rooms', () => {
+  // Plan 300x160 = 48000 sq ft >= 45000
+  const layout = makeLayout({
+    dimensions: { width: 300, depth: 160 },
+    rooms: [
+      { id: 'o1', type: 'office', x: 0, y: 0, width: 300, height: 160 },
+    ],
+  });
+  const v = runChecks(layout, ['RB-145']);
+  const match = v.find(x => x.code === 'RB-145');
+  assert(match !== undefined, 'expected RB-145 info when large plan has no elevators');
+  assert(match!.severity === 'info', `expected info, got ${match!.severity}`);
+});
+
+test('RB-145: info when large plan has fewer elevators than required', () => {
+  // Plan 300x160 = 48000 sq ft; requires ceil(48000/47500)=2 elevators; only 1 present
+  const layout = makeLayout({
+    dimensions: { width: 300, depth: 160 },
+    rooms: [
+      { id: 'o1', type: 'office',   x: 0,   y: 0, width: 290, height: 160 },
+      { id: 'e1', type: 'elevator', x: 290, y: 0, width: 10,  height: 160 }, // only 1
+    ],
+  });
+  const v = runChecks(layout, ['RB-145']);
+  const match = v.find(x => x.code === 'RB-145');
+  assert(match !== undefined, 'expected RB-145 info when elevator count below requirement');
+  assert(match!.value === 1, `expected value=1, got ${match!.value}`);
+  assert(match!.threshold === 2, `expected threshold=2, got ${match!.threshold}`);
+});
+
+test('RB-145: lift room type also satisfies elevator requirement', () => {
+  // Plan 300x160 = 48000 sq ft; requires 2; has 2 'lift' rooms
+  const layout = makeLayout({
+    dimensions: { width: 300, depth: 160 },
+    rooms: [
+      { id: 'o1', type: 'office', x: 0,   y: 0,  width: 280, height: 160 },
+      { id: 'l1', type: 'lift',   x: 280, y: 0,  width: 20,  height: 80  },
+      { id: 'l2', type: 'lift',   x: 280, y: 80, width: 20,  height: 80  },
+    ],
+  });
+  const v = runChecks(layout, ['RB-145']);
+  assert(v.length === 0, 'expected no RB-145 when lift rooms count meets requirement');
+});
+
+test('RB-145: does not apply when plan area < 45000 sq ft', () => {
+  const layout = makeLayout({
+    dimensions: { width: 200, depth: 100 }, // 20000 sq ft < 45000
+    rooms: [
+      { id: 'o1', type: 'office', x: 0, y: 0, width: 200, height: 100 },
+    ],
+  });
+  const v = runChecks(layout, ['RB-145']);
+  assert(v.length === 0, 'expected no RB-145 when plan area < 45000 sq ft');
+});
+
 // ── Generator applyRepairAction pipeline sanity-check ────────────────────────
 // Verifies: invalid plan → violation with suggestedFix → apply fix → improves.
 // Import is dynamic so this file stays runnable without the generator package

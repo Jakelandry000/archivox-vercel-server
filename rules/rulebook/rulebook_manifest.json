@@ -1,7 +1,7 @@
 {
   "schemaVersion": "rulebook-manifest.v2",
   "description": "Maps rulebook rule IDs (R-NNN) to code check IDs (RB-NNN) in packages/core/src/ruleChecks.ts. R-IDs reference rules/rulebook/extracted/RULEBOOK_DRAFT.md (145 rules from 25 source PDFs, Batches 1–4).",
-  "extractedRuleCount": 140,
+  "extractedRuleCount": 145,
   "entries": [
     {
       "checkId": "RB-001",
@@ -2107,6 +2107,76 @@
       "source_hint": "Fundamentals_of_Building_Construction_Materials_an...Chapter_5_Light_Wood_Frame_Construction.pdf (Ch. 5 - Light Wood Frame / Net-to-Gross Floor Plan Efficiency)",
       "related_ruleIds": [
         "R-140"
+      ]
+    },
+    {
+      "checkId": "RB-141",
+      "ruleId": "R-141",
+      "title": "Commercial MEP Zone",
+      "severity": "info",
+      "category": "dimensions",
+      "implemented": true,
+      "confidence": "medium",
+      "notes": "R-141 (Building Systems / Floor-to-Floor Height Minimum for Structural, MEP, and Finish Assembly) establishes that commercial floor-to-floor heights must budget an explicit MEP zone (>= 18 in for standard office; 24-30 in for hospital/data-center). Proxy check: in plans with 'office' rooms and gross plan area >= 2,000 sq ft (186 m2), at least one room of type 'mechanical', 'mep', or 'utility' must be present. Without a dedicated MEP zone room, the mechanical service budget is unaccounted in the program — the primary cause of floor-to-floor overruns discovered at DD. Distinct from RB-121 (service space in complex residential plans) and RB-144 (mechanical room area sizing).",
+      "source_hint": "The_Architects_Studio_Companion_Rules_of_Thumb_for_Preliminary_Design_5th_Edition_by_Edward_Allen_Joseph_Iano.pdf (Building Systems / Floor-to-Floor Height)",
+      "related_ruleIds": [
+        "R-141"
+      ]
+    },
+    {
+      "checkId": "RB-142",
+      "ruleId": "R-142",
+      "title": "Lateral System Core",
+      "severity": "info",
+      "category": "adjacency",
+      "implemented": true,
+      "confidence": "medium",
+      "notes": "R-142 (Structural Systems / Lateral System Height Limits by System Type) requires that the lateral load-resisting system be matched to building height. Proxy check: in plans with gross area >= 15,000 sq ft (1,394 m2) — scale implying multi-story commercial construction — at least one room of type 'stair', 'stairwell', 'elevator', 'core', or 'circulation core' must be present to represent the structural core. A large-scale plan without a defined core cannot be assessed for lateral system adequacy, a critical SD-stage structural risk. Distinct from RB-145 (elevator count threshold) and RB-127 (exterior structural module).",
+      "source_hint": "The_Architects_Studio_Companion_Rules_of_Thumb_for_Preliminary_Design_5th_Edition_by_Edward_Allen_Joseph_Iano.pdf (Structural Systems / Lateral System Height Limits)",
+      "related_ruleIds": [
+        "R-142"
+      ]
+    },
+    {
+      "checkId": "RB-143",
+      "ruleId": "R-143",
+      "title": "Gross To Net Efficiency",
+      "severity": "info",
+      "category": "dimensions",
+      "implemented": true,
+      "confidence": "medium",
+      "notes": "R-143 (Building Systems / Gross-to-Net Efficiency Targets by Occupancy Type) establishes occupancy-specific GTN efficiency bands as standard SD programming benchmarks. Checks: in plans with >= 3 rooms, total room area / plan bounding box area must fall within 0.75-0.90 for commercial office (has 'office' rooms), 0.80-0.90 for residential (has 'bedroom' rooms, no 'office'), or 0.70-0.90 for other mixed plans. Plans below the lower bound over-allocate circulation; plans above the upper bound under-allocate structure and walls. Distinct from RB-140 (generic 70% lower bound only), which applies only the minimum without occupancy calibration.",
+      "source_hint": "The_Architects_Studio_Companion_Rules_of_Thumb_for_Preliminary_Design_5th_Edition_by_Edward_Allen_Joseph_Iano.pdf (Building Systems / Gross-to-Net Efficiency)",
+      "related_ruleIds": [
+        "R-143"
+      ]
+    },
+    {
+      "checkId": "RB-144",
+      "ruleId": "R-144",
+      "title": "Mech Room Area Allowance",
+      "severity": "info",
+      "category": "dimensions",
+      "implemented": true,
+      "confidence": "medium",
+      "notes": "R-144 (Building Systems / Mechanical Room Area Allowance in Program) documents that mechanical room area is a consistent source of late-stage redesign conflict when omitted or undersized. Checks: when a plan contains at least one room of type 'mechanical', 'mep', or 'utility', their combined area must be 3-8% of the gross plan bounding box area. The 3% lower bound applies to simple single-use buildings; 8% applies to hospitals and data centers. Under-allocated mechanical space forces redesign when the MEP engineer provides equipment room layouts. Distinct from RB-121 (service space presence) and RB-141 (commercial MEP zone requirement in office plans).",
+      "source_hint": "The_Architects_Studio_Companion_Rules_of_Thumb_for_Preliminary_Design_5th_Edition_by_Edward_Allen_Joseph_Iano.pdf (Building Systems / Mechanical Room Area Allowance)",
+      "related_ruleIds": [
+        "R-144"
+      ]
+    },
+    {
+      "checkId": "RB-145",
+      "ruleId": "R-145",
+      "title": "Elevator Count Min",
+      "severity": "info",
+      "category": "dimensions",
+      "implemented": true,
+      "confidence": "medium",
+      "notes": "R-145 (Building Systems / Elevator Count Rule of Thumb for Commercial Office) establishes that commercial office buildings must provide one elevator per 45,000-50,000 sq ft of gross building area. Checks: in plans with gross area >= 45,000 sq ft (4,181 m2), at least ceil(planArea / 47,500) rooms of type 'elevator', 'lift', or 'elevator shaft' must be present. Under-provisioned elevator banks are discovered at DD when the elevator consultant confirms unacceptable wait times, requiring core bay additions and major floor plan revision. Distinct from RB-142 (lateral system core presence) and RB-099 (hall hub connectivity).",
+      "source_hint": "The_Architects_Studio_Companion_Rules_of_Thumb_for_Preliminary_Design_5th_Edition_by_Edward_Allen_Joseph_Iano.pdf (Building Systems / Elevator Count)",
+      "related_ruleIds": [
+        "R-145"
       ]
     }
   ]
