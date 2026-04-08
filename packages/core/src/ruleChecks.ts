@@ -4522,6 +4522,394 @@ const RB_110: RuleCheck = {
   },
 };
 
+// ── RB-111..RB-120 ────────────────────────────────────────────────────────────
+
+/**
+ * RB-111 — PRIMARY_ROOMS_SOUTH_FACING
+ * In plans with ≥ 3 rooms, at least one primary habitable room (living, dining,
+ * bedroom, or kitchen) must touch the bottom edge of the floor plan (south facade
+ * proxy). R-111 (Heating Climate South Glazing) states that heating-dominated
+ * buildings must maximise south-facing solar gain; primary rooms placed entirely
+ * on north/east/west faces miss the primary passive solar opportunity.
+ * Assumption: bottom edge = south facade; 'living room' alias normalised to 'living'.
+ * Rulebook ref: R-111 (Heating Climate / South Glazing)
+ */
+const RB_111: RuleCheck = {
+  id: 'RB-111',
+  ruleId: 'R-111',
+  title: 'Primary Rooms South Facing',
+  severity: 'info',
+  applies: layout =>
+    layout.rooms.filter(r => r.width > 0 && r.height > 0).length >= 3,
+  check(layout, ctx) {
+    const rooms = validRooms(layout);
+    if (rooms.length < 3) return [];
+    const PRIMARY = new Set(['living', 'living room', 'dining', 'bedroom', 'kitchen']);
+    const primary = rooms.filter(r => PRIMARY.has(r.type.toLowerCase()));
+    if (primary.length === 0) return [];
+    const tol = 0.5;
+    const anySouth = primary.some(r => r.y + r.height >= ctx.dimD - tol);
+    if (anySouth) return [];
+    return [{
+      code: 'RB-111',
+      severity: 'info',
+      message: `No primary habitable room (living, dining, bedroom, kitchen) touches the south facade (bottom edge). In a heating-dominated climate, primary rooms should face south to benefit from passive solar gain (R-111).`,
+      roomIds: primary.map(r => r.id),
+      value: 0,
+      threshold: 1,
+    }];
+  },
+};
+
+/**
+ * RB-112 — CROSS_VENTILATION_PAIR
+ * In plans with ≥ 4 rooms, rooms must occupy at least one pair of opposite facades
+ * — either left+right or top+bottom. R-112 (Passive Cooling / Cross Ventilation)
+ * states that natural cross-ventilation requires openings on opposing building faces;
+ * a plan where all rooms cluster on only one lateral half cannot achieve a cross-
+ * ventilation path regardless of window placement.
+ * Assumption: left/right = east-west pair; top/bottom = north-south pair.
+ * Rulebook ref: R-112 (Passive Cooling / Natural Ventilation)
+ */
+const RB_112: RuleCheck = {
+  id: 'RB-112',
+  ruleId: 'R-112',
+  title: 'Cross-Ventilation Pair',
+  severity: 'info',
+  applies: layout =>
+    layout.rooms.filter(r => r.width > 0 && r.height > 0).length >= 4,
+  check(layout, ctx) {
+    const rooms = validRooms(layout);
+    if (rooms.length < 4) return [];
+    const tol = 0.5;
+    const touchLeft   = rooms.some(r => r.x <= tol);
+    const touchRight  = rooms.some(r => r.x + r.width  >= ctx.dimW - tol);
+    const touchTop    = rooms.some(r => r.y <= tol);
+    const touchBottom = rooms.some(r => r.y + r.height >= ctx.dimD - tol);
+    const hasEWPair = touchLeft && touchRight;
+    const hasNSPair = touchTop  && touchBottom;
+    if (hasEWPair || hasNSPair) return [];
+    return [{
+      code: 'RB-112',
+      severity: 'info',
+      message: `Rooms do not occupy any pair of opposite facades (left+right or top+bottom). Cross-ventilation requires openings on opposing faces — at least one opposing facade pair must have adjacent rooms (R-112).`,
+      roomIds: [],
+      value: 0,
+      threshold: 1,
+    }];
+  },
+};
+
+/**
+ * RB-113 — SOUTH_ZONE_AREA_LIMIT
+ * In plans with ≥ 3 rooms, rooms touching the south (bottom) facade should not
+ * exceed 70% of total room area. R-113 (Overhang Sizing / Solar Shading) warns
+ * that over-glazed or over-exposed south facades require critically precise overhang
+ * sizing; when the majority of floor area abuts the south face the building becomes
+ * a south-facing slab with no interior thermal buffer, making passive shading control
+ * technically difficult. A ≤ 70% south-zone limit ensures at least 30% of the plan
+ * is in an interior or non-south zone providing thermal inertia depth.
+ * Rulebook ref: R-113 (Overhang Sizing / Fixed Shading Devices)
+ */
+const RB_113: RuleCheck = {
+  id: 'RB-113',
+  ruleId: 'R-113',
+  title: 'South Zone Area Limit',
+  severity: 'info',
+  applies: layout =>
+    layout.rooms.filter(r => r.width > 0 && r.height > 0).length >= 3,
+  check(layout, ctx) {
+    const rooms = validRooms(layout);
+    if (rooms.length < 3) return [];
+    const tol = 0.5;
+    const southRooms = rooms.filter(r => r.y + r.height >= ctx.dimD - tol);
+    if (southRooms.length === 0) return [];
+    const totalArea = rooms.reduce((s, r) => s + roomArea(r), 0);
+    const southArea = southRooms.reduce((s, r) => s + roomArea(r), 0);
+    const ratio = totalArea > 0 ? southArea / totalArea : 0;
+    if (ratio <= 0.70) return [];
+    return [{
+      code: 'RB-113',
+      severity: 'info',
+      message: `South-facing rooms (bottom edge) account for ${Math.round(ratio * 100)}% of total room area (threshold: ≤ 70%). An over-exposed south zone leaves insufficient interior buffer for passive shading control; relocate some program away from the south face (R-113).`,
+      roomIds: southRooms.map(r => r.id),
+      value: Math.round(ratio * 100),
+      threshold: 70,
+    }];
+  },
+};
+
+/**
+ * RB-114 — VENTILATION_PLAN_DEPTH
+ * The floor plan depth (dimD) must be ≥ 20 ft (6 m for metric layouts).
+ * R-114 (Natural Ventilation Stack Effect) states that natural ventilation requires
+ * adequate separation between inlet and outlet openings; at floor-plan scale, a
+ * building depth < 20 ft (< 6 m) provides insufficient path length for effective
+ * cross-ventilation (ASHRAE 62.1 recommends a minimum ~20 ft cross-ventilation
+ * flow path for single-sided and cross-ventilation strategies in residential buildings).
+ * Assumption: plan depth = cross-ventilation flow path proxy.
+ * Rulebook ref: R-114 (Natural Ventilation / Stack Effect Separation)
+ */
+const RB_114: RuleCheck = {
+  id: 'RB-114',
+  ruleId: 'R-114',
+  title: 'Ventilation Plan Depth',
+  severity: 'info',
+  applies: () => true,
+  check(layout, ctx) {
+    const minDepth = ctx.units === 'meters' ? 6 : 20;
+    if (ctx.dimD >= minDepth) return [];
+    return [{
+      code: 'RB-114',
+      severity: 'info',
+      message: `Floor plan depth is ${ctx.dimD} ${ctx.units} — below the ${minDepth} ${ctx.units} minimum for effective natural cross-ventilation. A plan shallower than ${minDepth} ${ctx.units} cannot develop a sufficient inlet-to-outlet flow path for passive ventilation (R-114).`,
+      roomIds: [],
+      value: ctx.dimD,
+      threshold: minDepth,
+    }];
+  },
+};
+
+/**
+ * RB-115 — DAYLIGHTING_DEPTH_LIMIT
+ * No room's shorter dimension should exceed 25 ft (7.5 m for metric). R-115
+ * (Daylighting Autonomy / Workstation Distance from Window) states that spaces
+ * deeper than 1.5–2.5× ceiling height from a perimeter window cannot rely on
+ * daylight for task lighting; at a typical 10 ft ceiling, 25 ft is the outer limit
+ * of useful daylighting depth. Rooms wider than 25 ft in their shorter dimension
+ * require supplementary artificial lighting for the interior zone regardless of
+ * window area, increasing lighting energy use.
+ * Distinct from RB-003 (aspect ratio) which catches elongated rooms, not deep ones.
+ * Rulebook ref: R-115 (Daylighting Autonomy / Distance from Window)
+ */
+const RB_115: RuleCheck = {
+  id: 'RB-115',
+  ruleId: 'R-115',
+  title: 'Daylighting Depth Limit',
+  severity: 'info',
+  applies: () => true,
+  check(layout, ctx) {
+    const rooms = validRooms(layout);
+    const maxDepth = ctx.units === 'meters' ? 7.5 : 25;
+    const violations: Violation[] = [];
+    for (const r of rooms) {
+      const shorter = Math.min(r.width, r.height);
+      if (shorter > maxDepth) {
+        violations.push({
+          code: 'RB-115',
+          severity: 'info',
+          message: `${roomLabel(r)} has a shorter dimension of ${shorter.toFixed(1)} ${ctx.units}, exceeding the ${maxDepth} ${ctx.units} daylighting depth limit. Interior areas beyond ${maxDepth} ${ctx.units} from a perimeter window cannot be adequately daylit (R-115).`,
+          roomIds: [r.id],
+          value: shorter,
+          threshold: maxDepth,
+        });
+      }
+    }
+    return violations;
+  },
+};
+
+/**
+ * RB-116 — THERMAL_MASS_BALANCE
+ * When rooms touch the south (bottom) facade, the total area of north-facing
+ * (top-touching) rooms must be ≥ 25% of south-facing room area. R-116 (Passive
+ * Solar Overheating / Thermal Mass) states that passive solar plans require
+ * sufficient thermal mass to absorb peak solar gain; at floor-plan scale, a plan
+ * with a large south zone and minimal north zone has no interior mass depth to
+ * buffer daytime overheating. The 25% north-to-south area ratio is the minimum
+ * proxy for a balanced plan with adequate thermal inertia on the shaded (north)
+ * side to re-radiate heat overnight.
+ * Rulebook ref: R-116 (Passive Solar / Thermal Mass Ratio)
+ */
+const RB_116: RuleCheck = {
+  id: 'RB-116',
+  ruleId: 'R-116',
+  title: 'Thermal Mass Balance',
+  severity: 'info',
+  applies: layout =>
+    layout.rooms.filter(r => r.width > 0 && r.height > 0).length >= 3,
+  check(layout, ctx) {
+    const rooms = validRooms(layout);
+    if (rooms.length < 3) return [];
+    const tol = 0.5;
+    const southRooms = rooms.filter(r => r.y + r.height >= ctx.dimD - tol);
+    if (southRooms.length === 0) return [];
+    const northRooms = rooms.filter(r => r.y <= tol);
+    const southArea = southRooms.reduce((s, r) => s + roomArea(r), 0);
+    const northArea = northRooms.reduce((s, r) => s + roomArea(r), 0);
+    const ratio = southArea > 0 ? northArea / southArea : 1;
+    if (ratio >= 0.25) return [];
+    return [{
+      code: 'RB-116',
+      severity: 'info',
+      message: `North-zone area (${northArea.toFixed(0)} sq ${ctx.units === 'meters' ? 'm' : 'ft'}) is only ${Math.round(ratio * 100)}% of south-zone area — below the 25% minimum. A plan dominated by south-facing rooms has insufficient north-zone thermal mass to buffer passive solar overheating (R-116).`,
+      roomIds: southRooms.map(r => r.id),
+      value: Math.round(ratio * 100),
+      threshold: 25,
+    }];
+  },
+};
+
+/**
+ * RB-117 — PLAN_EFFICIENCY_RATIO
+ * In plans with ≥ 4 rooms, the sum of room areas must be ≥ 55% of the total floor
+ * plate area (dimW × dimD). R-117 (Energy Benchmarking / Decarbonisation Pathway)
+ * requires that buildings be benchmarked against a whole-system efficiency target,
+ * not just code minimums. At floor-plan scale, a plan where rooms account for < 55%
+ * of the floor plate has excessive void/circulation area — an inherently inefficient
+ * layout that inflates gross area, structural cost, and embodied carbon per net
+ * programme square foot. The 55% net-to-gross threshold corresponds to standard
+ * residential efficiency expectations (HUD guideline: ≥ 60%; 55% flags outliers).
+ * Rulebook ref: R-117 (Energy Efficiency / Plan Spatial Efficiency)
+ */
+const RB_117: RuleCheck = {
+  id: 'RB-117',
+  ruleId: 'R-117',
+  title: 'Plan Efficiency Ratio',
+  severity: 'info',
+  applies: layout =>
+    layout.rooms.filter(r => r.width > 0 && r.height > 0).length >= 4,
+  check(layout, ctx) {
+    const rooms = validRooms(layout);
+    if (rooms.length < 4) return [];
+    const plateArea = ctx.dimW * ctx.dimD;
+    const roomTotal = rooms.reduce((s, r) => s + roomArea(r), 0);
+    const ratio = plateArea > 0 ? roomTotal / plateArea : 1;
+    if (ratio >= 0.55) return [];
+    return [{
+      code: 'RB-117',
+      severity: 'info',
+      message: `Room area covers ${Math.round(ratio * 100)}% of the floor plate (threshold: ≥ 55%). Excessive circulation voids reduce plan efficiency and increase gross area, embodied carbon, and heating/cooling loads per net programme square foot (R-117).`,
+      roomIds: [],
+      value: Math.round(ratio * 100),
+      threshold: 55,
+    }];
+  },
+};
+
+/**
+ * RB-118 — DUAL_ORIENTATION_HABITABLE
+ * In plans with ≥ 5 rooms, at least one primary habitable room (living, dining,
+ * bedroom, kitchen) must touch the top (north) edge AND at least one must touch the
+ * bottom (south) edge. R-118 (Climate Adaptability / Future Weather Resilience)
+ * states that buildings modelled only on historical weather data miss projected
+ * future climate shifts; at floor-plan level, a plan with primary habitable rooms
+ * on only one solar orientation cannot adapt occupant behaviour to variable climate
+ * conditions (shifting rooms, shading strategies) across heating and cooling seasons.
+ * Assumption: top = north, bottom = south.
+ * Rulebook ref: R-118 (Climate Adaptability / Dual Orientation)
+ */
+const RB_118: RuleCheck = {
+  id: 'RB-118',
+  ruleId: 'R-118',
+  title: 'Dual Orientation Habitable',
+  severity: 'info',
+  applies: layout =>
+    layout.rooms.filter(r => r.width > 0 && r.height > 0).length >= 5,
+  check(layout, ctx) {
+    const rooms = validRooms(layout);
+    if (rooms.length < 5) return [];
+    const PRIMARY = new Set(['living', 'living room', 'dining', 'bedroom', 'kitchen']);
+    const primary = rooms.filter(r => PRIMARY.has(r.type.toLowerCase()));
+    if (primary.length === 0) return [];
+    const tol = 0.5;
+    const hasNorth = primary.some(r => r.y <= tol);
+    const hasSouth = primary.some(r => r.y + r.height >= ctx.dimD - tol);
+    if (hasNorth && hasSouth) return [];
+    const missing = !hasNorth ? 'north (top)' : 'south (bottom)';
+    return [{
+      code: 'RB-118',
+      severity: 'info',
+      message: `No primary habitable room touches the ${missing} facade. A plan with habitable rooms on only one solar orientation cannot adapt to variable climate conditions across heating and cooling seasons (R-118).`,
+      roomIds: primary.map(r => r.id),
+      value: hasNorth && hasSouth ? 2 : 1,
+      threshold: 2,
+    }];
+  },
+};
+
+/**
+ * RB-119 — GREEN_BUFFER_AREA
+ * In plans with ≥ 6 rooms, 'other' rooms (outdoor courtyard / green space proxy)
+ * must be present and constitute ≥ 5% of total room area. R-119 (Heat Island /
+ * Permeable Surface) requires that urban buildings provide permeable surfaces and
+ * vegetative cover to mitigate heat-island effects; at floor-plan scale, a ≥ 6-room
+ * plan with no outdoor/green buffer space (or a token space < 5% of area) makes no
+ * provision for on-site permeable or vegetated area, directly contributing to
+ * localised heat-island amplification. The 5% minimum is derived from LEED
+ * Sustainable Sites credit thresholds for on-site open space.
+ * Distinct from RB-097 (presence check for ≥ 5-room plans with ≥ 2 bedrooms).
+ * Rulebook ref: R-119 (Heat Island / Green Buffer)
+ */
+const RB_119: RuleCheck = {
+  id: 'RB-119',
+  ruleId: 'R-119',
+  title: 'Green Buffer Area',
+  severity: 'info',
+  applies: layout =>
+    layout.rooms.filter(r => r.width > 0 && r.height > 0).length >= 6,
+  check(layout, ctx) {
+    const rooms = validRooms(layout);
+    if (rooms.length < 6) return [];
+    const otherRooms = rooms.filter(r => r.type === 'other');
+    const totalArea = rooms.reduce((s, r) => s + roomArea(r), 0);
+    const otherArea = otherRooms.reduce((s, r) => s + roomArea(r), 0);
+    const ratio = totalArea > 0 ? otherArea / totalArea : 0;
+    if (ratio >= 0.05) return [];
+    return [{
+      code: 'RB-119',
+      severity: 'info',
+      message: `'Other' (outdoor/green buffer) rooms account for ${Math.round(ratio * 100)}% of total room area (threshold: ≥ 5%). A ≥ 6-room plan with insufficient permeable/vegetated space contributes to heat-island amplification — include at least 5% of plan area as outdoor/green buffer (R-119).`,
+      roomIds: otherRooms.map(r => r.id),
+      value: Math.round(ratio * 100),
+      threshold: 5,
+    }];
+  },
+};
+
+/**
+ * RB-120 — MODULAR_DIMENSION_ALIGNMENT
+ * Every room's width and height should be within 0.25 ft (0.075 m for metric) of
+ * a whole-unit value. R-120 (Construction Documents / Nominal Lumber Dimensions)
+ * requires that CDs use standard modular dimensions to avoid field substitutions;
+ * non-modular room dimensions (e.g. 10.33 ft, 9.67 ft) indicate residual division
+ * artifacts that are not aligned to standard framing modules (1-ft stud spacing,
+ * 2-ft panel multiples, 8-in masonry coursing) and will cause coordination issues
+ * between structural drawings and shop drawings. The 0.25 ft (3 inch) tolerance
+ * allows for standard tolerances in layout dimensions.
+ * Rulebook ref: R-120 (Construction Documents / Dimensional Coordination)
+ */
+const RB_120: RuleCheck = {
+  id: 'RB-120',
+  ruleId: 'R-120',
+  title: 'Modular Dimension Alignment',
+  severity: 'warning',
+  applies: () => true,
+  check(layout, ctx) {
+    const rooms = validRooms(layout);
+    const tol = ctx.units === 'meters' ? 0.075 : 0.25;
+    const violations: Violation[] = [];
+    for (const r of rooms) {
+      const wDev = Math.abs(r.width  - Math.round(r.width));
+      const hDev = Math.abs(r.height - Math.round(r.height));
+      if (wDev > tol || hDev > tol) {
+        const bad: string[] = [];
+        if (wDev > tol) bad.push(`width ${r.width.toFixed(2)}`);
+        if (hDev > tol) bad.push(`height ${r.height.toFixed(2)}`);
+        violations.push({
+          code: 'RB-120',
+          severity: 'warning',
+          message: `${roomLabel(r)} has non-modular dimension(s): ${bad.join(', ')} ${ctx.units}. Room dimensions should be within 0.25 ${ctx.units === 'meters' ? 'm' : 'ft'} of a whole-unit value to align with standard framing and masonry modules (R-120).`,
+          roomIds: [r.id],
+          value: Math.max(wDev, hDev),
+          threshold: tol,
+        });
+      }
+    }
+    return violations;
+  },
+};
+
 // ── Auto-register all built-in checks ─────────────────────────────────────────
 
 registerChecks(
@@ -4547,4 +4935,6 @@ registerChecks(
   RB_096, RB_097, RB_098, RB_099, RB_100,
   RB_101, RB_102, RB_103, RB_104, RB_105,
   RB_106, RB_107, RB_108, RB_109, RB_110,
+  RB_111, RB_112, RB_113, RB_114, RB_115,
+  RB_116, RB_117, RB_118, RB_119, RB_120,
 );

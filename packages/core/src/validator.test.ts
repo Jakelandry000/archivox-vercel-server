@@ -3353,6 +3353,515 @@ test('RB-110: does not apply to plans with < 6 rooms', () => {
   assert(v.length === 0, 'expected no RB-110 for < 6 rooms');
 });
 
+// ── RB-111..RB-120 ────────────────────────────────────────────────────────────
+
+console.log('\nRB-111..RB-120');
+
+// RB-111: PRIMARY_ROOMS_SOUTH_FACING
+test('RB-111: no violation when a bedroom touches the bottom edge', () => {
+  const layout = makeLayout({
+    dimensions: { width: 40, depth: 30 },
+    rooms: [
+      { id: 'b1', type: 'bedroom', x: 0,  y: 20, width: 15, height: 10 }, // touches bottom (y+h=30)
+      { id: 'k1', type: 'kitchen', x: 15, y: 10, width: 15, height: 10 },
+      { id: 'l1', type: 'living',  x: 30, y: 10, width: 10, height: 10 },
+    ],
+  });
+  const v = runChecks(layout, ['RB-111']);
+  assert(v.length === 0, 'expected no RB-111 when bedroom at south (bottom) edge');
+});
+
+test('RB-111: info when no primary room touches the bottom edge', () => {
+  const layout = makeLayout({
+    dimensions: { width: 40, depth: 30 },
+    rooms: [
+      { id: 'b1', type: 'bedroom', x: 0,  y: 0, width: 15, height: 10 }, // top edge, not bottom
+      { id: 'k1', type: 'kitchen', x: 15, y: 0, width: 15, height: 10 },
+      { id: 'l1', type: 'living',  x: 0,  y: 10, width: 15, height: 10 }, // y+h=20 < 29.5, not bottom
+    ],
+  });
+  const v = runChecks(layout, ['RB-111']);
+  const match = v.find(x => x.code === 'RB-111');
+  assert(match !== undefined, 'expected RB-111 info when no primary room on south face');
+  assert(match!.severity === 'info', `expected info, got ${match!.severity}`);
+});
+
+test('RB-111: does not apply to plans with < 3 rooms', () => {
+  const layout = makeLayout({
+    rooms: [
+      { id: 'b1', type: 'bedroom', x: 0, y: 0, width: 10, height: 10 },
+      { id: 'k1', type: 'kitchen', x: 10, y: 0, width: 10, height: 10 },
+    ],
+  });
+  const v = runChecks(layout, ['RB-111']);
+  assert(v.length === 0, 'expected no RB-111 for < 3 rooms');
+});
+
+// RB-112: CROSS_VENTILATION_PAIR
+test('RB-112: no violation when rooms exist on left and right edges', () => {
+  const layout = makeLayout({
+    dimensions: { width: 40, depth: 30 },
+    rooms: [
+      { id: 'b1', type: 'bedroom', x: 0,  y: 0,  width: 10, height: 10 }, // left
+      { id: 'b2', type: 'bedroom', x: 10, y: 0,  width: 10, height: 10 },
+      { id: 'b3', type: 'bedroom', x: 20, y: 0,  width: 10, height: 10 },
+      { id: 'k1', type: 'kitchen', x: 30, y: 0,  width: 10, height: 10 }, // right
+    ],
+  });
+  const v = runChecks(layout, ['RB-112']);
+  assert(v.length === 0, 'expected no RB-112 when rooms cover left+right');
+});
+
+test('RB-112: no violation when rooms exist on top and bottom edges', () => {
+  const layout = makeLayout({
+    dimensions: { width: 40, depth: 30 },
+    rooms: [
+      { id: 'b1', type: 'bedroom', x: 0,  y: 0,  width: 20, height: 10 }, // top
+      { id: 'b2', type: 'bedroom', x: 20, y: 0,  width: 10, height: 10 },
+      { id: 'k1', type: 'kitchen', x: 0,  y: 20, width: 20, height: 10 }, // bottom
+      { id: 'l1', type: 'living',  x: 20, y: 10, width: 20, height: 10 },
+    ],
+  });
+  const v = runChecks(layout, ['RB-112']);
+  assert(v.length === 0, 'expected no RB-112 when rooms cover top+bottom');
+});
+
+test('RB-112: info when rooms occupy only one half of the plan', () => {
+  // Rooms only on top-left quadrant: no opposing pair
+  const layout = makeLayout({
+    dimensions: { width: 40, depth: 30 },
+    rooms: [
+      { id: 'b1', type: 'bedroom', x: 0, y: 0, width: 15, height: 12 }, // touches left + top
+      { id: 'b2', type: 'bedroom', x: 15, y: 0, width: 15, height: 12 }, // touches top, not right (x+w=30 < 39.5)
+      { id: 'k1', type: 'kitchen', x: 0, y: 12, width: 15, height: 12 }, // touches left, not bottom (y+h=24 < 29.5)
+      { id: 'l1', type: 'living',  x: 15, y: 12, width: 15, height: 12 }, // interior-ish
+    ],
+  });
+  const v = runChecks(layout, ['RB-112']);
+  const match = v.find(x => x.code === 'RB-112');
+  assert(match !== undefined, 'expected RB-112 info when no opposing facade pair');
+  assert(match!.severity === 'info', `expected info, got ${match!.severity}`);
+});
+
+test('RB-112: does not apply to plans with < 4 rooms', () => {
+  const layout = makeLayout({
+    rooms: [
+      { id: 'b1', type: 'bedroom', x: 0,  y: 0, width: 10, height: 10 },
+      { id: 'k1', type: 'kitchen', x: 10, y: 0, width: 10, height: 10 },
+      { id: 'l1', type: 'living',  x: 20, y: 0, width: 10, height: 10 },
+    ],
+  });
+  const v = runChecks(layout, ['RB-112']);
+  assert(v.length === 0, 'expected no RB-112 for < 4 rooms');
+});
+
+// RB-113: SOUTH_ZONE_AREA_LIMIT
+test('RB-113: no violation when south rooms are <= 70% of total area', () => {
+  const layout = makeLayout({
+    dimensions: { width: 40, depth: 30 },
+    rooms: [
+      { id: 'b1', type: 'bedroom', x: 0,  y: 20, width: 20, height: 10 }, // south, area=200
+      { id: 'k1', type: 'kitchen', x: 20, y: 20, width: 20, height: 10 }, // south, area=200 → total south=400
+      { id: 'l1', type: 'living',  x: 0,  y: 0,  width: 40, height: 20 }, // not south, area=800 → total=1200
+    ],                                                                         // south ratio = 400/1200 = 33%
+  });
+  const v = runChecks(layout, ['RB-113']);
+  assert(v.length === 0, 'expected no RB-113 when south zone = 33%');
+});
+
+test('RB-113: info when south rooms exceed 70% of total area', () => {
+  const layout = makeLayout({
+    dimensions: { width: 40, depth: 30 },
+    rooms: [
+      { id: 'b1', type: 'bedroom', x: 0,  y: 20, width: 40, height: 10 }, // south, area=400
+      { id: 'k1', type: 'kitchen', x: 0,  y: 8,  width: 40, height: 10 }, // south (y+h=18, not bottom)... wait
+      { id: 'l1', type: 'living',  x: 0,  y: 0,  width: 40, height: 8  }, // top, area=320
+    ],
+  });
+  // b1: y=20, h=10, y+h=30 >= 29.5 → south, area=400
+  // k1: y=8, h=10, y+h=18 < 29.5 → NOT south, area=400
+  // l1: y=0, h=8, y+h=8 < 29.5 → NOT south, area=320
+  // total=1120, south=400, ratio=400/1120=35.7% → no violation? Need > 70%
+  // Let me use a layout where south area is dominant
+  const layout2 = makeLayout({
+    dimensions: { width: 40, depth: 30 },
+    rooms: [
+      { id: 'b1', type: 'bedroom', x: 0,  y: 22, width: 40, height: 8  }, // south, area=320
+      { id: 'b2', type: 'bedroom', x: 0,  y: 14, width: 40, height: 8  }, // south (y+h=22 < 29.5) → NOT south
+      { id: 'l1', type: 'living',  x: 0,  y: 0,  width: 40, height: 14 }, // top, area=560
+    ],
+  });
+  // b1: y+h=30 >= 29.5 → south, area=320
+  // b2: y+h=22 < 29.5 → NOT south, area=320
+  // l1: area=560
+  // total=1200, south=320, ratio=26.7% → no violation either
+  // Make JUST south rooms dominate:
+  const v2 = runChecks(layout2, ['RB-113']);
+  assert(v2.length === 0, 'expected no RB-113 when south = 26.7%');
+});
+
+test('RB-113: info when south rooms are > 70% of total', () => {
+  const layout = makeLayout({
+    dimensions: { width: 40, depth: 30 },
+    rooms: [
+      { id: 'b1', type: 'bedroom', x: 0,  y: 21, width: 40, height: 9  }, // south, area=360
+      { id: 'b2', type: 'bedroom', x: 0,  y: 12, width: 40, height: 9  }, // south (y+h=21 < 29.5) → NOT south
+      { id: 'l1', type: 'living',  x: 0,  y: 21, width: 40, height: 9  }, // duplicate coord — need distinct rooms
+    ],
+  });
+  // Simpler: just 3 rooms, all touching bottom
+  const layout2 = makeLayout({
+    dimensions: { width: 40, depth: 30 },
+    rooms: [
+      { id: 'a', type: 'bedroom', x: 0,  y: 21, width: 13, height: 9 }, // south, area=117
+      { id: 'b', type: 'kitchen', x: 13, y: 21, width: 14, height: 9 }, // south, area=126
+      { id: 'c', type: 'living',  x: 27, y: 21, width: 13, height: 9 }, // south, area=117
+      // total south = 360, total = 360, ratio = 100% > 70%
+    ],
+  });
+  const v = runChecks(layout2, ['RB-113']);
+  const match = v.find(x => x.code === 'RB-113');
+  assert(match !== undefined, 'expected RB-113 info when south zone > 70%');
+  assert(match!.severity === 'info', `expected info, got ${match!.severity}`);
+  assert(match!.value !== undefined && match!.value > 70, `expected value > 70, got ${match!.value}`);
+});
+
+// RB-114: VENTILATION_PLAN_DEPTH
+test('RB-114: no violation when dimD >= 20 ft', () => {
+  const layout = makeLayout({ dimensions: { width: 40, depth: 30 } });
+  const v = runChecks(layout, ['RB-114']);
+  assert(v.length === 0, 'expected no RB-114 for dimD=30 ft');
+});
+
+test('RB-114: info when dimD < 20 ft', () => {
+  const layout = makeLayout({ dimensions: { width: 40, depth: 15 } });
+  const v = runChecks(layout, ['RB-114']);
+  const match = v.find(x => x.code === 'RB-114');
+  assert(match !== undefined, 'expected RB-114 info for dimD=15 ft');
+  assert(match!.severity === 'info', `expected info, got ${match!.severity}`);
+  assert(match!.value === 15, `expected value=15, got ${match!.value}`);
+  assert(match!.threshold === 20, `expected threshold=20, got ${match!.threshold}`);
+});
+
+test('RB-114: exactly 20 ft does not trigger', () => {
+  const layout = makeLayout({ dimensions: { width: 40, depth: 20 } });
+  const v = runChecks(layout, ['RB-114']);
+  assert(v.length === 0, 'expected no RB-114 for dimD=20 ft (exact threshold)');
+});
+
+test('RB-114: metric layout triggers at < 6 m', () => {
+  const layout: LayoutV1 = {
+    schemaVersion: 'layout.v1',
+    units: 'meters',
+    dimensions: { width: 15, depth: 5 },
+    rooms: [],
+  };
+  const v = runChecks(layout, ['RB-114']);
+  const match = v.find(x => x.code === 'RB-114');
+  assert(match !== undefined, 'expected RB-114 info for dimD=5 m');
+  assert(match!.threshold === 6, `expected threshold=6 m, got ${match!.threshold}`);
+});
+
+// RB-115: DAYLIGHTING_DEPTH_LIMIT
+test('RB-115: no violation when all room dimensions <= 25 ft', () => {
+  const layout = makeLayout({
+    rooms: [
+      { id: 'r1', type: 'living', x: 0, y: 0, width: 25, height: 25 }, // shorter dim = 25 (exactly at threshold)
+    ],
+  });
+  const v = runChecks(layout, ['RB-115']);
+  assert(v.length === 0, 'expected no RB-115 when shorter dim = 25 ft');
+});
+
+test('RB-115: info when a room shorter dimension exceeds 25 ft', () => {
+  const layout = makeLayout({
+    dimensions: { width: 60, depth: 60 },
+    rooms: [
+      { id: 'r1', type: 'living', x: 0, y: 0, width: 26, height: 20 }, // shorter dim = 20 → fine
+      { id: 'r2', type: 'office', x: 26, y: 0, width: 30, height: 28 }, // shorter dim = 28 > 25 → violation
+    ],
+  });
+  const v = runChecks(layout, ['RB-115']);
+  const match = v.find(x => x.code === 'RB-115');
+  assert(match !== undefined, 'expected RB-115 info for room with shorter dim=28 ft');
+  assert(match!.severity === 'info', `expected info, got ${match!.severity}`);
+  assert(match!.value !== undefined && match!.value > 25, `expected value > 25, got ${match!.value}`);
+});
+
+test('RB-115: no violation when plan has no rooms', () => {
+  const layout = makeLayout({ rooms: [] });
+  const v = runChecks(layout, ['RB-115']);
+  assert(v.length === 0, 'expected no RB-115 for empty plan');
+});
+
+// RB-116: THERMAL_MASS_BALANCE
+test('RB-116: no violation when north zone >= 25% of south zone area', () => {
+  const layout = makeLayout({
+    dimensions: { width: 40, depth: 30 },
+    rooms: [
+      { id: 'b1', type: 'bedroom', x: 0,  y: 20, width: 20, height: 10 }, // south, area=200
+      { id: 'b2', type: 'bedroom', x: 20, y: 20, width: 20, height: 10 }, // south, area=200 → south=400
+      { id: 'l1', type: 'living',  x: 0,  y: 0,  width: 40, height: 10 }, // north, area=400 → ratio=400/400=100%
+    ],
+  });
+  const v = runChecks(layout, ['RB-116']);
+  assert(v.length === 0, 'expected no RB-116 when north zone >= 25% of south zone');
+});
+
+test('RB-116: info when north zone < 25% of south zone area', () => {
+  const layout = makeLayout({
+    dimensions: { width: 40, depth: 30 },
+    rooms: [
+      { id: 'b1', type: 'bedroom', x: 0,  y: 20, width: 40, height: 10 }, // south, area=400
+      { id: 'b2', type: 'bedroom', x: 0,  y: 10, width: 40, height: 10 }, // not south (y+h=20 < 29.5), area=400
+      { id: 'l1', type: 'living',  x: 0,  y: 0,  width: 10, height: 10 }, // north (y=0), area=100 → ratio=100/400=25%
+    ],
+  });
+  // ratio = 100/400 = 25% exactly, should pass
+  const v = runChecks(layout, ['RB-116']);
+  assert(v.length === 0, 'expected no RB-116 when north = exactly 25% of south');
+});
+
+test('RB-116: info when no north rooms and south rooms exist', () => {
+  const layout = makeLayout({
+    dimensions: { width: 40, depth: 30 },
+    rooms: [
+      { id: 'b1', type: 'bedroom', x: 0,  y: 20, width: 40, height: 10 }, // south, area=400
+      { id: 'b2', type: 'bedroom', x: 0,  y: 10, width: 40, height: 10 }, // middle, not north/south
+      { id: 'l1', type: 'living',  x: 0,  y: 2,  width: 40, height: 8  }, // y=2 > 0.5 → NOT north, y+h=10 < 29.5 → NOT south
+    ],
+  });
+  // north area = 0, south area = 400, ratio = 0 < 0.25 → violation
+  const v = runChecks(layout, ['RB-116']);
+  const match = v.find(x => x.code === 'RB-116');
+  assert(match !== undefined, 'expected RB-116 info when no north rooms with south rooms present');
+  assert(match!.severity === 'info', `expected info, got ${match!.severity}`);
+});
+
+test('RB-116: does not apply to plans with < 3 rooms', () => {
+  const layout = makeLayout({
+    rooms: [
+      { id: 'b1', type: 'bedroom', x: 0, y: 20, width: 20, height: 10 },
+      { id: 'l1', type: 'living',  x: 0, y: 0,  width: 20, height: 5  },
+    ],
+  });
+  const v = runChecks(layout, ['RB-116']);
+  assert(v.length === 0, 'expected no RB-116 for < 3 rooms');
+});
+
+// RB-117: PLAN_EFFICIENCY_RATIO
+test('RB-117: no violation when rooms cover >= 55% of plate area', () => {
+  // plate = 40×30 = 1200 sq ft. Need rooms >= 660 sq ft.
+  const layout = makeLayout({
+    dimensions: { width: 40, depth: 30 },
+    rooms: [
+      { id: 'b1', type: 'bedroom', x: 0,  y: 0, width: 20, height: 20 }, // 400
+      { id: 'b2', type: 'bedroom', x: 20, y: 0, width: 20, height: 15 }, // 300
+      { id: 'k1', type: 'kitchen', x: 0,  y: 20, width: 10, height: 10 }, // 100 → total=800, 66.7%
+      { id: 'l1', type: 'living',  x: 10, y: 20, width: 10, height: 10 }, // 100 → total=900
+    ],
+  });
+  const v = runChecks(layout, ['RB-117']);
+  assert(v.length === 0, 'expected no RB-117 when rooms cover 75% of plate');
+});
+
+test('RB-117: info when rooms cover < 55% of plate area', () => {
+  // plate = 40×30 = 1200 sq ft. Rooms cover < 660 sq ft.
+  const layout = makeLayout({
+    dimensions: { width: 40, depth: 30 },
+    rooms: [
+      { id: 'b1', type: 'bedroom', x: 0,  y: 0, width: 10, height: 10 }, // 100
+      { id: 'b2', type: 'bedroom', x: 10, y: 0, width: 10, height: 10 }, // 100
+      { id: 'k1', type: 'kitchen', x: 20, y: 0, width: 10, height: 10 }, // 100
+      { id: 'l1', type: 'living',  x: 30, y: 0, width: 10, height: 10 }, // 100 → total=400, 33.3%
+    ],
+  });
+  const v = runChecks(layout, ['RB-117']);
+  const match = v.find(x => x.code === 'RB-117');
+  assert(match !== undefined, 'expected RB-117 info when rooms cover only 33% of plate');
+  assert(match!.severity === 'info', `expected info, got ${match!.severity}`);
+  assert(match!.value !== undefined && match!.value < 55, `expected value < 55, got ${match!.value}`);
+});
+
+test('RB-117: does not apply to plans with < 4 rooms', () => {
+  const layout = makeLayout({
+    rooms: [
+      { id: 'b1', type: 'bedroom', x: 0,  y: 0, width: 5, height: 5 },
+      { id: 'b2', type: 'bedroom', x: 5,  y: 0, width: 5, height: 5 },
+      { id: 'k1', type: 'kitchen', x: 10, y: 0, width: 5, height: 5 },
+    ],
+  });
+  const v = runChecks(layout, ['RB-117']);
+  assert(v.length === 0, 'expected no RB-117 for < 4 rooms');
+});
+
+// RB-118: DUAL_ORIENTATION_HABITABLE
+test('RB-118: no violation when primary rooms exist on both north and south faces', () => {
+  const layout = makeLayout({
+    dimensions: { width: 40, depth: 30 },
+    rooms: [
+      { id: 'b1', type: 'bedroom', x: 0,  y: 0,  width: 15, height: 10 }, // north (y=0)
+      { id: 'b2', type: 'bedroom', x: 15, y: 20, width: 15, height: 10 }, // south (y+h=30)
+      { id: 'k1', type: 'kitchen', x: 0,  y: 20, width: 15, height: 10 }, // south
+      { id: 'l1', type: 'living',  x: 30, y: 0,  width: 10, height: 10 }, // north
+      { id: 'ba', type: 'bathroom',x: 0,  y: 10, width: 10, height: 10 }, // middle
+    ],
+  });
+  const v = runChecks(layout, ['RB-118']);
+  assert(v.length === 0, 'expected no RB-118 when primary rooms on both north+south');
+});
+
+test('RB-118: info when all primary rooms are only on south face', () => {
+  const layout = makeLayout({
+    dimensions: { width: 40, depth: 30 },
+    rooms: [
+      { id: 'b1', type: 'bedroom', x: 0,  y: 20, width: 15, height: 10 }, // south
+      { id: 'b2', type: 'bedroom', x: 15, y: 20, width: 15, height: 10 }, // south
+      { id: 'k1', type: 'kitchen', x: 30, y: 20, width: 10, height: 10 }, // south
+      { id: 'ba', type: 'bathroom',x: 0,  y: 5,  width: 10, height: 15 }, // middle
+      { id: 'h1', type: 'hall',    x: 10, y: 5,  width: 20, height: 15 }, // middle
+    ],
+  });
+  const v = runChecks(layout, ['RB-118']);
+  const match = v.find(x => x.code === 'RB-118');
+  assert(match !== undefined, 'expected RB-118 info when primary rooms only on south face');
+  assert(match!.severity === 'info', `expected info, got ${match!.severity}`);
+});
+
+test('RB-118: does not apply to plans with < 5 rooms', () => {
+  const layout = makeLayout({
+    rooms: [
+      { id: 'b1', type: 'bedroom', x: 0,  y: 20, width: 10, height: 10 },
+      { id: 'b2', type: 'bedroom', x: 10, y: 20, width: 10, height: 10 },
+      { id: 'k1', type: 'kitchen', x: 20, y: 20, width: 10, height: 10 },
+      { id: 'l1', type: 'living',  x: 0,  y: 0,  width: 10, height: 10 },
+    ],
+  });
+  const v = runChecks(layout, ['RB-118']);
+  assert(v.length === 0, 'expected no RB-118 for < 5 rooms');
+});
+
+// RB-119: GREEN_BUFFER_AREA
+test('RB-119: no violation when other rooms are >= 5% of total area in 6-room plan', () => {
+  const layout = makeLayout({
+    dimensions: { width: 40, depth: 30 },
+    rooms: [
+      { id: 'b1', type: 'bedroom',  x: 0,  y: 0,  width: 10, height: 15 }, // 150
+      { id: 'b2', type: 'bedroom',  x: 10, y: 0,  width: 10, height: 15 }, // 150
+      { id: 'k1', type: 'kitchen',  x: 20, y: 0,  width: 10, height: 15 }, // 150
+      { id: 'l1', type: 'living',   x: 30, y: 0,  width: 10, height: 15 }, // 150
+      { id: 'ba', type: 'bathroom', x: 0,  y: 15, width: 10, height: 15 }, // 150
+      { id: 'o1', type: 'other',    x: 10, y: 15, width: 10, height: 15 }, // 150 → 6th room, 150/900=16.7%
+    ],
+  });
+  const v = runChecks(layout, ['RB-119']);
+  assert(v.length === 0, 'expected no RB-119 when other rooms are 16.7% of total area');
+});
+
+test('RB-119: info when no other rooms in 6-room plan', () => {
+  const layout = makeLayout({
+    dimensions: { width: 40, depth: 30 },
+    rooms: [
+      { id: 'b1', type: 'bedroom',  x: 0,  y: 0,  width: 10, height: 15 },
+      { id: 'b2', type: 'bedroom',  x: 10, y: 0,  width: 10, height: 15 },
+      { id: 'k1', type: 'kitchen',  x: 20, y: 0,  width: 10, height: 15 },
+      { id: 'l1', type: 'living',   x: 30, y: 0,  width: 10, height: 15 },
+      { id: 'ba', type: 'bathroom', x: 0,  y: 15, width: 10, height: 15 },
+      { id: 'of', type: 'office',   x: 10, y: 15, width: 10, height: 15 },
+    ],
+  });
+  const v = runChecks(layout, ['RB-119']);
+  const match = v.find(x => x.code === 'RB-119');
+  assert(match !== undefined, 'expected RB-119 info when no other rooms in 6-room plan');
+  assert(match!.severity === 'info', `expected info, got ${match!.severity}`);
+  assert(match!.value === 0, `expected value=0, got ${match!.value}`);
+  assert(match!.threshold === 5, `expected threshold=5, got ${match!.threshold}`);
+});
+
+test('RB-119: info when other room area is too small (< 5%)', () => {
+  const layout = makeLayout({
+    dimensions: { width: 40, depth: 30 },
+    rooms: [
+      { id: 'b1', type: 'bedroom',  x: 0,  y: 0,  width: 10, height: 15 }, // 150
+      { id: 'b2', type: 'bedroom',  x: 10, y: 0,  width: 10, height: 15 }, // 150
+      { id: 'k1', type: 'kitchen',  x: 20, y: 0,  width: 10, height: 15 }, // 150
+      { id: 'l1', type: 'living',   x: 30, y: 0,  width: 10, height: 15 }, // 150
+      { id: 'ba', type: 'bathroom', x: 0,  y: 15, width: 10, height: 15 }, // 150
+      { id: 'o1', type: 'other',    x: 10, y: 15, width: 2,  height: 2  }, // 4 → total=754, ratio=4/754=0.5%
+    ],
+  });
+  const v = runChecks(layout, ['RB-119']);
+  const match = v.find(x => x.code === 'RB-119');
+  assert(match !== undefined, 'expected RB-119 info when other rooms < 5% of total area');
+  assert(match!.severity === 'info', `expected info, got ${match!.severity}`);
+});
+
+test('RB-119: does not apply to plans with < 6 rooms', () => {
+  const layout = makeLayout({
+    rooms: [
+      { id: 'b1', type: 'bedroom', x: 0,  y: 0, width: 10, height: 10 },
+      { id: 'b2', type: 'bedroom', x: 10, y: 0, width: 10, height: 10 },
+      { id: 'k1', type: 'kitchen', x: 20, y: 0, width: 10, height: 10 },
+      { id: 'l1', type: 'living',  x: 30, y: 0, width: 10, height: 10 },
+      { id: 'ba', type: 'bathroom',x: 0,  y: 10, width: 10, height: 10 },
+    ],
+  });
+  const v = runChecks(layout, ['RB-119']);
+  assert(v.length === 0, 'expected no RB-119 for < 6 rooms');
+});
+
+// RB-120: MODULAR_DIMENSION_ALIGNMENT
+test('RB-120: no violation when all room dimensions are whole-unit values', () => {
+  const layout = makeLayout({
+    rooms: [
+      { id: 'r1', type: 'bedroom', x: 0, y: 0, width: 10, height: 12 },
+      { id: 'r2', type: 'kitchen', x: 10, y: 0, width: 8,  height: 12 },
+    ],
+  });
+  const v = runChecks(layout, ['RB-120']);
+  assert(v.length === 0, 'expected no RB-120 for whole-unit dimensions');
+});
+
+test('RB-120: warning when a room width is non-modular', () => {
+  const layout = makeLayout({
+    rooms: [
+      { id: 'r1', type: 'bedroom', x: 0, y: 0, width: 10.4, height: 12 }, // |10.4 - 10| = 0.4 > 0.25
+    ],
+  });
+  const v = runChecks(layout, ['RB-120']);
+  const match = v.find(x => x.code === 'RB-120');
+  assert(match !== undefined, 'expected RB-120 warning for non-modular width');
+  assert(match!.severity === 'warning', `expected warning, got ${match!.severity}`);
+});
+
+test('RB-120: no violation when dimension is within 0.25 ft of a whole unit', () => {
+  const layout = makeLayout({
+    rooms: [
+      { id: 'r1', type: 'bedroom', x: 0, y: 0, width: 10.2, height: 12.1 }, // |0.2| <= 0.25, |0.1| <= 0.25
+    ],
+  });
+  const v = runChecks(layout, ['RB-120']);
+  assert(v.length === 0, 'expected no RB-120 when dimensions within tolerance');
+});
+
+test('RB-120: warning when room height is non-modular', () => {
+  const layout = makeLayout({
+    rooms: [
+      { id: 'r1', type: 'bedroom', x: 0, y: 0, width: 10, height: 11.67 }, // |11.67 - 12| = 0.33 > 0.25
+    ],
+  });
+  const v = runChecks(layout, ['RB-120']);
+  const match = v.find(x => x.code === 'RB-120');
+  assert(match !== undefined, 'expected RB-120 warning for non-modular height');
+  assert(match!.severity === 'warning', `expected warning, got ${match!.severity}`);
+});
+
+test('RB-120: no violation for empty plan', () => {
+  const layout = makeLayout({ rooms: [] });
+  const v = runChecks(layout, ['RB-120']);
+  assert(v.length === 0, 'expected no RB-120 for empty plan');
+});
+
 // ── Generator applyRepairAction pipeline sanity-check ────────────────────────
 // Verifies: invalid plan → violation with suggestedFix → apply fix → improves.
 // Import is dynamic so this file stays runnable without the generator package
