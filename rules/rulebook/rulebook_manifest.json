@@ -1,7 +1,7 @@
 {
   "schemaVersion": "rulebook-manifest.v2",
   "description": "Maps rulebook rule IDs (R-NNN) to code check IDs (RB-NNN) in packages/core/src/ruleChecks.ts. R-IDs reference rules/rulebook/extracted/RULEBOOK_DRAFT.md (145 rules from 25 source PDFs, Batches 1\u00e2\u20ac\u201c4).",
-  "extractedRuleCount": 120,
+  "extractedRuleCount": 130,
   "entries": [
     {
       "checkId": "RB-001",
@@ -1827,6 +1827,146 @@
       "source_hint": "Fundamentals_of_Building_Construction_Materials_an...Chapter_1_Making_Buildings.pdf (Dimensional Coordination); Architectural_Graphic_Standards_11th.md - Standard module dimensions",
       "related_ruleIds": [
         "R-120"
+      ]
+    },
+    {
+      "checkId": "RB-121",
+      "ruleId": "R-121",
+      "title": "Submittal Service Space",
+      "severity": "info",
+      "category": "adjacency",
+      "implemented": true,
+      "confidence": "medium",
+      "notes": "R-121 (Shop Drawing Substantive Review) requires that MEP shop drawings be reviewed against a documented design intent. Checks: in plans with >= 5 rooms and >= 4 distinct room types, at least one utility, storage, or laundry room must be present. Without a dedicated service space, MEP systems are retrofitted into habitable rooms, making it impossible to track submittals against a defined service zone. Distinct from RB-097 ('other' presence) and RB-098 (room type diversity count).",
+      "source_hint": "Fundamentals_of_Building_Construction_Materials_an...Chapter_1_Making_Buildings.pdf (Ch. 1 — Construction Administration / submittals)",
+      "related_ruleIds": [
+        "R-121"
+      ]
+    },
+    {
+      "checkId": "RB-122",
+      "ruleId": "R-122",
+      "title": "Max Median Room Ratio",
+      "severity": "info",
+      "category": "dimensions",
+      "implemented": true,
+      "confidence": "medium",
+      "notes": "R-122 (Value Engineering Timing Constraint) requires VE before CDs are complete. Checks: in plans with >= 4 rooms, the largest room area must be <= 5.0x the median room area. A plan where the largest room exceeds 5x the median signals an over-programmed space that was never value-engineered for efficiency relative to the rest of the program. The 5:1 limit reflects typical residential programs where the living area (largest habitable room) is <= 4-5x a bedroom (median room). Distinct from RB-105 (max-to-total area ratio <= 35%).",
+      "source_hint": "Fundamentals_of_Building_Construction_Materials_an...Chapter_1_Making_Buildings.pdf (Ch. 1 — Project Delivery / value engineering timing)",
+      "related_ruleIds": [
+        "R-122"
+      ]
+    },
+    {
+      "checkId": "RB-123",
+      "ruleId": "R-123",
+      "title": "Program Type Concentration",
+      "severity": "info",
+      "category": "zoning",
+      "implemented": true,
+      "confidence": "medium",
+      "notes": "R-123 (Long-Lead Item Procurement Planning) requires that all project systems be identified during design development — this requires a complete, diverse room program. Checks: in plans with >= 5 rooms, no single room type may account for > 60% of total room count. A plan where > 60% of rooms share a single type (e.g., all bedrooms) represents an incomplete DD program; without a complete room mix, the structural, MEP, and specialty systems that drive long-lead procurement cannot be identified. The 60% threshold allows residential plans with multiple bedrooms while flagging degenerate single-type plans. Distinct from RB-098 (requires >= 4 distinct types).",
+      "source_hint": "Fundamentals_of_Building_Construction_Materials_an...Chapter_1_Making_Buildings.pdf (Ch. 1 — Construction / long-lead items)",
+      "related_ruleIds": [
+        "R-123"
+      ]
+    },
+    {
+      "checkId": "RB-124",
+      "ruleId": "R-124",
+      "title": "Long Span Room Flag",
+      "severity": "info",
+      "category": "dimensions",
+      "implemented": true,
+      "confidence": "medium",
+      "notes": "R-124 (Wood Specification: Species, Grade, Treatment) requires full specification of all structural wood elements. Checks: rooms with a longer dimension > 22 ft (6.7 m) require structural specification beyond standard dimensional lumber. Rooms exceeding this threshold exceed the clear-span capacity of No. 2 Douglas Fir-Larch 2x12 floor joists at standard spacing, implying engineered lumber (LVL, PSL) or mass timber (glulam) — members that require explicit species, grade, and treatment specification. Distinct from RB-115 (shorter dimension <= 25 ft for daylighting).",
+      "source_hint": "Fundamentals_of_Building_Construction_Materials_an...Chapter_3_Wood.pdf (Ch. 3 — Lumber / species, grade, treatment)",
+      "related_ruleIds": [
+        "R-124"
+      ]
+    },
+    {
+      "checkId": "RB-125",
+      "ruleId": "R-125",
+      "title": "Interior Room Min Adjacency",
+      "severity": "info",
+      "category": "adjacency",
+      "implemented": true,
+      "confidence": "medium",
+      "notes": "R-125 (Lumber Moisture Content: Kiln-Dried Specification) requires that framing lumber arrive and remain at MC <= 19%. Checks: in plans with >= 4 rooms, every interior room (not touching any exterior boundary) must be adjacent to >= 2 other rooms. An interior room with only 1 adjacency (dead-end pocket) cannot be cross-ventilated during construction or occupancy — trapped humidity prevents framing lumber from drying to equilibrium MC. Minimum 2 adjacencies ensures each interior room has multiple openings for moisture management. Distinct from RB-099 (hall hub connectivity >= 3) and RB-114 (minimum plan depth).",
+      "source_hint": "Fundamentals_of_Building_Construction_Materials_an...Chapter_3_Wood.pdf (Ch. 3 — Lumber / seasoning and moisture content)",
+      "related_ruleIds": [
+        "R-125"
+      ]
+    },
+    {
+      "checkId": "RB-126",
+      "ruleId": "R-126",
+      "title": "Perimeter Service Isolation",
+      "severity": "info",
+      "category": "zoning",
+      "implemented": true,
+      "confidence": "medium",
+      "notes": "R-126 (Pressure Treatment for Hazardous Contact Conditions) requires wood in ground-contact or weather-exposed conditions to be pressure-treated. Checks: a storage or utility room that touches the exterior boundary must be adjacent to >= 2 other rooms. An isolated perimeter service room (<=1 adjacency) is analogous to a standalone outbuilding with direct moisture/temperature exposure without conditioned-space buffer. At least 2 room adjacencies provide the surrounding buffer that reduces ground-contact moisture risk. Distinct from RB-106 (interior buffer room at any facade) and RB-102 (outdoor room exterior access).",
+      "source_hint": "Fundamentals_of_Building_Construction_Materials_an...Chapter_3_Wood.pdf (Ch. 3 — Wood Products / pressure treatment)",
+      "related_ruleIds": [
+        "R-126"
+      ]
+    },
+    {
+      "checkId": "RB-127",
+      "ruleId": "R-127",
+      "title": "Short Dim Range Limit",
+      "severity": "info",
+      "category": "dimensions",
+      "implemented": true,
+      "confidence": "medium",
+      "notes": "R-127 (Wood Shrinkage Detailing at Cross-Grain Connections) warns that differential shrinkage at cross-grain connections causes joint gaps and out-of-plumb conditions. Checks: in plans with >= 3 rooms, the difference between the largest and smallest shorter-dimension across all rooms must be <= 15 ft (4.6 m). Extreme variation in room depths packs structural bays of widely different depths side by side — the cross-grain wood at shallower-to-deeper transitions experiences the greatest differential shrinkage. The 15 ft / 4.6 m range limit flags plans with high-risk shrinkage joints. Distinct from RB-104 (plan form aspect ratio <= 3:1).",
+      "source_hint": "Fundamentals_of_Building_Construction_Materials_an...Chapter_3_Wood.pdf (Ch. 3 — Lumber / shrinkage and detailing)",
+      "related_ruleIds": [
+        "R-127"
+      ]
+    },
+    {
+      "checkId": "RB-128",
+      "ruleId": "R-128",
+      "title": "Three Facade Coverage",
+      "severity": "info",
+      "category": "adjacency",
+      "implemented": true,
+      "confidence": "medium",
+      "notes": "R-128 (Shear Wall Nailing Schedule Specification) requires distributed shear walls on the structural drawings. Checks: in plans with >= 4 rooms, rooms must touch >= 3 of the 4 exterior boundary segments (left, right, top, bottom). A plan where rooms contact only 1-2 exterior edges concentrates all lateral resistance on those faces, creating an unbalanced diaphragm. Rooms on >= 3 faces indicate perimeter structural walls distributed around the plan for balanced shear resistance. Distinct from RB-110 (all 4 faces, >= 6 rooms) and RB-112 (one opposing pair, >= 4 rooms).",
+      "source_hint": "Fundamentals_of_Building_Construction_Materials_an...Chapter_3_Wood.pdf (Ch. 3 — Wood Products / shear walls and nailing)",
+      "related_ruleIds": [
+        "R-128"
+      ]
+    },
+    {
+      "checkId": "RB-129",
+      "ruleId": "R-129",
+      "title": "Minimum Room Short Dim",
+      "severity": "info",
+      "category": "dimensions",
+      "implemented": true,
+      "confidence": "medium",
+      "notes": "R-129 (Mass Timber Minimum Member Dimensions for Code Fire Resistance) specifies a minimum 6-in cross-section for exposed heavy-timber members (IBC Chapter 23). Checks: no room should have a shorter dimension < 6 ft (1.8 m). Rooms narrower than 6 ft cannot accommodate standard mass timber or heavy timber framing — the minimum structural bay clear dimension for heavy timber construction is 6 ft. Rooms narrower than this imply light-frame conditions creating a dimensional mismatch with any mass timber specification. Distinct from RB-060 (bedroom min width >= 8 ft) and RB-003 (aspect ratio sliver >= 5:1).",
+      "source_hint": "Fundamentals_of_Building_Construction_Materials_an...Chapter_4_Heavy_Timber_and_Mass_Timber_Construction.pdf (Ch. 4 — Fire Resistance of Large Wood Members)",
+      "related_ruleIds": [
+        "R-129"
+      ]
+    },
+    {
+      "checkId": "RB-130",
+      "ruleId": "R-130",
+      "title": "Bedroom Living Acoustic Buffer",
+      "severity": "info",
+      "category": "adjacency",
+      "implemented": true,
+      "confidence": "medium",
+      "notes": "R-130 (Mass Timber Floor Assembly Acoustic Mitigation) identifies the direct adjacency of acoustically incompatible spaces — lively hard-surface rooms next to quiet sleeping rooms — as the primary floor-plan condition driving IIC/STC failures in mass timber construction. Checks: when a plan contains at least one bedroom and at least one living or dining room, no bedroom may be directly adjacent to a living or dining room. A bathroom, hall, or storage room between them acts as the acoustic buffer analogous to the concrete topping or resilient underlayment required by R-130. Distinct from RB-013 (bedroom not adjacent to kitchen).",
+      "source_hint": "Fundamentals_of_Building_Construction_Materials_an...Chapter_4_Heavy_Timber_and_Mass_Timber_Construction.pdf (Ch. 4 — Mass Timber / acoustic performance)",
+      "related_ruleIds": [
+        "R-130"
       ]
     }
   ]

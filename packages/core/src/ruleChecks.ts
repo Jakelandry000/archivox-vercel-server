@@ -4910,6 +4910,436 @@ const RB_120: RuleCheck = {
   },
 };
 
+// ── RB-121..RB-130 ────────────────────────────────────────────────────────────
+
+/**
+ * RB-121 — SUBMITTAL_SERVICE_SPACE
+ * In plans with ≥ 5 rooms and ≥ 4 distinct room types, at least one room of
+ * type utility, storage, or laundry must be present. R-121 (Shop Drawing
+ * Substantive Review) requires that MEP shop drawings be reviewed against a
+ * documented design intent. Without a dedicated service space in the plan, MEP
+ * systems are retrofitted into habitable rooms, making it impossible to track
+ * submittals against a defined service zone. Distinct from RB-097 ('other'
+ * presence) and RB-098 (room type diversity count).
+ * Rulebook ref: R-121 (Construction Administration / Shop Drawing Review)
+ */
+const RB_121: RuleCheck = {
+  id: 'RB-121',
+  ruleId: 'R-121',
+  title: 'Submittal Service Space',
+  severity: 'info',
+  applies: layout => {
+    const valid = layout.rooms.filter(r => r.width > 0 && r.height > 0);
+    const types = new Set(valid.map(r => r.type));
+    return valid.length >= 5 && types.size >= 4;
+  },
+  check(layout) {
+    const rooms = validRooms(layout);
+    if (rooms.length < 5) return [];
+    const types = new Set(rooms.map(r => r.type));
+    if (types.size < 4) return [];
+    const SERVICE = new Set(['utility', 'storage', 'laundry']);
+    const hasService = rooms.some(r => SERVICE.has(r.type));
+    if (hasService) return [];
+    return [{
+      code: 'RB-121',
+      severity: 'info',
+      message: `Plan has ${rooms.length} rooms and ${types.size} distinct types but no service room (utility, storage, or laundry). A dedicated service space is required for MEP shop drawing coordination in complex plans (R-121).`,
+      roomIds: [],
+      suggestedFixes: [{ type: 'addRoom', roomType: 'utility' }],
+    }];
+  },
+};
+
+/**
+ * RB-122 — MAX_MEDIAN_ROOM_RATIO
+ * In plans with ≥ 4 rooms, the largest room area must be ≤ 5.0× the median
+ * room area. R-122 (Value Engineering Timing Constraint) requires VE before
+ * CDs are complete. A plan where the largest room exceeds 5× the median is a
+ * signal that one over-programmed space was never rationalized against the rest
+ * of the program — the condition VE is designed to catch in SD/DD. The 5:1
+ * limit reflects typical residential programs where the living area (largest
+ * habitable room) is ≤ 4–5× a bedroom (median room). Distinct from RB-105
+ * (max-to-total area ratio ≤ 35%).
+ * Rulebook ref: R-122 (Value Engineering / Program Rationalization)
+ */
+const RB_122: RuleCheck = {
+  id: 'RB-122',
+  ruleId: 'R-122',
+  title: 'Max Median Room Ratio',
+  severity: 'info',
+  applies: layout =>
+    layout.rooms.filter(r => r.width > 0 && r.height > 0).length >= 4,
+  check(layout) {
+    const rooms = validRooms(layout);
+    if (rooms.length < 4) return [];
+    const areas = rooms.map(roomArea).sort((a, b) => a - b);
+    const mid = Math.floor(areas.length / 2);
+    const median = areas.length % 2 === 0
+      ? (areas[mid - 1] + areas[mid]) / 2
+      : areas[mid];
+    const maxArea = areas[areas.length - 1];
+    const ratio = median > 0 ? maxArea / median : 1;
+    if (ratio <= 5.0) return [];
+    const largest = rooms.reduce((a, b) => roomArea(a) >= roomArea(b) ? a : b);
+    return [{
+      code: 'RB-122',
+      severity: 'info',
+      message: `Largest room (${roomLabel(largest)}, ${maxArea.toFixed(0)} sq ft) is ${ratio.toFixed(1)}× the median room area (${median.toFixed(0)} sq ft) — exceeds 5:1 max/median ratio. An over-programmed room that dominates the plan signals a program that was not value-engineered before CDs (R-122).`,
+      roomIds: [largest.id],
+      value: Math.round(ratio * 10) / 10,
+      threshold: 5.0,
+    }];
+  },
+};
+
+/**
+ * RB-123 — PROGRAM_TYPE_CONCENTRATION
+ * In plans with ≥ 5 rooms, no single room type may account for > 60% of the
+ * total room count. R-123 (Long-Lead Item Procurement Planning) requires that
+ * all project systems be identified during design development — this requires a
+ * complete, diverse room program. A plan where > 60% of rooms share a single
+ * type (e.g., all bedrooms) represents an incomplete DD program; without a
+ * complete room mix, the structural, MEP, and specialty systems that drive
+ * long-lead procurement cannot be identified. The 60% threshold allows
+ * residential plans with multiple bedrooms while flagging degenerate
+ * single-type plans. Distinct from RB-098 (requires ≥ 4 distinct types).
+ * Rulebook ref: R-123 (Construction / Long-Lead Item Procurement)
+ */
+const RB_123: RuleCheck = {
+  id: 'RB-123',
+  ruleId: 'R-123',
+  title: 'Program Type Concentration',
+  severity: 'info',
+  applies: layout =>
+    layout.rooms.filter(r => r.width > 0 && r.height > 0).length >= 5,
+  check(layout) {
+    const rooms = validRooms(layout);
+    if (rooms.length < 5) return [];
+    const counts = new Map<string, number>();
+    for (const r of rooms) counts.set(r.type, (counts.get(r.type) ?? 0) + 1);
+    let maxType = '';
+    let maxCount = 0;
+    for (const [type, count] of counts) {
+      if (count > maxCount) { maxCount = count; maxType = type; }
+    }
+    const pct = maxCount / rooms.length;
+    if (pct <= 0.6) return [];
+    return [{
+      code: 'RB-123',
+      severity: 'info',
+      message: `Room type '${maxType}' accounts for ${maxCount} of ${rooms.length} rooms (${Math.round(pct * 100)}% > 60% threshold). A program dominated by a single room type is incomplete — long-lead structural and MEP systems cannot be identified without a diverse room program (R-123).`,
+      roomIds: rooms.filter(r => r.type === maxType).map(r => r.id),
+      value: Math.round(pct * 100),
+      threshold: 60,
+    }];
+  },
+};
+
+/**
+ * RB-124 — LONG_SPAN_ROOM_FLAG
+ * Any room with a longer dimension > 22 ft (6.7 m) requires structural
+ * specification beyond standard dimensional lumber. R-124 (Wood Specification:
+ * Species, Grade, Treatment) requires that all structural wood elements be
+ * specified with species, grade, and treatment. Rooms spanning > 22 ft exceed
+ * the clear-span limit for No. 2 Douglas Fir-Larch 2×12 floor joists at
+ * standard spacing, implying engineered lumber (LVL, PSL) or mass timber
+ * (glulam) — members that require explicit species, grade, and treatment
+ * equivalents. The 22 ft / 6.7 m threshold is the outer limit for standard
+ * dimensional lumber at typical residential loading. Distinct from RB-115
+ * (shorter dimension ≤ 25 ft for daylighting).
+ * Rulebook ref: R-124 (Wood / Species-Grade-Treatment Specification)
+ */
+const RB_124: RuleCheck = {
+  id: 'RB-124',
+  ruleId: 'R-124',
+  title: 'Long Span Room Flag',
+  severity: 'info',
+  applies: () => true,
+  check(layout, ctx) {
+    const rooms = validRooms(layout);
+    const maxSpan = ctx.units === 'meters' ? 6.7 : 22;
+    const violations: Violation[] = [];
+    for (const r of rooms) {
+      const longer = Math.max(r.width, r.height);
+      if (longer > maxSpan) {
+        violations.push({
+          code: 'RB-124',
+          severity: 'info',
+          message: `${roomLabel(r)} has a longer dimension of ${longer.toFixed(1)} ${ctx.units}, exceeding the ${maxSpan} ${ctx.units} standard-lumber span limit. Rooms this wide require engineered lumber or mass timber members that must be specified with species, grade, and treatment (R-124).`,
+          roomIds: [r.id],
+          value: longer,
+          threshold: maxSpan,
+        });
+      }
+    }
+    return violations;
+  },
+};
+
+/**
+ * RB-125 — INTERIOR_ROOM_MIN_ADJACENCY
+ * In plans with ≥ 4 rooms, every interior room (a room not touching any
+ * exterior boundary) must be adjacent to ≥ 2 other rooms. R-125 (Lumber
+ * Moisture Content: KD Specification) requires that framing lumber arrive and
+ * remain at MC ≤ 19%. An interior room with only 1 adjacency (dead-end pocket)
+ * cannot be cross-ventilated during construction or occupancy — trapped
+ * humidity prevents framing lumber from drying to equilibrium MC, amplifying
+ * post-installation shrinkage defects. Minimum 2 adjacencies ensures each
+ * interior room has multiple openings for moisture management. Distinct from
+ * RB-099 (hall hub connectivity ≥ 3) and RB-114 (minimum plan depth).
+ * Rulebook ref: R-125 (Lumber / Moisture Content and KD Specification)
+ */
+const RB_125: RuleCheck = {
+  id: 'RB-125',
+  ruleId: 'R-125',
+  title: 'Interior Room Min Adjacency',
+  severity: 'info',
+  applies: layout =>
+    layout.rooms.filter(r => r.width > 0 && r.height > 0).length >= 4,
+  check(layout, ctx) {
+    const rooms = validRooms(layout);
+    if (rooms.length < 4) return [];
+    const violations: Violation[] = [];
+    for (const r of rooms) {
+      if (touchesExterior(r, ctx.dimW, ctx.dimD)) continue;
+      const adjCount = rooms.filter(other => other.id !== r.id && roomsAreAdjacent(r, other)).length;
+      if (adjCount < 2) {
+        violations.push({
+          code: 'RB-125',
+          severity: 'info',
+          message: `${roomLabel(r)} is an interior room with only ${adjCount} adjacenc${adjCount === 1 ? 'y' : 'ies'} — interior rooms need ≥ 2 adjacencies to allow cross-ventilation and prevent moisture accumulation in framing lumber (R-125).`,
+          roomIds: [r.id],
+          value: adjCount,
+          threshold: 2,
+        });
+      }
+    }
+    return violations;
+  },
+};
+
+/**
+ * RB-126 — PERIMETER_SERVICE_ISOLATION
+ * A storage or utility room that touches the exterior boundary must be adjacent
+ * to ≥ 2 other rooms. R-126 (Pressure Treatment for Hazardous Contact
+ * Conditions) requires wood in ground-contact or weather-exposed conditions to
+ * be pressure-treated. At floor-plan scale, a storage or utility room that
+ * touches the exterior boundary but has ≤ 1 room adjacency is analogous to a
+ * standalone outbuilding — it has direct exposure to moisture and temperature
+ * gradients without the insulating buffer of adjacent conditioned spaces. At
+ * least 2 room adjacencies provide the surrounding conditioned-space buffer
+ * that reduces ground-contact moisture risk. Distinct from RB-106 (interior
+ * buffer room at any facade) and RB-102 (outdoor room exterior access).
+ * Rulebook ref: R-126 (Wood / Pressure Treatment for Hazardous Conditions)
+ */
+const RB_126: RuleCheck = {
+  id: 'RB-126',
+  ruleId: 'R-126',
+  title: 'Perimeter Service Isolation',
+  severity: 'info',
+  applies: layout =>
+    layout.rooms.some(r =>
+      (r.type === 'storage' || r.type === 'utility') && r.width > 0 && r.height > 0),
+  check(layout, ctx) {
+    const rooms = validRooms(layout);
+    const SERVICE = new Set(['storage', 'utility']);
+    const violations: Violation[] = [];
+    for (const r of rooms) {
+      if (!SERVICE.has(r.type)) continue;
+      if (!touchesExterior(r, ctx.dimW, ctx.dimD)) continue;
+      const adjCount = rooms.filter(other => other.id !== r.id && roomsAreAdjacent(r, other)).length;
+      if (adjCount < 2) {
+        violations.push({
+          code: 'RB-126',
+          severity: 'info',
+          message: `${roomLabel(r)} (${r.type}) touches the exterior boundary with only ${adjCount} room adjacenc${adjCount === 1 ? 'y' : 'ies'}. An isolated perimeter service room has direct moisture exposure without a conditioned-space buffer — wood at this location must be pressure-treated or the room must be flanked by at least 2 conditioned rooms (R-126).`,
+          roomIds: [r.id],
+          value: adjCount,
+          threshold: 2,
+        });
+      }
+    }
+    return violations;
+  },
+};
+
+/**
+ * RB-127 — SHORT_DIM_RANGE_LIMIT
+ * In plans with ≥ 3 rooms, the difference between the largest and smallest
+ * shorter-dimension across all rooms must be ≤ 15 ft (4.6 m). R-127 (Wood
+ * Shrinkage Detailing at Cross-Grain Connections) warns that differential
+ * shrinkage at cross-grain connections causes joint gaps, nail pops, and
+ * out-of-plumb conditions. A floor plan with extreme variation in room depths
+ * (short dimensions) packs structural bays of wildly different depths side by
+ * side — the cross-grain wood at the shallower-to-deeper transitions
+ * experiences the greatest differential shrinkage. The 15 ft / 4.6 m range
+ * limit flags plans where structural bay depth variation creates high-risk
+ * shrinkage joints. Distinct from RB-104 (plan form aspect ratio).
+ * Rulebook ref: R-127 (Wood / Shrinkage Detailing at Cross-Grain Connections)
+ */
+const RB_127: RuleCheck = {
+  id: 'RB-127',
+  ruleId: 'R-127',
+  title: 'Short Dim Range Limit',
+  severity: 'info',
+  applies: layout =>
+    layout.rooms.filter(r => r.width > 0 && r.height > 0).length >= 3,
+  check(layout, ctx) {
+    const rooms = validRooms(layout);
+    if (rooms.length < 3) return [];
+    const shortDims = rooms.map(r => Math.min(r.width, r.height));
+    const maxShort = Math.max(...shortDims);
+    const minShort = Math.min(...shortDims);
+    const range = maxShort - minShort;
+    const maxRange = ctx.units === 'meters' ? 4.6 : 15;
+    if (range <= maxRange) return [];
+    const deepest  = rooms[shortDims.indexOf(maxShort)];
+    const shallowest = rooms[shortDims.indexOf(minShort)];
+    return [{
+      code: 'RB-127',
+      severity: 'info',
+      message: `Room short-dimension range is ${range.toFixed(1)} ${ctx.units} (from ${minShort.toFixed(1)} to ${maxShort.toFixed(1)} ${ctx.units}), exceeding the ${maxRange} ${ctx.units} limit. Extreme variation in structural bay depths amplifies differential wood shrinkage at cross-grain connections across the plan (R-127).`,
+      roomIds: [deepest.id, shallowest.id],
+      value: range,
+      threshold: maxRange,
+    }];
+  },
+};
+
+/**
+ * RB-128 — THREE_FACADE_COVERAGE
+ * In plans with ≥ 4 rooms, rooms must touch ≥ 3 of the 4 exterior boundary
+ * segments (left, right, top, bottom). R-128 (Shear Wall Nailing Schedule
+ * Specification) requires distributed shear walls specified on the drawings.
+ * At floor-plan scale, shear walls are located at room perimeter boundaries;
+ * a plan where rooms contact only 1–2 exterior edges concentrates all lateral
+ * resistance on those faces, creating an unbalanced diaphragm. Rooms on ≥ 3
+ * faces indicate that perimeter structural walls are distributed around the
+ * plan for balanced shear resistance. Distinct from RB-110 (all 4 faces,
+ * ≥ 6 rooms) and RB-112 (one opposing pair, ≥ 4 rooms).
+ * Rulebook ref: R-128 (Wood / Shear Wall Nailing Schedule)
+ */
+const RB_128: RuleCheck = {
+  id: 'RB-128',
+  ruleId: 'R-128',
+  title: 'Three Facade Coverage',
+  severity: 'info',
+  applies: layout =>
+    layout.rooms.filter(r => r.width > 0 && r.height > 0).length >= 4,
+  check(layout, ctx) {
+    const rooms = validRooms(layout);
+    if (rooms.length < 4) return [];
+    const tol = 0.5;
+    const hasLeft   = rooms.some(r => r.x <= tol);
+    const hasRight  = rooms.some(r => r.x + r.width  >= ctx.dimW - tol);
+    const hasTop    = rooms.some(r => r.y <= tol);
+    const hasBottom = rooms.some(r => r.y + r.height >= ctx.dimD - tol);
+    const facadeCount = [hasLeft, hasRight, hasTop, hasBottom].filter(Boolean).length;
+    if (facadeCount >= 3) return [];
+    const missing: string[] = [];
+    if (!hasLeft)   missing.push('left');
+    if (!hasRight)  missing.push('right');
+    if (!hasTop)    missing.push('top');
+    if (!hasBottom) missing.push('bottom');
+    return [{
+      code: 'RB-128',
+      severity: 'info',
+      message: `Rooms touch only ${facadeCount} of 4 exterior edges (missing: ${missing.join(', ')}). A ≥ 4-room plan with rooms on < 3 facades concentrates lateral resistance on too few faces — shear walls should be distributed on at least 3 sides for balanced diaphragm loading (R-128).`,
+      roomIds: [],
+      value: facadeCount,
+      threshold: 3,
+    }];
+  },
+};
+
+/**
+ * RB-129 — MINIMUM_ROOM_SHORT_DIM
+ * No room should have a shorter dimension < 6 ft (1.8 m). R-129 (Mass Timber
+ * Minimum Member Dimensions for Code Fire Resistance) specifies a minimum
+ * 6-in cross-section for exposed heavy-timber members (IBC Chapter 23). At
+ * floor-plan scale, a room with a shorter dimension < 6 ft cannot accommodate
+ * standard mass timber or heavy timber framing — the minimum structural bay
+ * clear dimension for heavy timber construction is 6 ft. Rooms narrower than
+ * this imply light-frame conditions where mass timber fire-resistance
+ * provisions do not apply, creating a dimensional mismatch with any mass
+ * timber specification on the drawings. Distinct from RB-060 (bedroom min
+ * width ≥ 8 ft) and RB-003 (aspect ratio sliver ≥ 5:1).
+ * Rulebook ref: R-129 (Mass Timber / Minimum Member Dimensions for Fire Resistance)
+ */
+const RB_129: RuleCheck = {
+  id: 'RB-129',
+  ruleId: 'R-129',
+  title: 'Minimum Room Short Dim',
+  severity: 'info',
+  applies: () => true,
+  check(layout, ctx) {
+    const rooms = validRooms(layout);
+    const minShort = ctx.units === 'meters' ? 1.8 : 6;
+    const violations: Violation[] = [];
+    for (const r of rooms) {
+      const shorter = Math.min(r.width, r.height);
+      if (shorter < minShort) {
+        violations.push({
+          code: 'RB-129',
+          severity: 'info',
+          message: `${roomLabel(r)} has a shorter dimension of ${shorter.toFixed(1)} ${ctx.units}, below the ${minShort} ${ctx.units} minimum structural bay dimension for heavy timber / mass timber framing. Rooms narrower than this cannot accommodate code-compliant mass timber members (R-129).`,
+          roomIds: [r.id],
+          value: shorter,
+          threshold: minShort,
+        });
+      }
+    }
+    return violations;
+  },
+};
+
+/**
+ * RB-130 — BEDROOM_LIVING_ACOUSTIC_BUFFER
+ * When a plan contains at least one bedroom and at least one living or dining
+ * room, no bedroom may be directly adjacent to a living or dining room. R-130
+ * (Mass Timber Floor Assembly Acoustic Mitigation) identifies the direct
+ * adjacency of acoustically incompatible spaces — lively hard-surface rooms
+ * (living, dining) next to quiet sleeping rooms (bedroom) — as the primary
+ * floor-plan condition that drives IIC/STC failures in mass timber
+ * construction. A bathroom, hall, storage, or laundry room between them acts
+ * as the acoustic buffer analogous to the concrete topping or resilient
+ * underlayment required by R-130. Distinct from RB-013 (bedroom not adjacent
+ * to kitchen).
+ * Rulebook ref: R-130 (Mass Timber / Floor Assembly Acoustic Mitigation)
+ */
+const RB_130: RuleCheck = {
+  id: 'RB-130',
+  ruleId: 'R-130',
+  title: 'Bedroom Living Acoustic Buffer',
+  severity: 'info',
+  applies: layout =>
+    layout.rooms.some(r => r.type === 'bedroom' && r.width > 0 && r.height > 0) &&
+    layout.rooms.some(r => (r.type === 'living' || r.type === 'living room' || r.type === 'dining') && r.width > 0 && r.height > 0),
+  check(layout) {
+    const rooms = validRooms(layout);
+    const beds = rooms.filter(r => r.type === 'bedroom');
+    const LIVING_DINING = new Set(['living', 'living room', 'dining']);
+    const liveRooms = rooms.filter(r => LIVING_DINING.has(r.type));
+    if (beds.length === 0 || liveRooms.length === 0) return [];
+    const violations: Violation[] = [];
+    for (const b of beds) {
+      for (const l of liveRooms) {
+        if (roomsAreAdjacent(b, l)) {
+          violations.push({
+            code: 'RB-130',
+            severity: 'info',
+            message: `${roomLabel(b)} is directly adjacent to ${roomLabel(l)} (${l.type}) — a quiet sleeping room next to a lively living/dining room without an acoustic buffer (bathroom, hall, or storage) replicates the IIC/STC failure condition identified for mass timber floor assemblies (R-130).`,
+            roomIds: [b.id, l.id],
+            suggestedFixes: [{ type: 'swapRooms', roomIdA: b.id, roomIdB: l.id }],
+          });
+        }
+      }
+    }
+    return violations;
+  },
+};
+
 // ── Auto-register all built-in checks ─────────────────────────────────────────
 
 registerChecks(
@@ -4937,4 +5367,6 @@ registerChecks(
   RB_106, RB_107, RB_108, RB_109, RB_110,
   RB_111, RB_112, RB_113, RB_114, RB_115,
   RB_116, RB_117, RB_118, RB_119, RB_120,
+  RB_121, RB_122, RB_123, RB_124, RB_125,
+  RB_126, RB_127, RB_128, RB_129, RB_130,
 );
