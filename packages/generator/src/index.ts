@@ -131,13 +131,13 @@ export function generateLayoutFromText(
       cursorY += rowH + spacing;
       rowH = 0;
     }
-    if (cursorY + h > depth) {
-      cursorY = Math.max(0, depth - h);
-    }
+    // Collision-aware Y: scan forward from cursorY until the position is clear
+    // of all already-placed rooms. Never move Y backward (that causes containment).
+    const placedY = findClearY(rooms, cursorX, w, h, cursorY, spacing);
     const id = `${type.replace(/\s+/g, '_')}_${rooms.length + 1}`;
-    rooms.push({ id, type, label, x: cursorX, y: cursorY, width: w, height: h });
+    rooms.push({ id, type, label, x: cursorX, y: placedY, width: w, height: h });
     cursorX += w + spacing;
-    rowH = Math.max(rowH, h);
+    rowH = Math.max(rowH, placedY - cursorY + h);
   }
 
   return {
@@ -372,6 +372,41 @@ export function applyRepairAction(layout: LayoutV1, action: RepairAction): Layou
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
+
+/**
+ * Returns the smallest Y >= startY such that a rectangle (x, Y, w, h) does
+ * not overlap any room in `placed` by more than epsilon.  Scans forward only
+ * — never backward — so containment/overlap from backward clamping is
+ * impossible.  If every candidate Y causes an overlap, the function still
+ * returns a non-overlapping position (potentially out-of-canvas bounds); the
+ * repair loop handles out-of-bounds via canvas expansion.
+ */
+function findClearY(
+  placed: LayoutV1['rooms'],
+  x: number,
+  w: number,
+  h: number,
+  startY: number,
+  spacing: number,
+  eps = 1e-6,
+): number {
+  let y = startY;
+  // Each iteration either confirms clear or jumps past a conflicting room.
+  // At most placed.length jumps are needed before all conflicts are cleared.
+  for (let guard = 0; guard <= placed.length; guard++) {
+    let maxConflictBottom = -1;
+    for (const r of placed) {
+      const ox = Math.min(x + w, r.x + r.width) - Math.max(x, r.x);
+      const oy = Math.min(y + h, r.y + r.height) - Math.max(y, r.y);
+      if (ox > eps && oy > eps) {
+        maxConflictBottom = Math.max(maxConflictBottom, r.y + r.height);
+      }
+    }
+    if (maxConflictBottom < 0) return y; // no conflict at this Y
+    y = maxConflictBottom + spacing;     // jump past all current conflicts
+  }
+  return y; // all conflicts cleared (or guard exhausted — should not happen)
+}
 
 /** Linear congruential generator (Numerical Recipes params). Returns [0,1). */
 function makeLCG(seed: number): () => number {
