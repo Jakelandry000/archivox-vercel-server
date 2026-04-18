@@ -49,7 +49,12 @@ export interface ValidationMetrics {
 }
 
 export interface ValidationResult {
-  /** 0–100; -20 per error, -5 per warning, -1 per info, plus soft priors bonus (≤+5). */
+  /**
+   * 0–100.  Base deductions: -20/error, -5/warning, -1/info.
+   * Rulebook deductions (when rulebookViolations supplied): -20/hard error,
+   * -(weight)/soft warning using RULEBOOK_V1_SOFT_WEIGHTS, -1/info.
+   * Soft priors bonus: ≤+5.
+   */
   score: number;
   violations: Violation[];
   metrics: ValidationMetrics;
@@ -58,6 +63,56 @@ export interface ValidationResult {
    * Undefined when no priors were supplied to validateLayout.
    */
   priorsAdjustment?: number;
+  /**
+   * Score adjustment from Rule Book v1 violations (always ≤ 0).
+   * Undefined when no rulebookViolations were supplied to validateLayout.
+   */
+  rulebookScoreAdjustment?: number;
+}
+
+// ── Rule Book v1 soft-constraint weights ─────────────────────────────────────
+// Maps rule IDs (R-051 to R-103 soft constraints) to their point deduction.
+// Source: archivox-rule-book-v1.md §Soft Constraints — weight field (N/10).
+// Hard constraint rule IDs (R-001–R-050, R-096–R-101) are not listed here;
+// they are handled as -20/error regardless.
+const RULEBOOK_V1_SOFT_WEIGHTS: Readonly<Record<string, number>> = {
+  'R-051': 7, 'R-052': 8, 'R-053': 6, 'R-054': 8, 'R-055': 7,
+  'R-056': 5, 'R-057': 7, 'R-058': 5, 'R-059': 7, 'R-060': 5,
+  'R-061': 6, 'R-062': 7, 'R-063': 5, 'R-064': 6, 'R-065': 6,
+  'R-066': 8, 'R-067': 9, 'R-068': 7, 'R-069': 5, 'R-070': 6,
+  'R-071': 6, 'R-072': 7, 'R-073': 7, 'R-074': 4, 'R-075': 5,
+  'R-076': 6, 'R-077': 5, 'R-078': 4, 'R-079': 6, 'R-080': 5,
+  'R-081': 3, 'R-082': 4, 'R-083': 5, 'R-084': 6, 'R-085': 4,
+  'R-086': 8, 'R-087': 9, 'R-088': 8, 'R-089': 7, 'R-090': 9,
+  'R-091': 7, 'R-092': 8, 'R-093': 6, 'R-094': 7, 'R-095': 8,
+  'R-102': 4, 'R-103': 5,
+};
+
+/**
+ * Compute the total score deduction from a set of Rule Book v1 violations.
+ *
+ * Deduction rules:
+ *  - error   → 20 pts (same as base-validator hard violations)
+ *  - warning → weight pts from RULEBOOK_V1_SOFT_WEIGHTS[ruleId], default 5
+ *  - info    → 1 pt
+ *
+ * Exported so route-level code can apply deductions without re-running
+ * validateLayout.  Always returns a non-negative number.
+ */
+export function computeRulebookDeduction(violations: Violation[]): number {
+  let deduction = 0;
+  for (const v of violations) {
+    if (v.severity === 'error') {
+      deduction += 20;
+    } else if (v.severity === 'warning') {
+      const weight = v.ruleId != null ? (RULEBOOK_V1_SOFT_WEIGHTS[v.ruleId] ?? 5) : 5;
+      deduction += weight;
+    } else {
+      // 'info'
+      deduction += 1;
+    }
+  }
+  return deduction;
 }
 
 // ── Dimension thresholds (feet; scaled if meters) ──────────────────────────
@@ -166,8 +221,14 @@ function outOfBoundsArea(r: Room2D, dimW: number, dimD: number): number {
  * When supplied, each adjacent room pair that is common in the dataset
  * contributes +1 to the score (capped at +5 total).  Hard rule violations
  * and existing semantics are unchanged regardless of whether priors are passed.
+ *
+ * @param rulebookViolations — pre-run violations from runChecks() / Rule Book v1.
+ *   When supplied, their weighted deductions are folded into the final score via
+ *   computeRulebookDeduction().  The violations are NOT appended to the returned
+ *   violations[] array (the caller owns that merge so ordering is explicit).
+ *   The applied deduction is exposed in ValidationResult.rulebookScoreAdjustment.
  */
-export function validateLayout(layout: LayoutV1, priors?: Priors): ValidationResult {
+export function validateLayout(layout: LayoutV1, priors?: Priors, rulebookViolations?: Violation[]): ValidationResult {
   const violations: Violation[] = [];
   const { rooms, dimensions, units } = layout;
   const ftToUnit = units === 'meters' ? 0.3048 : 1;
@@ -471,7 +532,20 @@ export function validateLayout(layout: LayoutV1, priors?: Priors): ValidationRes
     priorsAdjustment = Math.min(bonus, 5);
   }
 
-  const score = Math.min(100, baseScore + (priorsAdjustment ?? 0));
+  // ── RULEBOOK SCORE ADJUSTMENT ─────────────────────────────────────────────
+  // When pre-run rulebook violations are supplied, their weighted deductions
+  // are subtracted from the score.  Hard violations (error) cost 20 pts; soft
+  // warnings use the per-rule weight from RULEBOOK_V1_SOFT_WEIGHTS (default 5);
+  // info violations cost 1 pt.  The adjustment is always ≤ 0.
+  let rulebookScoreAdjustment: number | undefined;
+  if (rulebookViolations && rulebookViolations.length > 0) {
+    rulebookScoreAdjustment = -computeRulebookDeduction(rulebookViolations);
+  }
+
+  const score = Math.max(
+    0,
+    Math.min(100, baseScore + (priorsAdjustment ?? 0) + (rulebookScoreAdjustment ?? 0)),
+  );
 
   // ── METRICS ───────────────────────────────────────────────────────────────
 
@@ -503,5 +577,6 @@ export function validateLayout(layout: LayoutV1, priors?: Priors): ValidationRes
     violations,
     metrics,
     ...(priorsAdjustment !== undefined ? { priorsAdjustment } : {}),
+    ...(rulebookScoreAdjustment !== undefined ? { rulebookScoreAdjustment } : {}),
   };
 }

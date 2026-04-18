@@ -9,6 +9,12 @@ const nextConfig: NextConfig = {
     "@archivox/engines",
     "@archivox/generator",
   ],
+  // Allow next/image to serve SVG files (used by SplineHero fallbackSrc).
+  // The CSP disables scripts inside the SVG to mitigate XSS risk.
+  images: {
+    dangerouslyAllowSVG: true,
+    contentSecurityPolicy: "default-src 'self'; script-src 'none'; sandbox;",
+  },
 };
 
 export default nextConfig;

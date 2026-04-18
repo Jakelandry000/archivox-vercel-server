@@ -27,6 +27,7 @@ type ValidationResult = {
   violations: ValidationViolation[];
   metrics: ValidationMetrics;
   priorsAdjustment?: number;
+  rulebookScoreAdjustment?: number;
 };
 
 type PriorsMeta = {
@@ -64,8 +65,14 @@ function ValidationPanel({ validation, layout, priorsMeta }: { validation?: Vali
     );
   }
 
-  const { score, violations, metrics, priorsAdjustment } = validation;
+  const { score, violations, metrics, priorsAdjustment, rulebookScoreAdjustment } = validation;
   const { label, color } = scoreLabel(score);
+
+  // Reconstruct base score (before rulebook and priors adjustments).
+  const hasBreakdown = rulebookScoreAdjustment !== undefined || priorsAdjustment !== undefined;
+  const baseScore = hasBreakdown
+    ? score - (priorsAdjustment ?? 0) - (rulebookScoreAdjustment ?? 0)
+    : null;
 
   // Split IBC violations (code starts with "ibc-") from core violations.
   const coreViolations = violations.filter(v => !v.code.startsWith('ibc-'));
@@ -109,32 +116,53 @@ function ValidationPanel({ validation, layout, priorsMeta }: { validation?: Vali
   return (
     <div className="flex flex-col gap-4">
       {/* Score */}
-      <div className="rounded-2xl border border-white/10 bg-black/20 p-5 flex items-center gap-5">
-        <div className={`text-6xl font-bold tabular-nums leading-none ${color}`}>{score}</div>
-        <div>
-          <div className="flex items-center gap-2">
-            <span className={`text-lg font-semibold ${color}`}>{label}</span>
-            {priorsAdjustment !== undefined && priorsAdjustment > 0 && (
-              <span className="text-xs font-medium text-emerald-400/80 bg-emerald-500/10 border border-emerald-500/20 rounded-full px-2 py-0.5">
-                +{priorsAdjustment} priors
-              </span>
-            )}
-            {priorsAdjustment !== undefined && priorsAdjustment === 0 && (
-              <span className="text-xs text-white/30 bg-white/5 border border-white/10 rounded-full px-2 py-0.5">
-                +0 priors
-              </span>
-            )}
-          </div>
-          <div className="mt-1 text-xs text-white/50">
-            {errors.length} error{errors.length !== 1 ? 's' : ''} · {warnings.length} warning{warnings.length !== 1 ? 's' : ''} · {infos.length} note{infos.length !== 1 ? 's' : ''}
-          </div>
-          <div className="mt-2 h-1.5 w-32 rounded-full bg-white/10 overflow-hidden">
-            <div
-              className={`h-full rounded-full transition-all ${score >= 85 ? 'bg-emerald-400' : score >= 70 ? 'bg-green-400' : score >= 50 ? 'bg-yellow-400' : 'bg-red-400'}`}
-              style={{ width: `${score}%` }}
-            />
+      <div className="rounded-2xl border border-white/10 bg-black/20 p-5 flex flex-col gap-3">
+        <div className="flex items-center gap-5">
+          <div className={`text-6xl font-bold tabular-nums leading-none ${color}`}>{score}</div>
+          <div>
+            <div className="flex items-center gap-2">
+              <span className={`text-lg font-semibold ${color}`}>{label}</span>
+            </div>
+            <div className="mt-1 text-xs text-white/50">
+              {errors.length} error{errors.length !== 1 ? 's' : ''} · {warnings.length} warning{warnings.length !== 1 ? 's' : ''} · {infos.length} note{infos.length !== 1 ? 's' : ''}
+            </div>
+            <div className="mt-2 h-1.5 w-32 rounded-full bg-white/10 overflow-hidden">
+              <div
+                className={`h-full rounded-full transition-all ${score >= 85 ? 'bg-emerald-400' : score >= 70 ? 'bg-green-400' : score >= 50 ? 'bg-yellow-400' : 'bg-red-400'}`}
+                style={{ width: `${score}%` }}
+              />
+            </div>
           </div>
         </div>
+
+        {/* Score breakdown: Base | Rulebook | Priors | Final */}
+        {hasBreakdown && baseScore !== null && (
+          <div className="flex items-center gap-1.5 flex-wrap text-xs font-mono">
+            <span className="text-white/50">Base:</span>
+            <span className="text-white/80 tabular-nums">{Math.round(baseScore)}</span>
+            {rulebookScoreAdjustment !== undefined && (
+              <>
+                <span className="text-white/25 mx-0.5">|</span>
+                <span className="text-white/50">Rulebook:</span>
+                <span className={`tabular-nums ${rulebookScoreAdjustment < 0 ? 'text-red-400' : 'text-white/60'}`}>
+                  {rulebookScoreAdjustment > 0 ? '+' : ''}{Math.round(rulebookScoreAdjustment)}
+                </span>
+              </>
+            )}
+            {priorsAdjustment !== undefined && (
+              <>
+                <span className="text-white/25 mx-0.5">|</span>
+                <span className="text-white/50">Priors:</span>
+                <span className={`tabular-nums ${priorsAdjustment > 0 ? 'text-emerald-400' : 'text-white/60'}`}>
+                  {priorsAdjustment > 0 ? '+' : ''}{priorsAdjustment}
+                </span>
+              </>
+            )}
+            <span className="text-white/25 mx-0.5">|</span>
+            <span className="text-white/50">Final:</span>
+            <span className={`tabular-nums font-semibold ${color}`}>{score}</span>
+          </div>
+        )}
       </div>
 
       {/* Key Metrics */}

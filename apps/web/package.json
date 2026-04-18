@@ -9,7 +9,8 @@
     "lint": "eslint",
     "dataset:extract": "node scripts/extract-plan-graphs.mjs",
     "dataset:priors": "node scripts/build-priors.mjs",
-    "dataset:build": "npm run dataset:extract && npm run dataset:priors"
+    "dataset:build": "npm run dataset:extract && npm run dataset:priors",
+    "og:generate": "node scripts/generate-og-image.mjs"
   },
   "dependencies": {
     "@archivox/core": "0.1.0",

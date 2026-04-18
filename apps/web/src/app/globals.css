@@ -25,6 +25,13 @@ body {
     "Segoe UI Emoji";
 }
 
+/* Display font utility — use .font-display on hero headlines.
+   Big Shoulders Display, wt 700–900 — loaded locally via next/font/local (cc-032).
+   CSS var --font-display is injected on <html> by layout.tsx. */
+.font-display {
+  font-family: var(--font-display), ui-sans-serif, system-ui;
+}
+
 /* Subtle grid + vignette */
 .bg-grid {
   background-image:

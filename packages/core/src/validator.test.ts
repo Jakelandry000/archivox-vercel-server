@@ -5086,6 +5086,167 @@ test('applyRepairAction: swapRooms fix swaps x/y positions', () => {
   assert(b.x === 0,  `expected b.x=0 after swap, got ${b.x}`);
 });
 
+// ── Rulebook score recalculation (validateLayout + rulebookViolations) ────────
+
+import { computeRulebookDeduction } from './validator.js';
+import { Violation } from './validator.js';
+
+console.log('\nrulebook score recalculation');
+
+test('backward compat: rulebookScoreAdjustment is undefined when no rulebookViolations supplied', () => {
+  const layout = makeLayout({
+    rooms: [{ id: 'r1', type: 'bedroom', x: 0, y: 0, width: 12, height: 10 }],
+  });
+  const result = validateLayout(layout);
+  assert(result.rulebookScoreAdjustment === undefined, 'rulebookScoreAdjustment should be undefined without param');
+});
+
+test('score is unchanged when empty rulebookViolations array is supplied', () => {
+  const layout = makeLayout({
+    rooms: [{ id: 'r1', type: 'bedroom', x: 0, y: 0, width: 12, height: 10 }],
+  });
+  const base    = validateLayout(layout);
+  const withRb  = validateLayout(layout, undefined, []);
+  // Empty array: adjustment is undefined (not applied)
+  assert(withRb.score === base.score, `score should be unchanged with empty rulebook violations (${withRb.score} vs ${base.score})`);
+  assert(withRb.rulebookScoreAdjustment === undefined, 'rulebookScoreAdjustment should be undefined for empty array');
+});
+
+test('hard rulebook violation (error) deducts 20 pts', () => {
+  const layout = makeLayout({ rooms: [] });
+  const errorViolation: Violation = {
+    code: 'RBv1-002', severity: 'error', message: 'No entrance.', ruleId: 'R-002',
+  };
+  const base   = validateLayout(layout);
+  const result = validateLayout(layout, undefined, [errorViolation]);
+  assertEqual(result.rulebookScoreAdjustment, -20, 'single error should give -20 rulebookScoreAdjustment');
+  assertEqual(result.score, Math.max(0, base.score - 20), 'score should be reduced by 20');
+});
+
+test('soft rulebook violation uses per-rule weight (R-067, weight 9)', () => {
+  const layout = makeLayout({ rooms: [] });
+  const softViolation: Violation = {
+    code: 'RBv1-067', severity: 'warning', message: 'Living room has no exterior wall.', ruleId: 'R-067',
+  };
+  const base   = validateLayout(layout);
+  const result = validateLayout(layout, undefined, [softViolation]);
+  assertEqual(result.rulebookScoreAdjustment, -9, 'R-067 (weight 9) should give -9 adjustment');
+  assertEqual(result.score, Math.max(0, base.score - 9), 'score reduced by 9 for R-067 violation');
+});
+
+test('soft rulebook violation uses per-rule weight (R-074, weight 4)', () => {
+  const layout = makeLayout({ rooms: [] });
+  const softViolation: Violation = {
+    code: 'RBv1-074', severity: 'warning', message: 'Interior bathroom.', ruleId: 'R-074',
+  };
+  const base   = validateLayout(layout);
+  const result = validateLayout(layout, undefined, [softViolation]);
+  assertEqual(result.rulebookScoreAdjustment, -4, 'R-074 (weight 4) should give -4 adjustment');
+});
+
+test('soft violation with unknown ruleId defaults to -5', () => {
+  const layout = makeLayout({ rooms: [] });
+  const unknownViolation: Violation = {
+    code: 'RBv1-???', severity: 'warning', message: 'Unknown soft rule.',
+    // no ruleId — or a ruleId not in the weight map
+  };
+  const base   = validateLayout(layout);
+  const result = validateLayout(layout, undefined, [unknownViolation]);
+  assertEqual(result.rulebookScoreAdjustment, -5, 'unknown ruleId warning should default to -5');
+  assertEqual(result.score, Math.max(0, base.score - 5), 'score reduced by default 5');
+});
+
+test('info rulebook violation deducts 1 pt', () => {
+  const layout = makeLayout({ rooms: [] });
+  const infoViolation: Violation = {
+    code: 'RBv1-info', severity: 'info', message: 'Informational note.', ruleId: 'R-061',
+  };
+  const base   = validateLayout(layout);
+  const result = validateLayout(layout, undefined, [infoViolation]);
+  assertEqual(result.rulebookScoreAdjustment, -1, 'info violation should give -1 adjustment');
+});
+
+test('multiple rulebook violations accumulate correctly', () => {
+  const layout = makeLayout({ rooms: [] });
+  // 1 error (R-002, -20) + 1 warning R-067 (-9) + 1 warning R-081 (-3) + 1 info (-1) = -33
+  const violations: Violation[] = [
+    { code: 'RBv1-002', severity: 'error',   message: 'No entrance.',              ruleId: 'R-002' },
+    { code: 'RBv1-067', severity: 'warning', message: 'Living no exterior wall.',  ruleId: 'R-067' },
+    { code: 'RBv1-081', severity: 'warning', message: 'West-facing bedroom.',      ruleId: 'R-081' },
+    { code: 'RBv1-inf', severity: 'info',    message: 'Info note.',                ruleId: 'R-061' },
+  ];
+  const base   = validateLayout(layout);
+  const result = validateLayout(layout, undefined, violations);
+  assertEqual(result.rulebookScoreAdjustment, -33, 'accumulated deduction should be -33');
+  assertEqual(result.score, Math.max(0, base.score - 33), 'score reduced by 33');
+});
+
+test('score is clamped to 0 when rulebook deductions exceed base score', () => {
+  // Create a plan with no base violations so base score = 100,
+  // then apply enough rulebook errors to push below zero.
+  const layout = makeLayout({
+    dimensions: { width: 30, depth: 20 },
+    rooms: [
+      { id: 'r1', type: 'living room', x: 0,  y: 0,  width: 18, height: 14 },
+      { id: 'r2', type: 'kitchen',     x: 18, y: 0,  width: 12, height: 10 },
+      { id: 'r3', type: 'bedroom',     x: 0,  y: 14, width: 12, height: 6  },
+      { id: 'r4', type: 'bathroom',    x: 12, y: 14, width: 8,  height: 6  },
+      { id: 'r5', type: 'dining',      x: 20, y: 10, width: 10, height: 10 },
+    ],
+  });
+  // 10 hard errors × -20 = -200 deduction
+  const manyErrors: Violation[] = Array.from({ length: 10 }, (_, i) => ({
+    code: `RBv1-e${i}`,
+    severity: 'error' as const,
+    message: `Hard violation ${i}`,
+    ruleId: 'R-002',
+  }));
+  const result = validateLayout(layout, undefined, manyErrors);
+  assertEqual(result.score, 0, 'score must be clamped to 0, not negative');
+});
+
+test('computeRulebookDeduction returns 0 for empty array', () => {
+  assertEqual(computeRulebookDeduction([]), 0, 'empty array should give 0 deduction');
+});
+
+test('computeRulebookDeduction sums correctly for mixed violations', () => {
+  const violations: Violation[] = [
+    { code: 'e1', severity: 'error',   message: '', ruleId: 'R-002' }, // -20
+    { code: 'w1', severity: 'warning', message: '', ruleId: 'R-088' }, // -8
+    { code: 'w2', severity: 'warning', message: '' },                   // -5 default
+    { code: 'i1', severity: 'info',    message: '' },                   // -1
+  ];
+  assertEqual(computeRulebookDeduction(violations), 34, 'expected deduction of 34 (20+8+5+1)');
+});
+
+test('rulebookScoreAdjustment is exposed in result when violations are non-empty', () => {
+  const layout = makeLayout({ rooms: [] });
+  const result = validateLayout(layout, undefined, [
+    { code: 'RBv1-054', severity: 'warning', message: 'Master not largest.', ruleId: 'R-054' },
+  ]);
+  assert(result.rulebookScoreAdjustment !== undefined, 'rulebookScoreAdjustment should be set');
+  assert(result.rulebookScoreAdjustment! < 0, 'rulebookScoreAdjustment should be negative');
+});
+
+test('priors bonus and rulebook deductions combine correctly', () => {
+  // Adjacent bedroom↔office = priors bonus (+1); one soft warning R-067 (-9)
+  // Net change vs base: 1 - 9 = -8
+  const layout = makeLayout({
+    rooms: [
+      { id: 'r1', type: 'bedroom', x: 0,  y: 0, width: 12, height: 10 },
+      { id: 'r2', type: 'office',  x: 12, y: 0, width: 12, height: 10 },
+    ],
+  });
+  const base = validateLayout(layout);
+  const withBothAdjustments = validateLayout(layout, fixturePriors, [
+    { code: 'RBv1-067', severity: 'warning', message: 'No exterior wall.', ruleId: 'R-067' },
+  ]);
+  const expected = Math.max(0, Math.min(100, base.score + 1 - 9));
+  assertEqual(withBothAdjustments.score, expected, `expected score=${expected}`);
+  assertEqual(withBothAdjustments.priorsAdjustment,     1, 'priorsAdjustment should be +1');
+  assertEqual(withBothAdjustments.rulebookScoreAdjustment, -9, 'rulebookScoreAdjustment should be -9');
+});
+
 // ── Summary ───────────────────────────────────────────────────────────────────
 
 console.log(`\n${passed} passed, ${failed} failed\n`);

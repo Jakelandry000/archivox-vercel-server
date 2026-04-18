@@ -1,4 +1,8 @@
-import { LayoutV1, Units, validateLayout, ValidationResult, loadPriors, Priors, RepairAction } from '@archivox/core';
+import { LayoutV1, Units, validateLayout, ValidationResult, loadPriors, Priors, RepairAction, runChecks, computeRulebookDeduction, registerRulebookV1Checks } from '@archivox/core';
+
+// Ensure all 103 Rule Book v1 checks are registered before the first call to
+// runChecks() inside the generate loop.  registerRulebookV1Checks is idempotent.
+registerRulebookV1Checks();
 
 export type GenerateInput = {
   prompt: string;
@@ -183,7 +187,7 @@ export function generateAndValidate(
   const seed = input.seed ?? Math.floor(Math.random() * 2 ** 31);
   const rng = makeLCG(seed);
 
-  let best: { layout: LayoutV1; validation: ValidationResult } | null = null;
+  let best: { layout: LayoutV1; validation: ValidationResult; combinedScore: number } | null = null;
   const scores: number[] = [];
   const debug: Array<{ strategy: string }> = [];
 
@@ -193,16 +197,23 @@ export function generateAndValidate(
   for (let attempt = 1; attempt <= maxAttempts; attempt++) {
     const layout = generateLayoutFromText(input, attempt - 1, rng, currentHints);
     const validation = validateLayout(layout, effectivePriors);
-    scores.push(validation.score);
+
+    // Per-attempt rulebook scoring: fold deductions into the comparison score so
+    // best-of-N selection reflects combined quality (base + rulebook + priors).
+    const rulebookViolations = runChecks(layout);
+    const rulebookDeduction  = computeRulebookDeduction(rulebookViolations);
+    const combinedScore = Math.max(0, Math.min(100, validation.score - rulebookDeduction));
+
+    scores.push(combinedScore);
     debug.push({ strategy: nextStrategy });
 
-    if (!best || validation.score > best.validation.score) {
-      best = { layout, validation };
+    if (!best || combinedScore > best.combinedScore) {
+      best = { layout, validation, combinedScore };
     }
 
-    if (validation.score >= earlyExitScore) break;
+    if (combinedScore >= earlyExitScore) break;
     // Legacy threshold: also stop early if scoreThreshold met (keeps old callers happy).
-    if (attempt > 1 && validation.score >= scoreThreshold) break;
+    if (attempt > 1 && combinedScore >= scoreThreshold) break;
 
     // Derive repair hints and strategy label for the next attempt.
     const derived = deriveRepairHints(validation, layout);
@@ -210,7 +221,7 @@ export function generateAndValidate(
     nextStrategy = derived.strategy;
   }
 
-  const bestScore = best!.validation.score;
+  const bestScore = best!.combinedScore;
   return {
     layout: best!.layout,
     validation: best!.validation,

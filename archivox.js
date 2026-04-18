@@ -57,9 +57,16 @@ Avoid cultural or stylistic bias, and keep responses architecture-focused.
 
 /**
  * Main function: Generate ArchiVox GPT response
+ * @param {object} formData - User's design preferences.
+ * @param {Array}  [chatHistory] - Prior conversation turns.
+ * @param {string} [colorTheme] - Color theme name to embed in the JSON layout hint.
  */
-async function generateArchiVoxResponse(formData, chatHistory = []) {
+async function generateArchiVoxResponse(formData, chatHistory = [], colorTheme) {
   const missing = getMissingFields(formData);
+
+  const themeNote = colorTheme
+    ? `\n- Color Theme: ${colorTheme} (include a "colorTheme" field with this value in the JSON output)`
+    : '';
 
   let finalPrompt = "";
 
@@ -73,7 +80,7 @@ The user has shared their full preferences. Please generate:
 - Budget: $${formData.budget}
 - Square Feet: ${formData.squareFeet}
 - Amenities: ${formData.amenities}
-- Style Description: ${formData.styleDescription}
+- Style Description: ${formData.styleDescription}${themeNote}
 
 2. Also include a valid JSON floor plan inside a \`\`\`json code block.
 Respond with the design and floor plan JSON only.

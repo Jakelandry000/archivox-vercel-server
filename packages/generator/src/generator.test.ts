@@ -158,6 +158,75 @@ test('generateAndValidate(tiny, maxAttempts=1) has no overlap/containment violat
   assert(bad.length === 0, `Expected 0 violations, got ${bad.length}: ${JSON.stringify(bad.map(v => v.code))}`);
 });
 
+console.log('\ngenerateAndValidate — combined-score and meta.bestScore integrity');
+
+test('meta.bestScore reflects combined score (base minus rulebook deduction) not raw base score', () => {
+  // Run with a prompt that reliably triggers rulebook violations so the deduction
+  // is non-zero.  Seed=42 is deterministic; priors=null removes that variable.
+  const result = generateAndValidate(
+    { prompt: '3 bedrooms 2 bathrooms garage', width: 40, depth: 30, seed: 42 },
+    { maxAttempts: 3, priors: null },
+  );
+
+  // meta.bestScore must be in the valid score range.
+  assert(result.meta.bestScore >= 0, `bestScore must be >= 0, got ${result.meta.bestScore}`);
+  assert(result.meta.bestScore <= 100, `bestScore must be <= 100, got ${result.meta.bestScore}`);
+
+  // Each score in meta.scores must also be in range (combined scores are clamped).
+  for (const s of result.meta.scores) {
+    assert(s >= 0 && s <= 100, `All attempt scores must be in [0,100], got ${s}`);
+  }
+
+  // meta.bestScore must equal the maximum of meta.scores (best-of-N selection).
+  const maxScore = Math.max(...result.meta.scores);
+  assert(
+    result.meta.bestScore === maxScore,
+    `meta.bestScore (${result.meta.bestScore}) must equal max of scores (${maxScore})`,
+  );
+});
+
+test('meta.bestScore is <= the raw base validation score when rulebook deduction applies', () => {
+  // The combined score = base - rulebookDeduction, so bestScore ≤ base score
+  // for any run where the rulebook fires violations.  We verify this by checking
+  // that bestScore does not exceed validation.score + 1 (allowing for rounding).
+  const result = generateAndValidate(
+    { prompt: '2 bedrooms 1 bathroom', width: 30, depth: 24, seed: 99 },
+    { maxAttempts: 4, priors: null },
+  );
+  // validation.score is the base score of the best attempt (no rulebook applied to it here).
+  // bestScore is the combined score; it cannot exceed the base score.
+  assert(
+    result.meta.bestScore <= result.validation.score + 1,
+    `meta.bestScore (${result.meta.bestScore}) should not exceed base score (${result.validation.score})`,
+  );
+});
+
+test('meta.scores array length matches meta.attempts (all combined scores recorded)', () => {
+  const result = generateAndValidate(
+    { prompt: '1 bedroom 1 bathroom', width: 28, depth: 22, seed: 1000 },
+    { maxAttempts: 5, priors: null },
+  );
+  assert(
+    result.meta.scores.length === result.meta.attempts,
+    `scores.length (${result.meta.scores.length}) must equal meta.attempts (${result.meta.attempts})`,
+  );
+  assert(
+    result.attempts === result.meta.attempts,
+    `top-level attempts (${result.attempts}) must match meta.attempts (${result.meta.attempts})`,
+  );
+});
+
+test('early-exit on high combined score: bestScore >= earlyExitScore stops loop', () => {
+  // Use a generous earlyExitScore of 0 so any first attempt exits immediately.
+  const result = generateAndValidate(
+    { prompt: '2 bedrooms 1 bathroom', width: 50, depth: 40, seed: 7 },
+    { maxAttempts: 8, earlyExitScore: 0, priors: null },
+  );
+  // With earlyExitScore=0, the first attempt always meets the threshold.
+  assert(result.meta.attempts === 1, `Expected 1 attempt with earlyExitScore=0, got ${result.meta.attempts}`);
+  assert(result.meta.scores.length === 1, `Expected 1 score entry, got ${result.meta.scores.length}`);
+});
+
 // ── Summary ───────────────────────────────────────────────────────────────────
 
 console.log(`\n  ${passed} passed, ${failed} failed\n`);

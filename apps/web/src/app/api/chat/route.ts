@@ -1,7 +1,10 @@
 import { NextResponse } from 'next/server';
 import { generateAndValidate } from '@archivox/generator';
 import { generateAutoCadScr, generateFloorPlanSvg } from '@archivox/engines';
-import { loadPriors, applyIbcRules } from '@archivox/core';
+import { loadPriors, applyIbcRules, registerRulebookV1Checks, runChecks, computeRulebookDeduction } from '@archivox/core';
+
+// Register all 103 Rule Book v1 checks once per cold start.
+registerRulebookV1Checks();
 
 // Load once per cold start; null if datasets/core-v1/priors.json is absent.
 const _priors = loadPriors();
@@ -22,11 +25,31 @@ export async function POST(req: Request) {
     { scoreThreshold: 70, maxAttempts: 4, priors: _priors }
   );
 
-  // Append IBC soft violations (warnings/info only) to the validation result.
+  // Run Rule Book v1 checks (R-001–R-103) and fold their deductions into score.
+  const rulebookViolations = runChecks(layout);
+  const rulebookDeduction   = computeRulebookDeduction(rulebookViolations);
+  const rulebookScoreAdjustment = -rulebookDeduction;
+
+  // Append IBC soft violations (warnings/info only).
   const ibcViolations = applyIbcRules(layout);
-  const validationWithIbc = ibcViolations.length > 0
-    ? { ...validation, violations: [...validation.violations, ...ibcViolations] }
-    : validation;
+
+  const allViolations = [
+    ...validation.violations,
+    ...rulebookViolations,
+    ...ibcViolations,
+  ];
+
+  // Recompute score to include rulebook deductions.  The generator's internal
+  // loop used the base score (base violations only) for attempt comparison;
+  // this final score is what clients and downstream consumers receive.
+  const finalScore = Math.max(0, Math.min(100, validation.score + rulebookScoreAdjustment));
+
+  const validationWithIbc = {
+    ...validation,
+    score: finalScore,
+    violations: allViolations,
+    rulebookScoreAdjustment,
+  };
 
   const { svg } = generateFloorPlanSvg(layout);
   const { script } = generateAutoCadScr(layout);

@@ -1,3 +1,5 @@
+import type { ValidationResult, ValidationMetrics } from '@archivox/core';
+
 // TODO(db): replace with Prisma model once projects table is wired up.
 export type FloorplanAttachment = {
   blobUrl: string;
@@ -5,13 +7,18 @@ export type FloorplanAttachment = {
   uploadedAt: number; // ms since epoch
 };
 
+/**
+ * Mirrors ValidationResult from @archivox/core so that DraftResult.validation
+ * stays in sync automatically without manual field maintenance.
+ * metrics is optional to preserve backward compatibility with localStorage-
+ * persisted drafts created before this type was introduced.
+ */
+export type DraftValidation = Omit<ValidationResult, 'metrics'> & { metrics?: ValidationMetrics };
+
 export type DraftResult = {
   svg: string;
   script: string;
-  validation: {
-    score: number;
-    violations: Array<{ severity: string; message: string }>;
-  };
+  validation: DraftValidation;
   priorsMeta: {
     loaded: boolean;
     labelsCount: number;
