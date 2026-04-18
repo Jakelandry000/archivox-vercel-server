@@ -50,10 +50,10 @@ type ApiResult = {
 };
 
 function scoreLabel(score: number): { label: string; color: string } {
-  if (score >= 85) return { label: 'Excellent', color: 'text-emerald-400' };
-  if (score >= 70) return { label: 'Good', color: 'text-green-400' };
-  if (score >= 50) return { label: 'Fair', color: 'text-yellow-400' };
-  return { label: 'Poor', color: 'text-red-400' };
+  if (score >= 85) return { label: 'Excellent', color: 'rgb(var(--accent))' };
+  if (score >= 70) return { label: 'Good', color: 'rgb(var(--accent-2))' };
+  if (score >= 50) return { label: 'Fair', color: 'rgba(250,204,21,0.85)' };
+  return { label: 'Poor', color: 'rgb(var(--danger))' };
 }
 
 function ValidationPanel({ validation, layout, priorsMeta }: { validation?: ValidationResult; layout: unknown; priorsMeta?: PriorsMeta }) {
@@ -118,18 +118,18 @@ function ValidationPanel({ validation, layout, priorsMeta }: { validation?: Vali
       {/* Score */}
       <div className="rounded-2xl border border-white/10 bg-black/20 p-5 flex flex-col gap-3">
         <div className="flex items-center gap-5">
-          <div className={`text-6xl font-bold tabular-nums leading-none ${color}`}>{score}</div>
+          <div className="text-6xl font-bold tabular-nums leading-none" style={{ color }}>{score}</div>
           <div>
             <div className="flex items-center gap-2">
-              <span className={`text-lg font-semibold ${color}`}>{label}</span>
+              <span className="text-lg font-semibold" style={{ color }}>{label}</span>
             </div>
             <div className="mt-1 text-xs text-white/50">
               {errors.length} error{errors.length !== 1 ? 's' : ''} · {warnings.length} warning{warnings.length !== 1 ? 's' : ''} · {infos.length} note{infos.length !== 1 ? 's' : ''}
             </div>
             <div className="mt-2 h-1.5 w-32 rounded-full bg-white/10 overflow-hidden">
               <div
-                className={`h-full rounded-full transition-all ${score >= 85 ? 'bg-emerald-400' : score >= 70 ? 'bg-green-400' : score >= 50 ? 'bg-yellow-400' : 'bg-red-400'}`}
-                style={{ width: `${score}%` }}
+                className="h-full rounded-full transition-all"
+                style={{ width: `${score}%`, background: color }}
               />
             </div>
           </div>
@@ -144,7 +144,7 @@ function ValidationPanel({ validation, layout, priorsMeta }: { validation?: Vali
               <>
                 <span className="text-white/25 mx-0.5">|</span>
                 <span className="text-white/50">Rulebook:</span>
-                <span className={`tabular-nums ${rulebookScoreAdjustment < 0 ? 'text-red-400' : 'text-white/60'}`}>
+                <span className="tabular-nums" style={{ color: rulebookScoreAdjustment < 0 ? 'rgb(var(--danger))' : 'rgba(235,244,238,0.6)' }}>
                   {rulebookScoreAdjustment > 0 ? '+' : ''}{Math.round(rulebookScoreAdjustment)}
                 </span>
               </>
@@ -153,14 +153,14 @@ function ValidationPanel({ validation, layout, priorsMeta }: { validation?: Vali
               <>
                 <span className="text-white/25 mx-0.5">|</span>
                 <span className="text-white/50">Priors:</span>
-                <span className={`tabular-nums ${priorsAdjustment > 0 ? 'text-emerald-400' : 'text-white/60'}`}>
+                <span className="tabular-nums" style={{ color: priorsAdjustment > 0 ? 'rgb(var(--accent))' : 'rgba(235,244,238,0.6)' }}>
                   {priorsAdjustment > 0 ? '+' : ''}{priorsAdjustment}
                 </span>
               </>
             )}
             <span className="text-white/25 mx-0.5">|</span>
             <span className="text-white/50">Final:</span>
-            <span className={`tabular-nums font-semibold ${color}`}>{score}</span>
+            <span className="tabular-nums font-semibold" style={{ color }}>{score}</span>
           </div>
         )}
       </div>

@@ -45,7 +45,7 @@ function SignInForm() {
           type="email"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
-          className="rounded-xl border border-white/10 bg-black/20 px-3 py-2 text-sm text-white outline-none focus:ring-2 focus:ring-emerald-500/40"
+          className="field"
           required
         />
       </div>
@@ -55,7 +55,7 @@ function SignInForm() {
           type="password"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
-          className="rounded-xl border border-white/10 bg-black/20 px-3 py-2 text-sm text-white outline-none focus:ring-2 focus:ring-emerald-500/40"
+          className="field"
           required
         />
       </div>

@@ -17,6 +17,7 @@ import { defineConfig, devices } from '@playwright/test'
  */
 export default defineConfig({
   testDir: './e2e',
+  snapshotDir: './e2e/__snapshots__',
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,
@@ -30,6 +31,16 @@ export default defineConfig({
     trace: 'on-first-retry',
     screenshot: 'only-on-failure',
     video: 'off',
+  },
+  expect: {
+    toHaveScreenshot: {
+      // Default threshold for snapshot comparisons across all visual tests.
+      // Individual tests may override with a tighter maxDiffPixelRatio.
+      maxDiffPixelRatio: 0.03,
+      // Chromium renders fonts consistently so 0 threshold is achievable for static UI;
+      // for animated content we rely on per-test overrides.
+      threshold: 0.2,
+    },
   },
   webServer: process.env.BASE_URL
     ? undefined

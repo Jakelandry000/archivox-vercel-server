@@ -1,8 +1,8 @@
 'use client'
 
 import Link from 'next/link'
-import { useEffect, useState } from 'react'
 import { motion } from 'framer-motion'
+import { useReducedMotion } from '@/lib/hooks/useReducedMotion'
 
 /**
  * Animated hero overlay — badge, headline, subtitle, and CTA buttons.
@@ -16,15 +16,7 @@ import { motion } from 'framer-motion'
  *   Typography follows the h1 scale defined in archivox-design-system.md.
  */
 export function HeroContent() {
-  const [reduce, setReduce] = useState(false)
-
-  useEffect(() => {
-    const mq = window.matchMedia('(prefers-reduced-motion: reduce)')
-    const sync = () => setReduce(!!mq.matches)
-    sync()
-    mq.addEventListener?.('change', sync)
-    return () => mq.removeEventListener?.('change', sync)
-  }, [])
+  const reduce = useReducedMotion()
 
   function fadeUp(delay: number) {
     return {

@@ -30,3 +30,7 @@ Thumbs.db
 # Dataset cache — never served to client
 data/
 !data/.gitkeep
+
+# Playwright test artifacts
+playwright-report/
+test-results/

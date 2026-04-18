@@ -76,3 +76,15 @@ body {
 .kbd {
   @apply rounded-md border border-white/10 bg-white/5 px-2 py-1 text-[11px] text-white/80;
 }
+
+/* Form fields — use .field on input/textarea/select elements */
+.field {
+  @apply w-full rounded-xl border border-white/10 bg-black/20 px-3 py-2 text-sm outline-none;
+  color: rgb(var(--text));
+}
+.field:focus {
+  box-shadow: 0 0 0 2px rgba(var(--ring), 0.4);
+}
+.field::placeholder {
+  color: rgba(var(--muted), 0.7);
+}

@@ -1,45 +1,34 @@
 'use client'
 
 /**
- * Manual QA page for prefers-reduced-motion behaviour in SplineHero.
+ * Manual QA page for prefers-reduced-motion behaviour in HeroSection.
  *
  * How to test:
  *   1. Visit /motion-test in the browser.
  *   2. The live indicator shows whether the OS "Reduce Motion" setting is on.
  *   3. Toggle OS reduce-motion setting:
  *        macOS  → System Settings → Accessibility → Display → Reduce Motion
- *        Windows → Settings → Ease of Access → Display → Show animations
+ *        Windows → Settings → Accessibility → Visual Effects → Animation effects
+ *        Chrome DevTools → Rendering tab → Emulate prefers-reduced-motion
  *   4. The component should switch between:
- *        OFF → Spline canvas (or "Spline canvas would load here" placeholder)
- *        ON  → Static SVG floor-plan fallback image, no animation
+ *        OFF → Blueprint SVG animates in (Framer Motion pathLength transitions)
+ *        ON  → Blueprint SVG renders instantly (all transitions duration: 0)
  *   5. No page reload should be needed — the mediaquery change fires live.
  *
  * Expected results matrix:
- *   ┌─────────────────────┬──────────────────────────────────────────────┐
- *   │ Reduce Motion       │ What SplineHero renders                      │
- *   ├─────────────────────┼──────────────────────────────────────────────┤
- *   │ OFF (default)       │ Spline 3D scene (canvas)                     │
- *   │ ON                  │ /hero-preview.svg via next/image (static)    │
- *   └─────────────────────┴──────────────────────────────────────────────┘
+ *   ┌─────────────────────┬──────────────────────────────────────────────────┐
+ *   │ Reduce Motion       │ What HeroSection renders                         │
+ *   ├─────────────────────┼──────────────────────────────────────────────────┤
+ *   │ OFF (default)       │ Blueprint animates; typewriter cycles            │
+ *   │ ON                  │ Blueprint fully visible instantly; prompt static │
+ *   └─────────────────────┴──────────────────────────────────────────────────┘
  */
 
-import { useEffect, useState } from 'react'
-import { SplineHero } from '../../components/SplineHero'
-
-// Placeholder URL — in production this would be a real .splinecode URL.
-// The component degrades gracefully if the URL is invalid.
-const PLACEHOLDER_SCENE = 'loading...'
+import { HeroSection } from '../../components/HeroSection'
+import { useReducedMotion } from '../../lib/hooks/useReducedMotion'
 
 export default function MotionTestPage() {
-  const [reduceMotion, setReduceMotion] = useState<boolean | null>(null)
-
-  useEffect(() => {
-    const mq = window.matchMedia('(prefers-reduced-motion: reduce)')
-    const sync = () => setReduceMotion(mq.matches)
-    sync()
-    mq.addEventListener('change', sync)
-    return () => mq.removeEventListener('change', sync)
-  }, [])
+  const reduceMotion = useReducedMotion()
 
   return (
     <div style={{ background: 'rgb(12,16,14)', minHeight: '100vh', color: 'white' }}>
@@ -64,9 +53,7 @@ export default function MotionTestPage() {
         }}
       >
         <span style={{ color: 'rgba(255,255,255,0.5)' }}>prefers-reduced-motion:</span>
-        {reduceMotion === null ? (
-          <span style={{ color: 'rgba(255,255,255,0.4)' }}>detecting…</span>
-        ) : reduceMotion ? (
+        {reduceMotion ? (
           <span
             style={{
               color: 'rgb(34,197,94)',
@@ -76,7 +63,7 @@ export default function MotionTestPage() {
               borderRadius: 999,
             }}
           >
-            ON — showing static fallback
+            ON — blueprint static
           </span>
         ) : (
           <span
@@ -88,18 +75,18 @@ export default function MotionTestPage() {
               borderRadius: 999,
             }}
           >
-            OFF — showing Spline scene
+            OFF — blueprint animating
           </span>
         )}
 
         <span style={{ marginLeft: 'auto', color: 'rgba(255,255,255,0.3)', fontSize: 11 }}>
-          QA: SplineHero motion-toggle
+          QA: HeroSection motion-toggle
         </span>
       </div>
 
       {/* Component under test */}
       <div style={{ paddingTop: 48 }}>
-        <SplineHero scene={PLACEHOLDER_SCENE} />
+        <HeroSection />
       </div>
 
       {/* Instructions panel */}
@@ -126,14 +113,15 @@ export default function MotionTestPage() {
             Watch the banner above — it reflects the live media-query state.
           </li>
           <li>
-            The hero section below the banner should switch between the{' '}
-            <strong style={{ color: 'rgba(255,255,255,0.7)' }}>Spline canvas</strong> (motion
-            OFF) and the{' '}
-            <strong style={{ color: 'rgba(255,255,255,0.7)' }}>static floor-plan SVG</strong>{' '}
+            The hero section should switch between{' '}
+            <strong style={{ color: 'rgba(255,255,255,0.7)' }}>animated blueprint</strong> (motion
+            OFF) and{' '}
+            <strong style={{ color: 'rgba(255,255,255,0.7)' }}>instant static blueprint</strong>{' '}
             (motion ON) without a page reload.
           </li>
           <li>
-            Confirm no jank, layout shift, or blank flash during the transition.
+            Confirm the typewriter prompt cycles (motion OFF) or shows the first prompt
+            statically (motion ON).
           </li>
         </ol>
 

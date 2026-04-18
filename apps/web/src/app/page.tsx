@@ -1,7 +1,8 @@
 import Link from 'next/link';
 import { ScrollShell } from './components/ScrollShell';
-import { HeroContent } from '../components/HeroContent';
+import { HeroSection } from '../components/HeroSection';
 import { NarrativeSection } from '../components/NarrativeSection';
+import { FeatureStrip } from '../components/FeatureStrip';
 
 export default function Landing() {
   return (
@@ -33,70 +34,13 @@ export default function Landing() {
         </nav>
 
         {/* ── Hero ────────────────────────────────────────────────────────── */}
-        <section className="relative min-h-screen flex items-center justify-center px-6 pt-24 pb-16">
-          <HeroContent />
-        </section>
-
-        {/* ── Scroll indicator ────────────────────────────────────────────── */}
-        <div
-          className="flex justify-center pb-12 -mt-8"
-          aria-hidden="true"
-        >
-          <div
-            className="flex flex-col items-center gap-1.5 text-[10px] font-mono tracking-widest uppercase"
-            style={{ color: 'rgba(34,197,94,0.35)' }}
-          >
-            <span>scroll</span>
-            <span className="h-8 w-px" style={{ background: 'linear-gradient(to bottom, rgba(34,197,94,0.35), transparent)' }} />
-          </div>
-        </div>
+        <HeroSection />
 
         {/* ── Narrative journey ───────────────────────────────────────────── */}
         <NarrativeSection />
 
         {/* ── Feature strip ───────────────────────────────────────────────── */}
-        <main
-          className="flex flex-col items-center px-6 py-16 border-t"
-          style={{ borderColor: 'rgba(255,255,255,0.05)' }}
-        >
-          <p
-            className="text-xs font-semibold tracking-widest uppercase mb-10"
-            style={{ color: 'rgba(34,197,94,0.6)' }}
-          >
-            What you get
-          </p>
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-3 max-w-3xl w-full">
-            {[
-              {
-                title: '2D Floor Plans',
-                body: 'SVG floor plans generated from constraint-driven room packing.',
-              },
-              {
-                title: 'AutoCAD Scripts',
-                body: 'Ready-to-run .scr files for every layout, no manual drafting.',
-              },
-              {
-                title: 'Validation + IBC',
-                body: 'Automatic overlap detection, coverage scoring, and code checks.',
-              },
-            ].map((f) => (
-              <div key={f.title} className="glass rounded-2xl p-5 text-left">
-                <div
-                  className="text-sm font-semibold mb-1.5"
-                  style={{ color: 'rgba(235,244,238,0.9)' }}
-                >
-                  {f.title}
-                </div>
-                <div
-                  className="text-xs leading-relaxed"
-                  style={{ color: 'rgba(235,244,238,0.55)' }}
-                >
-                  {f.body}
-                </div>
-              </div>
-            ))}
-          </div>
-        </main>
+        <FeatureStrip />
 
         {/* ── Footer ──────────────────────────────────────────────────────── */}
         <footer

@@ -22,13 +22,15 @@ export function Tabs({
 
   return (
     <div>
-      <div className="flex flex-wrap gap-2">
+      <div className="flex flex-wrap gap-2" role="tablist">
         {items.map((it) => {
           const is = it.key === active;
           return (
             <button
               key={it.key}
               onClick={() => onChange(it.key)}
+              role="tab"
+              aria-selected={is}
               className={
                 'btn ' +
                 (is

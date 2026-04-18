@@ -2,10 +2,17 @@
 date: 2026-04-15
 task: cc-014
 topic: 3D rendering — Spline + Lenis integration
-status: implemented
+status: superseded
+superseded_by: cc-039
+superseded_date: 2026-04-17
 ---
 
-# 3D Rendering: Spline + Lenis Integration
+# 3D Rendering: Spline + Lenis Integration (SUPERSEDED)
+
+> **Superseded by cc-039 (2026-04-17).** Spline dependency removed.
+> `SplineHero.tsx` replaced by `HeroSection.tsx` which uses the built-in
+> `BlueprintBackground` SVG (Framer Motion pathLength) as the sole visual layer.
+> `@splinetool/react-spline` removed from `apps/web/package.json`.
 
 ## Summary
 
