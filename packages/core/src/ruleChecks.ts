@@ -13,8 +13,8 @@
  * additively and their violations merged with the base result.
  */
 
-import { LayoutV1, Room2D } from './layout.js';
-import { Violation, RepairAction } from './validator.js';
+import { LayoutV1, Room2D } from './layout';
+import { Violation, RepairAction } from './validator';
 
 // ── Context ───────────────────────────────────────────────────────────────────
 

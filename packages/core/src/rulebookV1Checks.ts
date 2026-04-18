@@ -30,9 +30,9 @@ import {
   SiteOrientation,
   DoorElement, WallSegment, WindowElement,
   ViewportLabelElement,
-} from './layout.js';
-import { Violation, RepairAction } from './validator.js';
-import { RuleCheck, CheckContext, registerChecks } from './ruleChecks.js';
+} from './layout';
+import { Violation, RepairAction } from './validator';
+import { RuleCheck, CheckContext, registerChecks } from './ruleChecks';
 
 // ── Geometry helpers ──────────────────────────────────────────────────────────
 
@@ -218,7 +218,7 @@ const RBv1_001: RuleCheck = {
   id: 'RBv1-001', ruleId: 'R-001',
   title: 'Room connectivity: no private-room traversal required',
   severity: 'error',
-  check(layout): import('./validator.js').Violation[] {
+  check(layout): Violation[] {
     const doors = layout.doors;
     if (!doors || doors.length === 0) return [];
     const entrances = getEntrances(layout);
@@ -267,7 +267,7 @@ const RBv1_003: RuleCheck = {
   title: 'Bedroom door opens to corridor/hall/living area',
   severity: 'error',
   applies: layout => (layout.doors?.length ?? 0) > 0,
-  check(layout): import('./validator.js').Violation[] {
+  check(layout): Violation[] {
     const doors = layout.doors;
     if (!doors || doors.length === 0) return [];
     const privateTypes = new Set(['bedroom', 'bathroom']);
@@ -297,14 +297,14 @@ const RBv1_004: RuleCheck = {
   title: 'No bathroom as sole circulation route between two rooms',
   severity: 'error',
   applies: layout => (layout.doors?.length ?? 0) > 0 && roomsByType(layout, 'bathroom').length > 0,
-  check(layout): import('./validator.js').Violation[] {
+  check(layout): Violation[] {
     const doors = layout.doors;
     if (!doors || doors.length === 0) return [];
     const graph = buildDoorGraph(layout);
     const nonBathIds = new Set(
       validRooms(layout).filter(r => r.type !== 'bathroom').map(r => r.id)
     );
-    const violations: import('./validator.js').Violation[] = [];
+    const violations: Violation[] = [];
     for (const bath of roomsByType(layout, 'bathroom')) {
       // Build reduced graph without this bathroom
       const reducedAllowed = new Set(nonBathIds);
@@ -332,7 +332,7 @@ const RBv1_005: RuleCheck = {
   title: 'Bathrooms accessible without crossing non-en-suite bedroom',
   severity: 'error',
   applies: layout => (layout.doors?.length ?? 0) > 0 && roomsByType(layout, 'bathroom').length > 0,
-  check(layout): import('./validator.js').Violation[] {
+  check(layout): Violation[] {
     const doors = layout.doors;
     if (!doors || doors.length === 0) return [];
     const graph = buildDoorGraph(layout);
@@ -341,7 +341,7 @@ const RBv1_005: RuleCheck = {
     const nonBedroomIds = new Set(
       validRooms(layout).filter(r => !bedroomIds.has(r.id)).map(r => r.id)
     );
-    const violations: import('./validator.js').Violation[] = [];
+    const violations: Violation[] = [];
     for (const bath of roomsByType(layout, 'bathroom')) {
       // BFS from bathroom through non-bedroom rooms to find common-area access
       const reachable = bfs([bath.id], graph, nonBedroomIds);
@@ -366,7 +366,7 @@ const RBv1_006: RuleCheck = {
   title: 'Interior door clear width minimum 0.70m',
   severity: 'error',
   applies: layout => (layout.doors?.length ?? 0) > 0,
-  check(layout, ctx): import('./validator.js').Violation[] {
+  check(layout, ctx): Violation[] {
     const doors = layout.doors;
     if (!doors || doors.length === 0) return [];
     const threshold = lenM(0.70, ctx);
@@ -386,7 +386,7 @@ const RBv1_007: RuleCheck = {
   title: 'Main entrance door clear width minimum 0.90m',
   severity: 'error',
   applies: layout => (layout.doors ?? []).some(d => d.type === 'entrance'),
-  check(layout, ctx): import('./validator.js').Violation[] {
+  check(layout, ctx): Violation[] {
     const doors = layout.doors;
     if (!doors || doors.length === 0) return [];
     const threshold = lenM(0.90, ctx);
@@ -436,10 +436,10 @@ const RBv1_009: RuleCheck = {
   title: 'All room boundaries enclosed by wall segments',
   severity: 'error',
   applies: layout => (layout.walls?.length ?? 0) > 0,
-  check(layout): import('./validator.js').Violation[] {
+  check(layout): Violation[] {
     const walls = layout.walls;
     if (!walls || walls.length === 0) return [];
-    const violations: import('./validator.js').Violation[] = [];
+    const violations: Violation[] = [];
     for (const room of validRooms(layout)) {
       const sides = [
         { label: 'top',    s: { x: room.x,              y: room.y              }, e: { x: room.x + room.width, y: room.y              } },
@@ -599,7 +599,7 @@ const RBv1_017: RuleCheck = {
 const RBv1_018: RuleCheck = {
   id: 'RBv1-018', ruleId: 'R-018', title: 'Exterior wall thickness minimum 0.15m', severity: 'error',
   applies: layout => (layout.walls ?? []).some(w => w.type === 'exterior'),
-  check(layout, ctx): import('./validator.js').Violation[] {
+  check(layout, ctx): Violation[] {
     const walls = layout.walls;
     if (!walls || walls.length === 0) return [];
     const threshold = lenM(0.15, ctx);
@@ -617,7 +617,7 @@ const RBv1_018: RuleCheck = {
 const RBv1_019: RuleCheck = {
   id: 'RBv1-019', ruleId: 'R-019', title: 'Interior partition wall thickness minimum 0.10m', severity: 'error',
   applies: layout => (layout.walls ?? []).some(w => w.type === 'interior'),
-  check(layout, ctx): import('./validator.js').Violation[] {
+  check(layout, ctx): Violation[] {
     const walls = layout.walls;
     if (!walls || walls.length === 0) return [];
     const threshold = lenM(0.10, ctx);
@@ -679,7 +679,7 @@ const RBv1_021: RuleCheck = {
 const RBv1_022: RuleCheck = {
   id: 'RBv1-022', ruleId: 'R-022', title: 'Door openings must fall within a wall segment', severity: 'error',
   applies: layout => (layout.doors?.length ?? 0) > 0 && (layout.walls?.length ?? 0) > 0,
-  check(layout): import('./validator.js').Violation[] {
+  check(layout): Violation[] {
     const doors = layout.doors;
     const walls = layout.walls;
     if (!doors || doors.length === 0 || !walls || walls.length === 0) return [];
@@ -706,7 +706,7 @@ const RBv1_022: RuleCheck = {
 const RBv1_023: RuleCheck = {
   id: 'RBv1-023', ruleId: 'R-023', title: 'Window openings must fall within a wall segment', severity: 'error',
   applies: layout => (layout.windows?.length ?? 0) > 0 && (layout.walls?.length ?? 0) > 0,
-  check(layout): import('./validator.js').Violation[] {
+  check(layout): Violation[] {
     const windows = layout.windows;
     const walls = layout.walls;
     if (!windows || windows.length === 0 || !walls || walls.length === 0) return [];
@@ -735,11 +735,11 @@ const RBv1_024: RuleCheck = {
   title: 'Wall segments connect at vertices with no unresolved gaps > 0.05m',
   severity: 'error',
   applies: layout => (layout.walls?.length ?? 0) > 1,
-  check(layout): import('./validator.js').Violation[] {
+  check(layout): Violation[] {
     const walls = layout.walls;
     if (!walls || walls.length < 2) return [];
     const MAX_GAP = 0.05;
-    const violations: import('./validator.js').Violation[] = [];
+    const violations: Violation[] = [];
     // Collect all endpoints
     const endpoints = walls.flatMap(w => [w.start, w.end]);
     // For each endpoint, find the minimum distance to any other wall endpoint
@@ -769,7 +769,7 @@ const RBv1_024: RuleCheck = {
 const RBv1_025: RuleCheck = {
   id: 'RBv1-025', ruleId: 'R-025', title: 'Floor level changes must be annotated', severity: 'error',
   applies: layout => (layout.floorLevels?.length ?? 0) > 1,
-  check(layout): import('./validator.js').Violation[] {
+  check(layout): Violation[] {
     const levels = layout.floorLevels;
     if (!levels || levels.length < 2) return [];
     // There are multiple floor levels — verify every level has an annotation
@@ -977,7 +977,7 @@ const RBv1_034: RuleCheck = {
   title: 'Stair accessible from common area, not exclusively bedroom',
   severity: 'error',
   applies: layout => (layout.stairs?.length ?? 0) > 0,
-  check(layout): import('./validator.js').Violation[] {
+  check(layout): Violation[] {
     const stairs = layout.stairs;
     if (!stairs || stairs.length === 0) return [];
     const privateTypes = new Set(['bedroom', 'bathroom']);
@@ -1003,14 +1003,14 @@ const RBv1_035: RuleCheck = {
   title: 'Parking ramp level landing minimum 1.20m depth at each end',
   severity: 'error',
   applies: layout => (layout.ramps ?? []).some(r => r.type === 'parking' || !r.type),
-  check(layout, ctx): import('./validator.js').Violation[] {
+  check(layout, ctx): Violation[] {
     const ramps = layout.ramps;
     if (!ramps || ramps.length === 0) return [];
     const threshold = lenM(1.20, ctx);
     return ramps
       .filter(r => !r.type || r.type === 'parking')
       .flatMap(ramp => {
-        const violations: import('./validator.js').Violation[] = [];
+        const violations: Violation[] = [];
         if (ramp.landingDepthStart < threshold)
           violations.push({
             code: 'RBv1-035', severity: 'error',
@@ -1036,7 +1036,7 @@ const RBv1_036: RuleCheck = {
   applies: layout =>
     roomsByType(layout, 'garage').length > 0 &&
     (layout.floorLevels ?? []).some(fl => fl.value < 0),
-  check(layout): import('./validator.js').Violation[] {
+  check(layout): Violation[] {
     const floorLevels = layout.floorLevels;
     const stairs = layout.stairs;
     if (!floorLevels || floorLevels.length === 0) return [];
@@ -1319,7 +1319,7 @@ const RBv1_048: RuleCheck = {
   title: 'Sliding door or large opening minimum clear width 1.20m',
   severity: 'error',
   applies: layout => (layout.doors ?? []).some(d => d.type === 'sliding'),
-  check(layout, ctx): import('./validator.js').Violation[] {
+  check(layout, ctx): Violation[] {
     const doors = layout.doors;
     if (!doors || doors.length === 0) return [];
     const threshold = lenM(1.20, ctx);
@@ -1355,7 +1355,7 @@ const RBv1_050: RuleCheck = {
   title: 'Window sill height minimum 0.60m above finished floor level',
   severity: 'error',
   applies: layout => (layout.windows?.length ?? 0) > 0,
-  check(layout, ctx): import('./validator.js').Violation[] {
+  check(layout, ctx): Violation[] {
     const windows = layout.windows;
     if (!windows || windows.length === 0) return [];
     const threshold = lenM(0.60, ctx);
@@ -1388,7 +1388,7 @@ const RBv1_096: RuleCheck = {
 const RBv1_097: RuleCheck = {
   id: 'RBv1-097', ruleId: 'R-097', title: 'All doors must be indicated with a door symbol', severity: 'error',
   applies: layout => (layout.doors?.length ?? 0) > 0,
-  check(layout): import('./validator.js').Violation[] {
+  check(layout): Violation[] {
     const doors = layout.doors;
     if (!doors || doors.length === 0) return [];
     // If DoorElement[] is present and non-empty, doors are annotated — check each has an id
@@ -1406,12 +1406,12 @@ const RBv1_098: RuleCheck = {
   title: 'Floor level annotations must be internally consistent (no contradictory NPT/FFL values)',
   severity: 'error',
   applies: layout => (layout.floorLevels?.length ?? 0) > 0,
-  check(layout): import('./validator.js').Violation[] {
+  check(layout): Violation[] {
     const levels = layout.floorLevels;
     if (!levels || levels.length === 0) return [];
     // Check: no room may appear in two FloorLevelElements with different values
     const roomLevelMap = new Map<string, { value: number; levelId: string }>();
-    const violations: import('./validator.js').Violation[] = [];
+    const violations: Violation[] = [];
     for (const fl of levels) {
       for (const roomId of fl.zoneRoomIds) {
         const existing = roomLevelMap.get(roomId);
@@ -1436,10 +1436,10 @@ const RBv1_099: RuleCheck = {
   title: 'Wall segments form continuous closed perimeter per room',
   severity: 'error',
   applies: layout => (layout.walls?.length ?? 0) > 0,
-  check(layout): import('./validator.js').Violation[] {
+  check(layout): Violation[] {
     const walls = layout.walls;
     if (!walls || walls.length === 0) return [];
-    const violations: import('./validator.js').Violation[] = [];
+    const violations: Violation[] = [];
     for (const room of validRooms(layout)) {
       const sides = [
         { s: { x: room.x,              y: room.y              }, e: { x: room.x + room.width, y: room.y              } },
@@ -1480,7 +1480,7 @@ const RBv1_101: RuleCheck = {
   title: 'Dimension strings must reference actual wall-to-wall distances',
   severity: 'error',
   applies: layout => (layout.dimensionAnnotations?.length ?? 0) > 0,
-  check(layout): import('./validator.js').Violation[] {
+  check(layout): Violation[] {
     const annotations = layout.dimensionAnnotations;
     if (!annotations || annotations.length === 0) return [];
     const TOLERANCE = 0.05; // 5 cm tolerance for rounding
@@ -1549,7 +1549,7 @@ const RBv1_052: RuleCheck = {
 const RBv1_053: RuleCheck = {
   id: 'RBv1-053', ruleId: 'R-053', title: 'Living room on primary elevation', severity: 'warning',
   applies: layout => !!layout.siteOrientation && roomsByType(layout, 'living', 'living room').length > 0,
-  check(layout, ctx): import('./validator.js').Violation[] {
+  check(layout, ctx): Violation[] {
     if (!layout.siteOrientation) return [];
     return roomsByType(layout, 'living', 'living room')
       .filter(r => !roomFacingDirections(r, layout.siteOrientation!, ctx.dimW, ctx.dimD).has(layout.siteOrientation!))
@@ -1724,7 +1724,7 @@ const RBv1_060: RuleCheck = {
   title: 'Service room at rear or side, not primary front elevation',
   severity: 'warning',
   applies: layout => !!layout.siteOrientation,
-  check(layout, ctx): import('./validator.js').Violation[] {
+  check(layout, ctx): Violation[] {
     if (!layout.siteOrientation) return [];
     const serviceRooms = validRooms(layout).filter(r => {
       const l = (r.label ?? '').toLowerCase();
@@ -1923,7 +1923,7 @@ const RBv1_069: RuleCheck = {
   title: 'Bathrooms on exterior walls should include a window',
   severity: 'warning',
   applies: layout => (layout.windows?.length ?? 0) > 0,
-  check(layout, ctx): import('./validator.js').Violation[] {
+  check(layout, ctx): Violation[] {
     const windows = layout.windows;
     if (!windows || windows.length === 0) return [];
     const windowRoomIds = new Set(windows.map(w => w.roomId));
@@ -1943,7 +1943,7 @@ const RBv1_070: RuleCheck = {
   applies: layout =>
     getEntrances(layout).length > 0 &&
     ((layout.windows?.length ?? 0) > 0 || (layout.doors?.length ?? 0) > 0),
-  check(layout): import('./validator.js').Violation[] {
+  check(layout): Violation[] {
     const entrances = getEntrances(layout);
     if (entrances.length === 0) return [];
     const windowRoomIds = new Set((layout.windows ?? []).map(w => w.roomId));
@@ -1968,7 +1968,7 @@ const RBv1_071: RuleCheck = {
   title: 'Terrace should face an unobstructed external direction',
   severity: 'warning',
   applies: layout => !!layout.siteOrientation,
-  check(layout, ctx): import('./validator.js').Violation[] {
+  check(layout, ctx): Violation[] {
     if (!layout.siteOrientation) return [];
     const terraces = validRooms(layout).filter(r => {
       const l = (r.label ?? '').toLowerCase();
@@ -2055,7 +2055,7 @@ const RBv1_076: RuleCheck = {
   title: 'Main entrance faces primary street or approach side',
   severity: 'warning',
   applies: layout => !!layout.siteOrientation && getEntrances(layout).length > 0,
-  check(layout, ctx): import('./validator.js').Violation[] {
+  check(layout, ctx): Violation[] {
     if (!layout.siteOrientation) return [];
     return getEntrances(layout)
       .filter(e => !roomFacingDirections(e, layout.siteOrientation!, ctx.dimW, ctx.dimD).has(layout.siteOrientation!))
@@ -2073,7 +2073,7 @@ const RBv1_077: RuleCheck = {
   title: 'Terrace/principal outdoor space faces south or west',
   severity: 'warning',
   applies: layout => !!layout.siteOrientation,
-  check(layout, ctx): import('./validator.js').Violation[] {
+  check(layout, ctx): Violation[] {
     if (!layout.siteOrientation) return [];
     const terraces = validRooms(layout).filter(r => {
       const l = (r.label ?? '').toLowerCase();
@@ -2099,7 +2099,7 @@ const RBv1_078: RuleCheck = {
   title: 'Living room windows avoid north-facing orientation',
   severity: 'warning',
   applies: layout => !!layout.siteOrientation && roomsByType(layout, 'living', 'living room').length > 0,
-  check(layout, ctx): import('./validator.js').Violation[] {
+  check(layout, ctx): Violation[] {
     if (!layout.siteOrientation) return [];
     // Resolve which plan edge corresponds to north based on siteOrientation
     type EM = Record<string, string>;
@@ -2125,7 +2125,7 @@ const RBv1_079: RuleCheck = {
   title: 'Garage access does not conflict with pedestrian entrance path',
   severity: 'warning',
   applies: layout => !!layout.siteOrientation && roomsByType(layout, 'garage').length > 0,
-  check(layout): import('./validator.js').Violation[] {
+  check(layout): Violation[] {
     if (!layout.siteOrientation) return [];
     const entrances = getEntrances(layout);
     const garages = roomsByType(layout, 'garage');
@@ -2149,7 +2149,7 @@ const RBv1_080: RuleCheck = {
   title: 'Service yard faces rear or side of site',
   severity: 'warning',
   applies: layout => !!layout.siteOrientation,
-  check(layout, ctx): import('./validator.js').Violation[] {
+  check(layout, ctx): Violation[] {
     if (!layout.siteOrientation) return [];
     const serviceYards = validRooms(layout).filter(r => {
       const l = (r.label ?? '').toLowerCase();
@@ -2171,7 +2171,7 @@ const RBv1_081: RuleCheck = {
   title: 'Bedroom windows avoid direct west-facing in warm climates without shading',
   severity: 'warning',
   applies: layout => !!layout.siteOrientation && roomsByType(layout, 'bedroom').length > 0,
-  check(layout, ctx): import('./validator.js').Violation[] {
+  check(layout, ctx): Violation[] {
     if (!layout.siteOrientation) return [];
     return roomsByType(layout, 'bedroom')
       .filter(r => {
@@ -2195,7 +2195,7 @@ const RBv1_082: RuleCheck = {
     const l = (r.label ?? '').toLowerCase();
     return l.includes('canopy') || l.includes('marquee') || l.includes('porch');
   }),
-  check(layout): import('./validator.js').Violation[] {
+  check(layout): Violation[] {
     const canopyRooms = validRooms(layout).filter(r => {
       const l = (r.label ?? '').toLowerCase();
       return l.includes('canopy') || l.includes('marquee') || l.includes('porch');
@@ -2217,7 +2217,7 @@ const RBv1_083: RuleCheck = {
   title: 'Garage door faces driveway or approach side',
   severity: 'warning',
   applies: layout => !!layout.siteOrientation && roomsByType(layout, 'garage').length > 0,
-  check(layout, ctx): import('./validator.js').Violation[] {
+  check(layout, ctx): Violation[] {
     if (!layout.siteOrientation) return [];
     return roomsByType(layout, 'garage')
       .filter(r => !roomFacingDirections(r, layout.siteOrientation!, ctx.dimW, ctx.dimD).has(layout.siteOrientation!))
@@ -2235,7 +2235,7 @@ const RBv1_084: RuleCheck = {
   title: 'Fireplace positioned on external wall for chimney routing',
   severity: 'warning',
   applies: layout => (layout.fireplaces?.length ?? 0) > 0,
-  check(layout, ctx): import('./validator.js').Violation[] {
+  check(layout, ctx): Violation[] {
     const fireplaces = layout.fireplaces;
     if (!fireplaces || fireplaces.length === 0) return [];
     const roomMap = new Map(validRooms(layout).map(r => [r.id, r]));
@@ -2258,7 +2258,7 @@ const RBv1_085: RuleCheck = {
   title: 'Floor level step-downs to terrace toward garden side, not street side',
   severity: 'warning',
   applies: layout => !!layout.siteOrientation && (layout.floorLevels?.length ?? 0) > 1,
-  check(layout, ctx): import('./validator.js').Violation[] {
+  check(layout, ctx): Violation[] {
     if (!layout.siteOrientation) return [];
     const levels = layout.floorLevels;
     if (!levels || levels.length < 2) return [];
@@ -2297,7 +2297,7 @@ const RBv1_086: RuleCheck = {
   title: 'Kitchen should have distinct cooking, washing, and storage zones',
   severity: 'warning',
   applies: layout => (layout.kitchenFixtures?.length ?? 0) > 0,
-  check(layout): import('./validator.js').Violation[] {
+  check(layout): Violation[] {
     const fixtures = layout.kitchenFixtures;
     if (!fixtures || fixtures.length === 0) return [];
     const required: Array<'cooking' | 'washing' | 'storage'> = ['cooking', 'washing', 'storage'];
@@ -2318,7 +2318,7 @@ const RBv1_087: RuleCheck = {
   title: 'Bathroom should contain at least one fixture zone (WC, bath, or shower)',
   severity: 'warning',
   applies: layout => (layout.bathroomFixtures?.length ?? 0) > 0,
-  check(layout): import('./validator.js').Violation[] {
+  check(layout): Violation[] {
     const fixtures = layout.bathroomFixtures;
     if (!fixtures || fixtures.length === 0) return [];
     const validFixtures = new Set<string>(['wc', 'bath', 'shower']);
@@ -2435,7 +2435,7 @@ const RBv1_093: RuleCheck = {
 const RBv1_094: RuleCheck = {
   id: 'RBv1-094', ruleId: 'R-094', title: 'Kitchen counter minimum depth 0.60m', severity: 'warning',
   applies: layout => (layout.kitchenFixtures ?? []).some(kf => kf.counterDepth !== undefined),
-  check(layout, ctx): import('./validator.js').Violation[] {
+  check(layout, ctx): Violation[] {
     const fixtures = layout.kitchenFixtures;
     if (!fixtures || fixtures.length === 0) return [];
     const threshold = lenM(0.60, ctx);
