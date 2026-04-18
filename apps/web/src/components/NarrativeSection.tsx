@@ -17,20 +17,7 @@
 
 import { useEffect, useRef, useState } from 'react'
 import { motion, useInView } from 'framer-motion'
-
-// ─── shared reduced-motion hook ────────────────────────────────────────────
-
-function useReducedMotion() {
-  const [reduce, setReduce] = useState(false)
-  useEffect(() => {
-    const mq = window.matchMedia('(prefers-reduced-motion: reduce)')
-    const sync = () => setReduce(!!mq.matches)
-    sync()
-    mq.addEventListener?.('change', sync)
-    return () => mq.removeEventListener?.('change', sync)
-  }, [])
-  return reduce
-}
+import { useReducedMotion } from '@/lib/hooks/useReducedMotion'
 
 // ─── Step 1 illustration: typewriter prompt ─────────────────────────────────
 
@@ -203,7 +190,7 @@ function ExportIllustration({ reduce }: { reduce: boolean }) {
   const inView = useInView(ref as React.RefObject<Element>, { once: true, margin: '-80px' })
 
   return (
-    <div ref={ref} className="flex flex-col gap-2.5">
+    <div ref={ref} className="flex flex-col gap-2.5" data-testid="export-file-cards">
       {EXPORT_FILES.map(({ label, desc, color }, i) => (
         <motion.div
           key={label}
