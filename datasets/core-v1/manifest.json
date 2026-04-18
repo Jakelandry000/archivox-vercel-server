@@ -1,0 +1,115 @@
+{
+  "createdAt": "2026-03-08T21:57:23.831Z",
+  "zipPath": "/dataset/packages/archivox_18_dxfs.zip",
+  "outDir": "/data/.openclaw/workspace/archivox-vercel-server/datasets/core-v1/derived",
+  "plans": [
+    {
+      "planId": "10_Archivox_Simple-Small-House-710201",
+      "fileName": "10_Archivox_Simple-Small-House-710201.dxf",
+      "outPath": "derived/10_Archivox_Simple-Small-House-710201.plangraph.json",
+      "roomCount": 1
+    },
+    {
+      "planId": "11_Archivox_One-storey-House-With-Two-Bedrooms-Autocad-Plan-2210201",
+      "fileName": "11_Archivox_One-storey-House-With-Two-Bedrooms-Autocad-Plan-2210201.dxf",
+      "outPath": "derived/11_Archivox_One-storey-House-With-Two-Bedrooms-Autocad-Plan-2210201.plangraph.json",
+      "roomCount": 0
+    },
+    {
+      "planId": "12_Archivox_single-level-country-house-210201",
+      "fileName": "12_Archivox_single-level-country-house-210201.dxf",
+      "outPath": "derived/12_Archivox_single-level-country-house-210201.plangraph.json",
+      "roomCount": 0
+    },
+    {
+      "planId": "13_Archivox_4-bedroom-house",
+      "fileName": "13_Archivox_4-bedroom-house.dxf",
+      "outPath": "derived/13_Archivox_4-bedroom-house.plangraph.json",
+      "roomCount": 1
+    },
+    {
+      "planId": "14_Archivox_Simple-Bungalow-2409201",
+      "fileName": "14_Archivox_Simple-Bungalow-2409201.dxf",
+      "outPath": "derived/14_Archivox_Simple-Bungalow-2409201.plangraph.json",
+      "roomCount": 0
+    },
+    {
+      "planId": "15_Archivox_Simple-Two-Bedroom-House-2107201",
+      "fileName": "15_Archivox_Simple-Two-Bedroom-House-2107201.dxf",
+      "outPath": "derived/15_Archivox_Simple-Two-Bedroom-House-2107201.plangraph.json",
+      "roomCount": 0
+    },
+    {
+      "planId": "16_Archivox_Single-family-residence",
+      "fileName": "16_Archivox_Single-family-residence.dxf",
+      "outPath": "derived/16_Archivox_Single-family-residence.plangraph.json",
+      "roomCount": 0
+    },
+    {
+      "planId": "17_Archivox_One-storey",
+      "fileName": "17_Archivox_One-storey.dxf",
+      "outPath": "derived/17_Archivox_One-storey.plangraph.json",
+      "roomCount": 0
+    },
+    {
+      "planId": "18_Archivox_One-story-house-1904202",
+      "fileName": "18_Archivox_One-story-house-1904202.dxf",
+      "outPath": "derived/18_Archivox_One-story-house-1904202.plangraph.json",
+      "roomCount": 0
+    },
+    {
+      "planId": "1Archivox_35X25-One-bedroom-house",
+      "fileName": "1Archivox_35X25-One-bedroom-house.dxf",
+      "outPath": "derived/1Archivox_35X25-One-bedroom-house.plangraph.json",
+      "roomCount": 0
+    },
+    {
+      "planId": "2Archivox_Small-2-bedroom-flat",
+      "fileName": "2Archivox_Small-2-bedroom-flat.dxf",
+      "outPath": "derived/2Archivox_Small-2-bedroom-flat.plangraph.json",
+      "roomCount": 1
+    },
+    {
+      "planId": "3_Archivox_Sloped-Lot-Home-with-Underground-Parking-1",
+      "fileName": "3_Archivox_Sloped-Lot-Home-with-Underground-Parking-1.dxf",
+      "outPath": "derived/3_Archivox_Sloped-Lot-Home-with-Underground-Parking-1.plangraph.json",
+      "roomCount": 1
+    },
+    {
+      "planId": "4_Archivox_Two-Bedrooms-Open-Plan-House-970-sq.ft_",
+      "fileName": "4_Archivox_Two-Bedrooms-Open-Plan-House-970-sq.ft_.dxf",
+      "outPath": "derived/4_Archivox_Two-Bedrooms-Open-Plan-House-970-sq.ft_.plangraph.json",
+      "roomCount": 2
+    },
+    {
+      "planId": "5_Archivox_Small-two-bedroom-villa",
+      "fileName": "5_Archivox_Small-two-bedroom-villa.dxf",
+      "outPath": "derived/5_Archivox_Small-two-bedroom-villa.plangraph.json",
+      "roomCount": 0
+    },
+    {
+      "planId": "6_Archivox_Big-House-Patio-Terrace",
+      "fileName": "6_Archivox_Big-House-Patio-Terrace.dxf",
+      "outPath": "derived/6_Archivox_Big-House-Patio-Terrace.plangraph.json",
+      "roomCount": 2
+    },
+    {
+      "planId": "7_Archivox_One-story-3-Bedrooms-House-Autocad-Plan",
+      "fileName": "7_Archivox_One-story-3-Bedrooms-House-Autocad-Plan.dxf",
+      "outPath": "derived/7_Archivox_One-story-3-Bedrooms-House-Autocad-Plan.plangraph.json",
+      "roomCount": 0
+    },
+    {
+      "planId": "8_Archivox_Single-Three-bedroom-House-AutoCAD-Plan",
+      "fileName": "8_Archivox_Single-Three-bedroom-House-AutoCAD-Plan.dxf",
+      "outPath": "derived/8_Archivox_Single-Three-bedroom-House-AutoCAD-Plan.plangraph.json",
+      "roomCount": 0
+    },
+    {
+      "planId": "9_Archivox_Apartment-Loft-Autocad-Plan",
+      "fileName": "9_Archivox_Apartment-Loft-Autocad-Plan.dxf",
+      "outPath": "derived/9_Archivox_Apartment-Loft-Autocad-Plan.plangraph.json",
+      "roomCount": 0
+    }
+  ]
+}
