@@ -32,3 +32,14 @@ model FloorPlan {
   createdAt DateTime        @default(now())
   updatedAt DateTime        @updatedAt
 }
+
+model Render {
+  id          String   @id @default(cuid())
+  projectId   String?
+  originalUrl String
+  renderedUrl String?
+  prompt      String
+  status      String   @default("pending")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
