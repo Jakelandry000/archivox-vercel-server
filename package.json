@@ -10,7 +10,7 @@
     "dev": "npm run dev --workspace @archivox/web",
     "build": "npm run build --workspace @archivox/web",
     "lint": "npm run lint --workspaces",
-    "test": "npx tsx packages/core/src/validator.test.ts",
+    "test": "npx tsx packages/core/src/validator.test.ts && npx tsx packages/core/src/rulebookV1Checks.test.ts",
     "test:e2e": "npx playwright test",
     "test:e2e:headed": "npx playwright test --headed",
     "test:e2e:motion": "npx playwright test e2e/motion-test",
