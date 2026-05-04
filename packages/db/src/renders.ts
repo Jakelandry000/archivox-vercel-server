@@ -1,4 +1,4 @@
-import { prisma } from './index.js'
+import { prisma } from './client'
 
 interface CreateRenderInput {
   originalUrl: string

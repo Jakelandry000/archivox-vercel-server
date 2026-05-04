@@ -9,7 +9,7 @@ vi.mock('@vercel/blob', () => ({
   put: vi.fn().mockResolvedValue({ url: 'https://blob.vercel-storage.com/rendered-abc.png' }),
 }))
 
-vi.mock('@archivox/db/renders', () => ({
+vi.mock('@archivox/db', () => ({
   createRender: vi.fn().mockResolvedValue({ id: 'render-1', status: 'pending' }),
   updateRender: vi.fn().mockResolvedValue({ id: 'render-1', status: 'complete' }),
 }))

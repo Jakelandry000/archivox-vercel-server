@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest'
-import { prisma } from './index.js'
-import { createRender, getRendersByProject, updateRender } from './renders.js'
+import { prisma } from './client'
+import { createRender, getRendersByProject, updateRender } from './renders'
 
 beforeEach(async () => {
   await prisma.render.deleteMany()

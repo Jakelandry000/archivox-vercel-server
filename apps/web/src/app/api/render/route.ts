@@ -1,7 +1,7 @@
 import { put } from '@vercel/blob'
 import { NextResponse } from 'next/server'
 import { renderImage } from '@/lib/imagen'
-import { createRender, updateRender } from '@archivox/db/renders'
+import { createRender, updateRender } from '@archivox/db'
 
 export async function POST(request: Request) {
   const body = await request.json()

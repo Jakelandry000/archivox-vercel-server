@@ -21,7 +21,7 @@ function Nav() {
         </span>
       </Link>
       <div style={{ display: 'flex', gap: 4, marginLeft: 32 }}>
-        {[['Studio', '/project/demo/editor'], ['Dashboard', '/dashboard'], ['Pricing', '/#pricing']].map(([t, to]) => (
+        {[['Studio', '/project/demo/editor'], ['Render', '/studio/render'], ['Dashboard', '/dashboard'], ['Pricing', '/#pricing']].map(([t, to]) => (
           <Link key={t} href={to} className="btn btn-link"
             style={{ padding: '6px 12px', color: 'rgb(var(--muted-rgb))', fontSize: 13 }}>{t}</Link>
         ))}
