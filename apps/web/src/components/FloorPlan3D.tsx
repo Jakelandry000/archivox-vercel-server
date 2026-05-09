@@ -143,19 +143,34 @@ export function FloorPlan3D({ layout, className }: FloorPlan3DProps) {
   const maxDim = Math.max(width, depth, 1);
   const zoom = Math.max(15, Math.min(60, Math.round(380 / maxDim)));
 
+  // In wall mode, camera starts at an isometric southeast position so walls,
+  // doors, and windows are visible. In plan mode, stay top-down.
+  const cx = width / 2;
+  const cz = depth / 2;
+  const camPos: [number, number, number] = hasWalls
+    ? [cx + maxDim * 0.55, maxDim * 0.5, cz + maxDim * 0.65]
+    : [cx, 20, cz];
+  const orbitTarget: [number, number, number] = hasWalls
+    ? [cx, WALL_HEIGHT / 2, cz]
+    : [cx, 0, cz];
+
   return (
     <div className={className} style={{ width: '100%', height: '100%' }}>
       <Canvas shadows>
         <OrthographicCamera
           makeDefault
-          position={[width / 2, 20, depth / 2]}
+          position={camPos}
           zoom={zoom}
           near={0.1}
           far={200}
         />
         <ambientLight intensity={0.6} />
-        <directionalLight position={[5, 10, 5]} castShadow intensity={1} />
-        <mesh rotation={[-Math.PI / 2, 0, 0]} receiveShadow>
+        <directionalLight
+          position={[width / 2 + maxDim * 0.6, maxDim * 0.8, depth / 2 - maxDim * 0.3]}
+          castShadow
+          intensity={1.2}
+        />
+        <mesh position={[width / 2, 0, depth / 2]} rotation={[-Math.PI / 2, 0, 0]} receiveShadow>
           <planeGeometry args={[width, depth]} />
           <meshStandardMaterial color="#121a16" />
         </mesh>
@@ -202,7 +217,7 @@ export function FloorPlan3D({ layout, className }: FloorPlan3DProps) {
           enablePan
           enableZoom
           maxPolarAngle={Math.PI / 2}
-          target={[width / 2, 0, depth / 2]}
+          target={orbitTarget}
         />
       </Canvas>
     </div>
