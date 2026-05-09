@@ -6,7 +6,7 @@
  * generateAndValidate contain no overlapping or contained rooms.
  */
 
-import { generateLayoutFromText, generateAndValidate } from './index.js';
+import { generateLayoutFromText, generateAndValidate, generateWithLLM, extractRoomProgram } from './index.js';
 import { LayoutV1 } from '@archivox/core';
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -24,6 +24,21 @@ function test(name: string, fn: () => void) {
     console.error(`     ${e.message}`);
     failed++;
   }
+}
+
+const asyncTests: Array<Promise<void>> = [];
+
+function asyncTest(name: string, fn: () => Promise<void>): void {
+  asyncTests.push(
+    fn().then(() => {
+      console.log(`  ✓  ${name}`);
+      passed++;
+    }).catch((e: any) => {
+      console.error(`  ✗  ${name}`);
+      console.error(`     ${e.message}`);
+      failed++;
+    }),
+  );
 }
 
 function assert(condition: boolean, msg: string) {
@@ -227,7 +242,92 @@ test('early-exit on high combined score: bestScore >= earlyExitScore stops loop'
   assert(result.meta.scores.length === 1, `Expected 1 score entry, got ${result.meta.scores.length}`);
 });
 
+// ── generateWithLLM — async generation (heuristic fallback path) ──────────────
+
+console.log('\ngenerateWithLLM — async generation (no API key / heuristic fallback)');
+
+asyncTest('generateWithLLM without API key returns valid GenerateResult shape', async () => {
+  const savedKey = process.env.ANTHROPIC_API_KEY;
+  delete process.env.ANTHROPIC_API_KEY;
+  try {
+    const result = await generateWithLLM(
+      { prompt: '2 bedrooms 1 bathroom', width: 40, depth: 30, seed: 42 },
+      { maxAttempts: 2, priors: null },
+    );
+    assert(typeof result.layout === 'object' && result.layout !== null, 'layout must be an object');
+    assert(Array.isArray(result.layout.rooms), 'layout.rooms must be an array');
+    assert(result.layout.rooms.length > 0, 'layout must have at least one room');
+    assert(typeof result.attempts === 'number' && result.attempts >= 1, 'attempts must be >= 1');
+    assert(typeof result.meta.bestScore === 'number', 'meta.bestScore must be a number');
+    assert(Array.isArray(result.meta.scores), 'meta.scores must be an array');
+    assert(result.meta.scores.length === result.meta.attempts, 'meta.scores.length must equal meta.attempts');
+  } finally {
+    if (savedKey !== undefined) process.env.ANTHROPIC_API_KEY = savedKey;
+  }
+});
+
+asyncTest('generateWithLLM without API key falls back to heuristic strategy', async () => {
+  const savedKey = process.env.ANTHROPIC_API_KEY;
+  delete process.env.ANTHROPIC_API_KEY;
+  try {
+    const result = await generateWithLLM(
+      { prompt: '3 bedrooms 2 bathrooms', width: 50, depth: 36, seed: 7 },
+      { maxAttempts: 1, priors: null },
+    );
+    assert(
+      result.meta.debug[0].strategy === 'heuristic-fallback',
+      `expected strategy 'heuristic-fallback', got '${result.meta.debug[0].strategy}'`,
+    );
+  } finally {
+    if (savedKey !== undefined) process.env.ANTHROPIC_API_KEY = savedKey;
+  }
+});
+
+asyncTest('generateWithLLM without API key produces geometry with no overlaps or containment', async () => {
+  const savedKey = process.env.ANTHROPIC_API_KEY;
+  delete process.env.ANTHROPIC_API_KEY;
+  try {
+    const result = await generateWithLLM(
+      { prompt: '3 bedrooms 2 bathrooms', width: 50, depth: 36, seed: 7 },
+      { maxAttempts: 1, priors: null },
+    );
+    assertNoOverlapOrContainment(result.layout, 'generateWithLLM-3bed');
+  } finally {
+    if (savedKey !== undefined) process.env.ANTHROPIC_API_KEY = savedKey;
+  }
+});
+
+asyncTest('generateWithLLM uses claude-haiku-4-5-20251001: extractRoomProgram returns null without API key', async () => {
+  // Documents the model constant in llm-planner.ts (claude-haiku-4-5-20251001).
+  // Without an API key, extractRoomProgram must return null gracefully.
+  const savedKey = process.env.ANTHROPIC_API_KEY;
+  delete process.env.ANTHROPIC_API_KEY;
+  try {
+    assert(typeof extractRoomProgram === 'function', 'extractRoomProgram must be exported');
+    const program = await extractRoomProgram('2 bedrooms 1 bathroom', 'feet', 40, 30);
+    assert(program === null, `expected null without API key, got: ${JSON.stringify(program)}`);
+  } finally {
+    if (savedKey !== undefined) process.env.ANTHROPIC_API_KEY = savedKey;
+  }
+});
+
+asyncTest('generateWithLLM early-exit on high earlyExitScore=0 takes 1 attempt (heuristic path)', async () => {
+  const savedKey = process.env.ANTHROPIC_API_KEY;
+  delete process.env.ANTHROPIC_API_KEY;
+  try {
+    const result = await generateWithLLM(
+      { prompt: '2 bedrooms 1 bathroom', width: 50, depth: 40, seed: 7 },
+      { maxAttempts: 8, earlyExitScore: 0, priors: null },
+    );
+    assert(result.meta.attempts === 1, `expected 1 attempt with earlyExitScore=0, got ${result.meta.attempts}`);
+  } finally {
+    if (savedKey !== undefined) process.env.ANTHROPIC_API_KEY = savedKey;
+  }
+});
+
 // ── Summary ───────────────────────────────────────────────────────────────────
+
+await Promise.all(asyncTests);
 
 console.log(`\n  ${passed} passed, ${failed} failed\n`);
 if (failed > 0) process.exit(1);

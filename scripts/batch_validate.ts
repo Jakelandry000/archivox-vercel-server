@@ -46,6 +46,17 @@ const N = countArg !== -1 ? parseInt(process.argv[countArg + 1] ?? '200', 10) : 
 const outArg = process.argv.indexOf('--out');
 const outFile: string | null = outArg !== -1 ? (process.argv[outArg + 1] ?? null) : null;
 
+// ── Typology detection ────────────────────────────────────────────────────────
+
+/** Returns 'residential' when the prompt describes a residential program, otherwise undefined. */
+function detectTypology(prompt: string): 'residential' | undefined {
+  const lower = (prompt ?? '').toLowerCase();
+  if (/\b(bedroom|bathroom|kitchen|living\s+room|garage|laundry)\b/.test(lower)) {
+    return 'residential';
+  }
+  return undefined;
+}
+
 // ── Run batch ─────────────────────────────────────────────────────────────────
 
 type RunRecord = {
@@ -69,8 +80,9 @@ for (let i = 0; i < N; i++) {
     { maxAttempts: 1, priors: null }, // single attempt so we see raw generator output
   );
 
-  // Merge base violations + RB rule check violations
-  const rbViolations = runChecks(gen.layout);
+  // Merge base violations + RB rule check violations, scoped to residential when applicable
+  const typology = detectTypology(template.input.prompt);
+  const rbViolations = runChecks(gen.layout, undefined, typology);
   const allViolations = [
     ...gen.validation.violations.map(v => ({ code: v.code, severity: v.severity })),
     ...rbViolations.map(v => ({ code: v.code, severity: v.severity })),

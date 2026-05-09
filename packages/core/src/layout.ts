@@ -15,6 +15,8 @@ export interface DoorElement {
   clearWidth: number;
   wallSegmentId?: string;
   position?: { x: number; y: number };
+  /** Normalized offset [0–1] along the wall segment from start to end; omit to use midpoint */
+  offsetAlongWall?: number;
 }
 
 export interface WallSegment {
@@ -35,6 +37,8 @@ export interface WindowElement {
   wallSegmentId?: string;
   position?: { x: number; y: number };
   type?: 'standard' | 'glazed' | 'clerestory';
+  /** Normalized offset [0–1] along the wall segment from start to end; omit to use midpoint */
+  offsetAlongWall?: number;
 }
 
 export interface FloorLevelElement {

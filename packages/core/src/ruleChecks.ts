@@ -43,6 +43,13 @@ export interface RuleCheck {
    */
   ruleId?: string | null;
   /**
+   * Building typology category.
+   * - 'residential': rule is specific to residential programs (bedrooms, bathrooms, kitchens, etc.)
+   * - 'general': rule applies across building typologies (geometry, structure, labelling, etc.)
+   * Defaults to 'general' when absent.
+   */
+  category?: 'general' | 'residential';
+  /**
    * Optional guard: return false to skip this check for the given layout.
    * Defaults to always run.
    */
@@ -71,9 +78,13 @@ export function listChecks(): RuleCheck[] {
 
 /**
  * Run all registered checks against `layout` and return combined violations.
- * Optionally pass a subset of check IDs to run only those.
+ * Optionally pass a subset of check IDs and/or a building typology category filter.
  */
-export function runChecks(layout: LayoutV1, ids?: string[]): Violation[] {
+export function runChecks(
+  layout: LayoutV1,
+  ids?: string[],
+  category?: 'general' | 'residential',
+): Violation[] {
   const ctx: CheckContext = {
     units: layout.units,
     dimW: layout.dimensions.width,
@@ -81,9 +92,13 @@ export function runChecks(layout: LayoutV1, ids?: string[]): Violation[] {
     ftToUnit: layout.units === 'meters' ? 0.3048 : 1,
   };
 
-  const active = ids
+  let active = ids
     ? _registry.filter(c => ids.includes(c.id))
     : _registry;
+
+  if (category) {
+    active = active.filter(c => (c.category ?? 'general') === category);
+  }
 
   const violations: Violation[] = [];
   for (const check of active) {

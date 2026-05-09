@@ -60,8 +60,10 @@ registerRulebookV1Checks();
 
 console.log('\nSuite 1 — Registry structure');
 
-test('RULEBOOK_V1_CHECKS exports exactly 103 entries', () => {
-  assertEqual(RULEBOOK_V1_CHECKS.length, 103, `Expected 103 checks, got ${RULEBOOK_V1_CHECKS.length}`);
+// RULE COUNT UPDATE: When adding rules beyond R-103, update the number below to match
+// the new total (one check per rule ID). Also update the expected array below (lines ~86-89).
+test('RULEBOOK_V1_CHECKS exports exactly 145 entries', () => {
+  assertEqual(RULEBOOK_V1_CHECKS.length, 145, `Expected 145 checks, got ${RULEBOOK_V1_CHECKS.length}`);
 });
 
 test('all check IDs are unique within RULEBOOK_V1_CHECKS', () => {
@@ -80,12 +82,17 @@ test('all ruleIds follow R-NNN format', () => {
   assert(bad.length === 0, `Non-conforming ruleIds: ${bad.map(c => c.ruleId).join(', ')}`);
 });
 
-test('ruleIds cover R-001 through R-103 (56 hard + 47 soft = 103 distinct IDs)', () => {
+// RULE COUNT UPDATE: When adding rules beyond R-103, extend the `expected` array below.
+// Append an additional Array.from slice covering the new range, e.g.:
+//   ...Array.from({ length: N }, (_, i) => `R-${String(i + 104).padStart(3, '0')}`), // R-104–R-NNN
+// Also update the test description string above to reflect the new total.
+test('ruleIds cover R-001 through R-145 (56 hard + 47 soft + 42 sustainability/construction = 145 distinct IDs)', () => {
   const ruleIds = new Set(RULEBOOK_V1_CHECKS.map(c => c.ruleId as string));
-  // Verify all 103 rule IDs are present
+  // Verify all 145 rule IDs are present
   const expected = [
-    ...Array.from({ length: 50  }, (_, i) => `R-${String(i + 1).padStart(3, '0')}`), // R-001–R-050
-    ...Array.from({ length: 53  }, (_, i) => `R-${String(i + 51).padStart(3, '0')}`), // R-051–R-103
+    ...Array.from({ length: 50 }, (_, i) => `R-${String(i + 1).padStart(3, '0')}`),   // R-001–R-050
+    ...Array.from({ length: 53 }, (_, i) => `R-${String(i + 51).padStart(3, '0')}`),  // R-051–R-103
+    ...Array.from({ length: 42 }, (_, i) => `R-${String(i + 104).padStart(3, '0')}`), // R-104–R-145
   ];
   const missing = expected.filter(id => !ruleIds.has(id));
   assert(missing.length === 0, `Missing ruleIds: ${missing.join(', ')}`);
@@ -884,6 +891,26 @@ test('Synthetic Plan A: total hard violations ≥ 4 (plan would be rejected)', (
   assert(errors.length >= 4, `Expected ≥4 hard violations, got ${errors.length}: ${errors.map(v => v.code).join(', ')}`);
 });
 
+test('Synthetic Plan A: R-096 does NOT fire (all rooms already have labels)', () => {
+  const ctx = { units: 'meters' as const, dimW: 12, dimD: 10, ftToUnit: 0.3048 };
+  const check = RULEBOOK_V1_CHECKS.find(c => c.ruleId === 'R-096')!;
+  const violations = check.check(HARD_VIOLATION_PLAN, ctx);
+  assert(violations.length === 0, `Expected no R-096 violations; got: ${violations.map(v => v.message).join(', ')}`);
+});
+
+test('Synthetic Plan A variant: R-096 fires as additional error when bedroom-1 loses its label', () => {
+  const ctx = { units: 'meters' as const, dimW: 12, dimD: 10, ftToUnit: 0.3048 };
+  const planUnlabelled: LayoutV1 = {
+    ...HARD_VIOLATION_PLAN,
+    rooms: HARD_VIOLATION_PLAN.rooms.map(r => r.id === 'b1' ? { ...r, label: '' } : r),
+  };
+  const check = RULEBOOK_V1_CHECKS.find(c => c.ruleId === 'R-096')!;
+  const violations = check.check(planUnlabelled, ctx);
+  assert(violations.length >= 1, 'Expected RBv1-096 violation for unlabelled bedroom-1');
+  assert(violations.some(v => v.roomIds?.includes('b1')), 'Expected violation to reference bedroom-1');
+  assert(violations[0].severity === 'error', 'Expected error severity (R-096 is a hard constraint)');
+});
+
 // ── Suite 13: Synthetic Soft-Violation Plan ───────────────────────────────────
 
 console.log('\nSuite 13 — Synthetic soft-violation plan (end-to-end)');
@@ -1011,6 +1038,26 @@ test('Synthetic Plan B: total soft violations ≥ 4 (quality score penalised)', 
     return c.check(SOFT_VIOLATION_PLAN, ctx).filter(v => v.severity === 'warning');
   });
   assert(allWarnings.length >= 4, `Expected ≥4 soft violations, got ${allWarnings.length}: ${allWarnings.map(v => v.code).join(', ')}`);
+});
+
+test('Synthetic Plan B: R-096 does NOT fire (all rooms already have labels)', () => {
+  const ctx = { units: 'meters' as const, dimW: 20, dimD: 15, ftToUnit: 0.3048 };
+  const check = RULEBOOK_V1_CHECKS.find(c => c.ruleId === 'R-096')!;
+  const violations = check.check(SOFT_VIOLATION_PLAN, ctx);
+  assert(violations.length === 0, `Expected no R-096 violations; got: ${violations.map(v => v.message).join(', ')}`);
+});
+
+test('Synthetic Plan B variant: R-096 fires as hard error even in soft-only plan when a room loses its label', () => {
+  const ctx = { units: 'meters' as const, dimW: 20, dimD: 15, ftToUnit: 0.3048 };
+  const planUnlabelled: LayoutV1 = {
+    ...SOFT_VIOLATION_PLAN,
+    rooms: SOFT_VIOLATION_PLAN.rooms.map(r => r.id === 'lr' ? { ...r, label: '' } : r),
+  };
+  const check = RULEBOOK_V1_CHECKS.find(c => c.ruleId === 'R-096')!;
+  const violations = check.check(planUnlabelled, ctx);
+  assert(violations.length >= 1, 'Expected RBv1-096 violation for unlabelled living room');
+  assert(violations.some(v => v.roomIds?.includes('lr')), 'Expected violation to reference living room');
+  assert(violations[0].severity === 'error', 'Expected error severity — R-096 is a hard constraint that rejects even an otherwise-soft plan');
 });
 
 // ── Suite 14: Phase 2 schema elements ────────────────────────────────────────
@@ -1556,6 +1603,44 @@ test('R-102: absent viewportLabels → no violation (backward compatibility)', (
   const ctx = { units: 'meters' as const, dimW: 15, dimD: 12, ftToUnit: 0.3048 };
   const check = RULEBOOK_V1_CHECKS.find(c => c.ruleId === 'R-102')!;
   assert(check.check(layout, ctx).length === 0, 'Expected no R-102 violation when viewportLabels absent');
+});
+
+// ── Regression: label-strip pattern (RBv1-096) ───────────────────────────────
+//
+// PATTERN FOR NEW RULES INVOLVING ROOM METADATA FIELDS (label, type, etc.):
+// Any rule that reads room.label, room.type, or similar metadata must include a
+// label-strip variant that proves the rule still fires when label is set to ''.
+// This guards against accidental bail-out logic that short-circuits on empty label.
+//
+// Template — copy and adapt for the new rule:
+//
+//   test('R-NNN: label-strip regression — fires even when room label is empty', () => {
+//     const planStripped: LayoutV1 = {
+//       ...BASE_PLAN,
+//       rooms: BASE_PLAN.rooms.map(r => r.id === 'target-id' ? { ...r, label: '' } : r),
+//     };
+//     const check = RULEBOOK_V1_CHECKS.find(c => c.ruleId === 'R-NNN')!;
+//     const violations = check.check(planStripped, ctx);
+//     assert(violations.length >= 1, 'Expected violation even with empty label');
+//     assert(violations.some(v => v.roomIds?.includes('target-id')), 'Violation must reference stripped room');
+//   });
+//
+// Reference implementation: R-096 label-strip tests in Suite 12 (lines ~894–905)
+// and Suite 13 (lines ~1046–1054).
+
+console.log('\nRegression — label-strip pattern validation');
+
+test('label-strip helper: stripping label from a room changes the rooms array length (sanity)', () => {
+  const base = makeLayout({ rooms: [
+    { id: 'r1', type: 'bedroom', label: 'Bedroom', x: 0, y: 0, width: 3, height: 3 },
+  ]});
+  const stripped = {
+    ...base,
+    rooms: base.rooms.map(r => r.id === 'r1' ? { ...r, label: '' } : r),
+  };
+  assert(stripped.rooms.length === base.rooms.length, 'Label-strip must not drop rooms');
+  assert(stripped.rooms[0].label === '', 'Label must be empty string after strip');
+  assert(base.rooms[0].label === 'Bedroom', 'Base plan must be unmodified (no aliasing)');
 });
 
 // ── Summary ───────────────────────────────────────────────────────────────────

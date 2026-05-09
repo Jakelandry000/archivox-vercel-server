@@ -1,7 +1,7 @@
 /**
  * ArchiVox Rule Book v1 Validator — Phase 3
  * ==========================================
- * Full implementation of R-001–R-103 (103 residential floor plan rules).
+ * Full implementation of R-001–R-145 (145 residential floor plan rules).
  * Source: archivox-rule-book-v1.md (vault: 20-projects/archivox/)
  * Manifest: rules/rulebook/archivox-rulebook-v1-manifest.json
  *
@@ -21,7 +21,7 @@
  * All new schema elements are optional on LayoutV1 — backward compatible.
  * Checks that require absent schema elements return [] and are skipped.
  *
- * Call registerRulebookV1Checks() once at startup to include all 103 checks
+ * Call registerRulebookV1Checks() once at startup to include all 145 checks
  * in runChecks(). Already called from packages/core/src/index.ts.
  */
 
@@ -2553,6 +2553,1011 @@ const RBv1_103: RuleCheck = {
   },
 };
 
+// ── Sustainability, Climate and Construction (R-104–R-145) ────────────────────
+
+const RBv1_104: RuleCheck = {
+  id: 'RBv1-104', ruleId: 'R-104',
+  title: 'Plan form compactness (aspect ratio ≤ 3:1)',
+  severity: 'info',
+  check(layout): Violation[] {
+    const { width, depth } = layout.dimensions;
+    if (width <= 0 || depth <= 0) return [];
+    if (validRooms(layout).length < 3) return [];
+    const ratio = Math.max(width, depth) / Math.min(width, depth);
+    if (ratio <= 3) return [];
+    return [{ code: 'RBv1-104', severity: 'info',
+      message: `Floor plan aspect ratio is ${ratio.toFixed(1)}:1 — must be ≤ 3:1 to maintain a compact form that minimises surface-to-volume ratio and passive heating/cooling loads (R-104 Near-Zero Carbon hierarchy).`,
+      value: ratio, threshold: 3 }];
+  },
+};
+
+const RBv1_105: RuleCheck = {
+  id: 'RBv1-105', ruleId: 'R-105',
+  title: 'Dominant room area balance (no room > 35% of total)',
+  severity: 'info',
+  check(layout, ctx): Violation[] {
+    const rooms = validRooms(layout);
+    if (rooms.length < 4) return [];
+    const factor = ctx.ftToUnit * ctx.ftToUnit;
+    const totalArea = rooms.reduce((s, r) => s + roomArea(r) / factor, 0);
+    if (totalArea === 0) return [];
+    const MAX_FRAC = 0.35;
+    const violations: Violation[] = [];
+    for (const r of rooms) {
+      const rArea = roomArea(r) / factor;
+      const frac = rArea / totalArea;
+      if (frac > MAX_FRAC) {
+        violations.push({ code: 'RBv1-105', severity: 'info',
+          message: `Room "${roomLabel(r)}" (${r.type}) occupies ${(frac * 100).toFixed(0)}% of total room area — must be ≤ 35% to maintain balanced structural distribution and limit embodied carbon concentration (R-105).`,
+          value: frac, threshold: MAX_FRAC });
+      }
+    }
+    return violations;
+  },
+};
+
+const RBv1_106: RuleCheck = {
+  id: 'RBv1-106', ruleId: 'R-106',
+  title: 'Interior buffer room present (≥ 5-room plans)',
+  severity: 'info',
+  check(layout, ctx): Violation[] {
+    const rooms = validRooms(layout);
+    if (rooms.length < 5) return [];
+    if (rooms.some(r => !touchesExterior(r, ctx.dimW, ctx.dimD))) return [];
+    return [{ code: 'RBv1-106', severity: 'info',
+      message: `Every room in this plan touches an exterior wall — include at least one interior buffer room (hall, closet, or bathroom) to provide thermal buffering between the habitable spaces and the building envelope (R-106 Climate Adaptation).` }];
+  },
+};
+
+const RBv1_107: RuleCheck = {
+  id: 'RBv1-107', ruleId: 'R-107',
+  title: 'Laundry must be adjacent to a hall or bathroom',
+  severity: 'info',
+  check(layout): Violation[] {
+    const rooms   = validRooms(layout);
+    const laundry = rooms.filter(r => r.type === 'laundry');
+    if (laundry.length === 0) return [];
+    const INTERIOR = new Set(['hall', 'bathroom']);
+    const violations: Violation[] = [];
+    for (const l of laundry) {
+      if (!rooms.some(r => INTERIOR.has(r.type) && roomsAreAdjacent(l, r))) {
+        violations.push({ code: 'RBv1-107', severity: 'info',
+          message: `Laundry room "${roomLabel(l)}" is not adjacent to any hall or bathroom — mechanical equipment should be within the protected interior zone, not isolated at the building perimeter (R-107 Flood Resilience).` });
+      }
+    }
+    return violations;
+  },
+};
+
+const RBv1_108: RuleCheck = {
+  id: 'RBv1-108', ruleId: 'R-108',
+  title: 'Plans with ≥ 3 bedrooms require ≥ 2 bathrooms',
+  severity: 'info',
+  check(layout): Violation[] {
+    const rooms = validRooms(layout);
+    const beds  = rooms.filter(r => r.type === 'bedroom');
+    const baths = rooms.filter(r => r.type === 'bathroom');
+    if (beds.length < 3 || baths.length >= 2) return [];
+    return [{ code: 'RBv1-108', severity: 'info',
+      message: `Plan has ${beds.length} bedrooms but only ${baths.length} bathroom(s) — at least 2 bathrooms are required for a ${beds.length}-bedroom plan to maintain sanitation access during passive-survivability conditions (R-108).`,
+      value: baths.length, threshold: 2 }];
+  },
+};
+
+const RBv1_109: RuleCheck = {
+  id: 'RBv1-109', ruleId: 'R-109',
+  title: 'Office rooms should touch the exterior boundary',
+  severity: 'info',
+  check(layout, ctx): Violation[] {
+    const rooms   = validRooms(layout);
+    const offices = rooms.filter(r => r.type === 'office');
+    if (offices.length === 0) return [];
+    const violations: Violation[] = [];
+    for (const o of offices) {
+      if (!touchesExterior(o, ctx.dimW, ctx.dimD)) {
+        violations.push({ code: 'RBv1-109', severity: 'info',
+          message: `Office "${roomLabel(o)}" does not touch an exterior wall — interior offices rely entirely on artificial lighting, significantly increasing lighting energy load and widening the actual-vs-designed performance gap (R-109 Net Zero Verification).` });
+      }
+    }
+    return violations;
+  },
+};
+
+const RBv1_110: RuleCheck = {
+  id: 'RBv1-110', ruleId: 'R-110',
+  title: 'All four building facades should be activated (≥ 6 rooms)',
+  severity: 'info',
+  check(layout, ctx): Violation[] {
+    const rooms = validRooms(layout);
+    if (rooms.length < 6) return [];
+    const tol = 0.5;
+    const inactive: string[] = [];
+    if (!rooms.some(r => r.x <= tol))                        inactive.push('left');
+    if (!rooms.some(r => r.x + r.width  >= ctx.dimW - tol)) inactive.push('right');
+    if (!rooms.some(r => r.y <= tol))                        inactive.push('top');
+    if (!rooms.some(r => r.y + r.height >= ctx.dimD - tol)) inactive.push('bottom');
+    if (inactive.length === 0) return [];
+    return [{ code: 'RBv1-110', severity: 'info',
+      message: `${inactive.length} facade(s) have no adjacent room — inactive faces: ${inactive.join(', ')}. In a ≥ 6-room plan, all four building faces should have rooms to ensure solar and wind microclimate conditions on every facade were considered in the massing (R-110).`,
+      value: inactive.length, threshold: 0 }];
+  },
+};
+
+const RBv1_111: RuleCheck = {
+  id: 'RBv1-111', ruleId: 'R-111',
+  title: 'At least one primary habitable room faces south',
+  severity: 'info',
+  check(layout, ctx): Violation[] {
+    const rooms = validRooms(layout);
+    if (rooms.length < 3) return [];
+    const PRIMARY = new Set(['living', 'living room', 'dining', 'bedroom', 'kitchen']);
+    const primary = rooms.filter(r => PRIMARY.has(r.type.toLowerCase()));
+    if (primary.length === 0 || primary.some(r => r.y + r.height >= ctx.dimD - 0.5)) return [];
+    return [{ code: 'RBv1-111', severity: 'info',
+      message: `No primary habitable room (living, dining, bedroom, kitchen) touches the south facade (bottom edge). In a heating-dominated climate, primary rooms should face south to benefit from passive solar gain (R-111).` }];
+  },
+};
+
+const RBv1_112: RuleCheck = {
+  id: 'RBv1-112', ruleId: 'R-112',
+  title: 'Rooms must occupy at least one pair of opposite facades',
+  severity: 'info',
+  check(layout, ctx): Violation[] {
+    const rooms = validRooms(layout);
+    if (rooms.length < 4) return [];
+    const tol = 0.5;
+    const hasLeft   = rooms.some(r => r.x <= tol);
+    const hasRight  = rooms.some(r => r.x + r.width  >= ctx.dimW - tol);
+    const hasTop    = rooms.some(r => r.y <= tol);
+    const hasBottom = rooms.some(r => r.y + r.height >= ctx.dimD - tol);
+    if ((hasLeft && hasRight) || (hasTop && hasBottom)) return [];
+    return [{ code: 'RBv1-112', severity: 'info',
+      message: `Rooms do not occupy any pair of opposite facades (left+right or top+bottom). Cross-ventilation requires openings on opposing faces — at least one opposing facade pair must have adjacent rooms (R-112).`,
+      value: 0, threshold: 1 }];
+  },
+};
+
+const RBv1_113: RuleCheck = {
+  id: 'RBv1-113', ruleId: 'R-113',
+  title: 'South-facing rooms ≤ 70% of total room area',
+  severity: 'info',
+  check(layout, ctx): Violation[] {
+    const rooms = validRooms(layout);
+    if (rooms.length < 3) return [];
+    const southRooms = rooms.filter(r => r.y + r.height >= ctx.dimD - 0.5);
+    if (southRooms.length === 0) return [];
+    const totalArea = rooms.reduce((s, r) => s + roomArea(r), 0);
+    const southArea = southRooms.reduce((s, r) => s + roomArea(r), 0);
+    const ratio = totalArea > 0 ? southArea / totalArea : 0;
+    if (ratio <= 0.70) return [];
+    return [{ code: 'RBv1-113', severity: 'info',
+      message: `South-facing rooms (bottom edge) account for ${Math.round(ratio * 100)}% of total room area (threshold: ≤ 70%). An over-exposed south zone leaves insufficient interior buffer for passive shading control; relocate some program away from the south face (R-113).`,
+      value: Math.round(ratio * 100), threshold: 70 }];
+  },
+};
+
+const RBv1_114: RuleCheck = {
+  id: 'RBv1-114', ruleId: 'R-114',
+  title: 'Floor plan depth ≥ 6m / 20ft for effective cross-ventilation',
+  severity: 'info',
+  check(layout, ctx): Violation[] {
+    const minDepth = ctx.units === 'meters' ? 6 : 20;
+    if (ctx.dimD >= minDepth) return [];
+    return [{ code: 'RBv1-114', severity: 'info',
+      message: `Floor plan depth is ${ctx.dimD} ${ctx.units} — below the ${minDepth} ${ctx.units} minimum for effective natural cross-ventilation. A plan shallower than ${minDepth} ${ctx.units} cannot develop a sufficient inlet-to-outlet flow path for passive ventilation (R-114).`,
+      value: ctx.dimD, threshold: minDepth }];
+  },
+};
+
+const RBv1_115: RuleCheck = {
+  id: 'RBv1-115', ruleId: 'R-115',
+  title: 'Room shorter dimension ≤ 7.5m / 25ft (daylighting depth limit)',
+  severity: 'info',
+  check(layout, ctx): Violation[] {
+    const rooms    = validRooms(layout);
+    const maxDepth = ctx.units === 'meters' ? 7.5 : 25;
+    const violations: Violation[] = [];
+    for (const r of rooms) {
+      const shorter = Math.min(r.width, r.height);
+      if (shorter > maxDepth) {
+        violations.push({ code: 'RBv1-115', severity: 'info',
+          message: `${roomLabel(r)} has a shorter dimension of ${shorter.toFixed(1)} ${ctx.units}, exceeding the ${maxDepth} ${ctx.units} daylighting depth limit. Interior areas beyond ${maxDepth} ${ctx.units} from a perimeter window cannot be adequately daylit (R-115).`,
+          value: shorter, threshold: maxDepth });
+      }
+    }
+    return violations;
+  },
+};
+
+const RBv1_116: RuleCheck = {
+  id: 'RBv1-116', ruleId: 'R-116',
+  title: 'North-zone area ≥ 25% of south-zone area (thermal mass balance)',
+  severity: 'info',
+  check(layout, ctx): Violation[] {
+    const rooms = validRooms(layout);
+    if (rooms.length < 3) return [];
+    const tol        = 0.5;
+    const southRooms = rooms.filter(r => r.y + r.height >= ctx.dimD - tol);
+    if (southRooms.length === 0) return [];
+    const northRooms = rooms.filter(r => r.y <= tol);
+    const southArea  = southRooms.reduce((s, r) => s + roomArea(r), 0);
+    const northArea  = northRooms.reduce((s, r) => s + roomArea(r), 0);
+    const ratio = southArea > 0 ? northArea / southArea : 1;
+    if (ratio >= 0.25) return [];
+    return [{ code: 'RBv1-116', severity: 'info',
+      message: `North-zone area (${northArea.toFixed(0)} sq ${ctx.units === 'meters' ? 'm' : 'ft'}) is only ${Math.round(ratio * 100)}% of south-zone area — below the 25% minimum. A plan dominated by south-facing rooms has insufficient north-zone thermal mass to buffer passive solar overheating (R-116).`,
+      value: Math.round(ratio * 100), threshold: 25 }];
+  },
+};
+
+const RBv1_117: RuleCheck = {
+  id: 'RBv1-117', ruleId: 'R-117',
+  title: 'Room area ≥ 55% of floor plate (plan efficiency)',
+  severity: 'info',
+  check(layout, ctx): Violation[] {
+    const rooms = validRooms(layout);
+    if (rooms.length < 4) return [];
+    const plateArea = ctx.dimW * ctx.dimD;
+    const roomTotal = rooms.reduce((s, r) => s + roomArea(r), 0);
+    const ratio = plateArea > 0 ? roomTotal / plateArea : 1;
+    if (ratio >= 0.55) return [];
+    return [{ code: 'RBv1-117', severity: 'info',
+      message: `Room area covers ${Math.round(ratio * 100)}% of the floor plate (threshold: ≥ 55%). Excessive circulation voids reduce plan efficiency and increase gross area, embodied carbon, and heating/cooling loads per net programme square foot (R-117).`,
+      value: Math.round(ratio * 100), threshold: 55 }];
+  },
+};
+
+const RBv1_118: RuleCheck = {
+  id: 'RBv1-118', ruleId: 'R-118',
+  title: 'Primary habitable rooms on both north and south facades (dual orientation)',
+  severity: 'info',
+  check(layout, ctx): Violation[] {
+    const rooms = validRooms(layout);
+    if (rooms.length < 5) return [];
+    const PRIMARY = new Set(['living', 'living room', 'dining', 'bedroom', 'kitchen']);
+    const primary = rooms.filter(r => PRIMARY.has(r.type.toLowerCase()));
+    if (primary.length === 0) return [];
+    const tol      = 0.5;
+    const hasNorth = primary.some(r => r.y <= tol);
+    const hasSouth = primary.some(r => r.y + r.height >= ctx.dimD - tol);
+    if (hasNorth && hasSouth) return [];
+    const missing = !hasNorth ? 'north (top)' : 'south (bottom)';
+    return [{ code: 'RBv1-118', severity: 'info',
+      message: `No primary habitable room touches the ${missing} facade. A plan with habitable rooms on only one solar orientation cannot adapt to variable climate conditions across heating and cooling seasons (R-118).`,
+      value: hasNorth && hasSouth ? 2 : 1, threshold: 2 }];
+  },
+};
+
+const RBv1_119: RuleCheck = {
+  id: 'RBv1-119', ruleId: 'R-119',
+  title: 'Outdoor/green buffer rooms ≥ 5% of total area (≥ 6 rooms)',
+  severity: 'info',
+  check(layout): Violation[] {
+    const rooms      = validRooms(layout);
+    if (rooms.length < 6) return [];
+    const otherRooms = rooms.filter(r => r.type === 'other');
+    const totalArea  = rooms.reduce((s, r) => s + roomArea(r), 0);
+    const otherArea  = otherRooms.reduce((s, r) => s + roomArea(r), 0);
+    const ratio = totalArea > 0 ? otherArea / totalArea : 0;
+    if (ratio >= 0.05) return [];
+    return [{ code: 'RBv1-119', severity: 'info',
+      message: `'Other' (outdoor/green buffer) rooms account for ${Math.round(ratio * 100)}% of total room area (threshold: ≥ 5%). A ≥ 6-room plan with insufficient permeable/vegetated space contributes to heat-island amplification — include at least 5% of plan area as outdoor/green buffer (R-119).`,
+      value: Math.round(ratio * 100), threshold: 5 }];
+  },
+};
+
+const RBv1_120: RuleCheck = {
+  id: 'RBv1-120', ruleId: 'R-120',
+  title: 'Room dimensions within 0.25ft / 0.075m of a whole-unit value',
+  severity: 'warning',
+  check(layout, ctx): Violation[] {
+    const rooms = validRooms(layout);
+    const tol   = ctx.units === 'meters' ? 0.075 : 0.25;
+    const violations: Violation[] = [];
+    for (const r of rooms) {
+      const wDev = Math.abs(r.width  - Math.round(r.width));
+      const hDev = Math.abs(r.height - Math.round(r.height));
+      if (wDev > tol || hDev > tol) {
+        const bad: string[] = [];
+        if (wDev > tol) bad.push(`width ${r.width.toFixed(2)}`);
+        if (hDev > tol) bad.push(`height ${r.height.toFixed(2)}`);
+        violations.push({ code: 'RBv1-120', severity: 'warning',
+          message: `${roomLabel(r)} has non-modular dimension(s): ${bad.join(', ')} ${ctx.units}. Room dimensions should be within 0.25 ${ctx.units === 'meters' ? 'm' : 'ft'} of a whole-unit value to align with standard framing and masonry modules (R-120).`,
+          value: Math.max(wDev, hDev), threshold: tol });
+      }
+    }
+    return violations;
+  },
+};
+
+const RBv1_121: RuleCheck = {
+  id: 'RBv1-121', ruleId: 'R-121',
+  title: 'Complex plans (≥ 5 rooms, ≥ 4 types) require a service room',
+  severity: 'info',
+  check(layout): Violation[] {
+    const rooms = validRooms(layout);
+    if (rooms.length < 5) return [];
+    const types = new Set(rooms.map(r => r.type));
+    if (types.size < 4) return [];
+    const SERVICE = new Set(['utility', 'storage', 'laundry']);
+    if (rooms.some(r => SERVICE.has(r.type))) return [];
+    return [{ code: 'RBv1-121', severity: 'info',
+      message: `Plan has ${rooms.length} rooms and ${types.size} distinct types but no service room (utility, storage, or laundry). A dedicated service space is required for MEP shop drawing coordination in complex plans (R-121).` }];
+  },
+};
+
+const RBv1_122: RuleCheck = {
+  id: 'RBv1-122', ruleId: 'R-122',
+  title: 'Largest room area ≤ 5× median room area',
+  severity: 'info',
+  check(layout): Violation[] {
+    const rooms = validRooms(layout);
+    if (rooms.length < 4) return [];
+    const areas  = rooms.map(roomArea).sort((a, b) => a - b);
+    const mid    = Math.floor(areas.length / 2);
+    const median = areas.length % 2 === 0
+      ? (areas[mid - 1] + areas[mid]) / 2
+      : areas[mid];
+    const maxArea = areas[areas.length - 1];
+    const ratio   = median > 0 ? maxArea / median : 1;
+    if (ratio <= 5.0) return [];
+    const largest = rooms.reduce((a, b) => roomArea(a) >= roomArea(b) ? a : b);
+    return [{ code: 'RBv1-122', severity: 'info',
+      message: `Largest room (${roomLabel(largest)}, ${maxArea.toFixed(0)} sq units) is ${ratio.toFixed(1)}× the median room area (${median.toFixed(0)} sq units) — exceeds 5:1 max/median ratio. An over-programmed room signals a program that was not value-engineered before CDs (R-122).`,
+      value: Math.round(ratio * 10) / 10, threshold: 5.0 }];
+  },
+};
+
+const RBv1_123: RuleCheck = {
+  id: 'RBv1-123', ruleId: 'R-123',
+  title: 'No single room type > 60% of total room count (≥ 5 rooms)',
+  severity: 'info',
+  check(layout): Violation[] {
+    const rooms = validRooms(layout);
+    if (rooms.length < 5) return [];
+    const counts = new Map<string, number>();
+    for (const r of rooms) counts.set(r.type, (counts.get(r.type) ?? 0) + 1);
+    let maxType = '';
+    let maxCount = 0;
+    for (const [type, count] of counts) {
+      if (count > maxCount) { maxCount = count; maxType = type; }
+    }
+    const pct = maxCount / rooms.length;
+    if (pct <= 0.6) return [];
+    return [{ code: 'RBv1-123', severity: 'info',
+      message: `Room type '${maxType}' accounts for ${maxCount} of ${rooms.length} rooms (${Math.round(pct * 100)}% > 60% threshold). A program dominated by a single room type is incomplete — long-lead structural and MEP systems cannot be identified without a diverse room program (R-123).`,
+      value: Math.round(pct * 100), threshold: 60 }];
+  },
+};
+
+const RBv1_124: RuleCheck = {
+  id: 'RBv1-124', ruleId: 'R-124',
+  title: 'Rooms with longer dimension > 22ft / 6.7m require structural specification',
+  severity: 'info',
+  check(layout, ctx): Violation[] {
+    const rooms   = validRooms(layout);
+    const maxSpan = ctx.units === 'meters' ? 6.7 : 22;
+    const violations: Violation[] = [];
+    for (const r of rooms) {
+      const longer = Math.max(r.width, r.height);
+      if (longer > maxSpan) {
+        violations.push({ code: 'RBv1-124', severity: 'info',
+          message: `${roomLabel(r)} has a longer dimension of ${longer.toFixed(1)} ${ctx.units}, exceeding the ${maxSpan} ${ctx.units} standard-lumber span limit. Rooms this wide require engineered lumber or mass timber members that must be specified with species, grade, and treatment (R-124).`,
+          value: longer, threshold: maxSpan });
+      }
+    }
+    return violations;
+  },
+};
+
+const RBv1_125: RuleCheck = {
+  id: 'RBv1-125', ruleId: 'R-125',
+  title: 'Interior rooms must be adjacent to ≥ 2 other rooms',
+  severity: 'info',
+  check(layout, ctx): Violation[] {
+    const rooms = validRooms(layout);
+    if (rooms.length < 4) return [];
+    const violations: Violation[] = [];
+    for (const r of rooms) {
+      if (touchesExterior(r, ctx.dimW, ctx.dimD)) continue;
+      const adjCount = rooms.filter(o => o.id !== r.id && roomsAreAdjacent(r, o)).length;
+      if (adjCount < 2) {
+        violations.push({ code: 'RBv1-125', severity: 'info',
+          message: `${roomLabel(r)} is an interior room with only ${adjCount} adjacenc${adjCount === 1 ? 'y' : 'ies'} — interior rooms need ≥ 2 adjacencies to allow cross-ventilation and prevent moisture accumulation in framing lumber (R-125).`,
+          value: adjCount, threshold: 2 });
+      }
+    }
+    return violations;
+  },
+};
+
+const RBv1_126: RuleCheck = {
+  id: 'RBv1-126', ruleId: 'R-126',
+  title: 'Perimeter storage/utility rooms must have ≥ 2 room adjacencies',
+  severity: 'info',
+  check(layout, ctx): Violation[] {
+    const rooms   = validRooms(layout);
+    const SERVICE = new Set(['storage', 'utility']);
+    const violations: Violation[] = [];
+    for (const r of rooms) {
+      if (!SERVICE.has(r.type) || !touchesExterior(r, ctx.dimW, ctx.dimD)) continue;
+      const adjCount = rooms.filter(o => o.id !== r.id && roomsAreAdjacent(r, o)).length;
+      if (adjCount < 2) {
+        violations.push({ code: 'RBv1-126', severity: 'info',
+          message: `${roomLabel(r)} (${r.type}) touches the exterior boundary with only ${adjCount} room adjacenc${adjCount === 1 ? 'y' : 'ies'}. An isolated perimeter service room has direct moisture exposure without a conditioned-space buffer — it must be flanked by at least 2 conditioned rooms (R-126).`,
+          value: adjCount, threshold: 2 });
+      }
+    }
+    return violations;
+  },
+};
+
+const RBv1_127: RuleCheck = {
+  id: 'RBv1-127', ruleId: 'R-127',
+  title: 'Short-dimension range across rooms ≤ 15ft / 4.6m',
+  severity: 'info',
+  check(layout, ctx): Violation[] {
+    const rooms = validRooms(layout);
+    if (rooms.length < 3) return [];
+    const shortDims = rooms.map(r => Math.min(r.width, r.height));
+    const maxShort  = Math.max(...shortDims);
+    const minShort  = Math.min(...shortDims);
+    const range     = maxShort - minShort;
+    const maxRange  = ctx.units === 'meters' ? 4.6 : 15;
+    if (range <= maxRange) return [];
+    return [{ code: 'RBv1-127', severity: 'info',
+      message: `Room short-dimension range is ${range.toFixed(1)} ${ctx.units} (from ${minShort.toFixed(1)} to ${maxShort.toFixed(1)} ${ctx.units}), exceeding the ${maxRange} ${ctx.units} limit. Extreme variation in structural bay depths amplifies differential wood shrinkage at cross-grain connections across the plan (R-127).`,
+      value: range, threshold: maxRange }];
+  },
+};
+
+const RBv1_128: RuleCheck = {
+  id: 'RBv1-128', ruleId: 'R-128',
+  title: 'Rooms must touch ≥ 3 exterior edges (shear wall distribution)',
+  severity: 'info',
+  check(layout, ctx): Violation[] {
+    const rooms = validRooms(layout);
+    if (rooms.length < 4) return [];
+    const tol       = 0.5;
+    const hasLeft   = rooms.some(r => r.x <= tol);
+    const hasRight  = rooms.some(r => r.x + r.width  >= ctx.dimW - tol);
+    const hasTop    = rooms.some(r => r.y <= tol);
+    const hasBottom = rooms.some(r => r.y + r.height >= ctx.dimD - tol);
+    const facadeCount = [hasLeft, hasRight, hasTop, hasBottom].filter(Boolean).length;
+    if (facadeCount >= 3) return [];
+    const missing: string[] = [];
+    if (!hasLeft)   missing.push('left');
+    if (!hasRight)  missing.push('right');
+    if (!hasTop)    missing.push('top');
+    if (!hasBottom) missing.push('bottom');
+    return [{ code: 'RBv1-128', severity: 'info',
+      message: `Rooms touch only ${facadeCount} of 4 exterior edges (missing: ${missing.join(', ')}). A ≥ 4-room plan with rooms on < 3 facades concentrates lateral resistance on too few faces — shear walls should be distributed on at least 3 sides for balanced diaphragm loading (R-128).`,
+      value: facadeCount, threshold: 3 }];
+  },
+};
+
+const RBv1_129: RuleCheck = {
+  id: 'RBv1-129', ruleId: 'R-129',
+  title: 'Room shorter dimension ≥ 6ft / 1.8m (mass timber minimum)',
+  severity: 'info',
+  check(layout, ctx): Violation[] {
+    const rooms    = validRooms(layout);
+    const minShort = ctx.units === 'meters' ? 1.8 : 6;
+    const violations: Violation[] = [];
+    for (const r of rooms) {
+      const shorter = Math.min(r.width, r.height);
+      if (shorter < minShort) {
+        violations.push({ code: 'RBv1-129', severity: 'info',
+          message: `${roomLabel(r)} has a shorter dimension of ${shorter.toFixed(1)} ${ctx.units}, below the ${minShort} ${ctx.units} minimum structural bay dimension for heavy timber / mass timber framing. Rooms narrower than this cannot accommodate code-compliant mass timber members (R-129).`,
+          value: shorter, threshold: minShort });
+      }
+    }
+    return violations;
+  },
+};
+
+const RBv1_130: RuleCheck = {
+  id: 'RBv1-130', ruleId: 'R-130',
+  title: 'Bedroom must not be directly adjacent to living/dining (acoustic buffer)',
+  severity: 'info',
+  check(layout): Violation[] {
+    const rooms        = validRooms(layout);
+    const beds         = rooms.filter(r => r.type === 'bedroom');
+    const LIVE_DINING  = new Set(['living', 'living room', 'dining']);
+    const liveRooms    = rooms.filter(r => LIVE_DINING.has(r.type));
+    if (beds.length === 0 || liveRooms.length === 0) return [];
+    const violations: Violation[] = [];
+    for (const b of beds) {
+      for (const l of liveRooms) {
+        if (roomsAreAdjacent(b, l)) {
+          violations.push({ code: 'RBv1-130', severity: 'info',
+            message: `${roomLabel(b)} is directly adjacent to ${roomLabel(l)} (${l.type}) — a quiet sleeping room next to a lively living/dining room without an acoustic buffer (bathroom, hall, or storage) replicates the IIC/STC failure condition identified for mass timber floor assemblies (R-130).` });
+        }
+      }
+    }
+    return violations;
+  },
+};
+
+const RBv1_131: RuleCheck = {
+  id: 'RBv1-131', ruleId: 'R-131',
+  title: 'Room shorter dimension ≤ 14ft / 4.3m (standard joist span limit)',
+  severity: 'info',
+  check(layout, ctx): Violation[] {
+    const rooms    = validRooms(layout);
+    const maxShort = ctx.units === 'meters' ? 4.3 : 14;
+    const violations: Violation[] = [];
+    for (const r of rooms) {
+      const shorter = Math.min(r.width, r.height);
+      if (shorter > maxShort) {
+        violations.push({ code: 'RBv1-131', severity: 'info',
+          message: `${roomLabel(r)} has a shorter dimension of ${shorter.toFixed(1)} ${ctx.units}, exceeding the ${maxShort} ${ctx.units} standard floor joist span limit for light wood frame construction. Beyond this span, engineered joists (TJI, LVL) are required (R-131).`,
+          value: shorter, threshold: maxShort });
+      }
+    }
+    return violations;
+  },
+};
+
+const RBv1_132: RuleCheck = {
+  id: 'RBv1-132', ruleId: 'R-132',
+  title: 'Interior partitions must run in both principal directions (≥ 4 rooms)',
+  severity: 'info',
+  check(layout): Violation[] {
+    const rooms = validRooms(layout);
+    if (rooms.length < 4) return [];
+    const tol = 0.5;
+    let hasVertical = false;
+    let hasHorizontal = false;
+    outer:
+    for (let i = 0; i < rooms.length; i++) {
+      for (let j = i + 1; j < rooms.length; j++) {
+        const a = rooms[i], b = rooms[j];
+        if (!hasVertical) {
+          const vertEdge =
+            (Math.abs(a.x + a.width - b.x) <= tol || Math.abs(b.x + b.width - a.x) <= tol) &&
+            a.y < b.y + b.height - tol && a.y + a.height > b.y + tol;
+          if (vertEdge) hasVertical = true;
+        }
+        if (!hasHorizontal) {
+          const horizEdge =
+            (Math.abs(a.y + a.height - b.y) <= tol || Math.abs(b.y + b.height - a.y) <= tol) &&
+            a.x < b.x + b.width - tol && a.x + a.width > b.x + tol;
+          if (horizEdge) hasHorizontal = true;
+        }
+        if (hasVertical && hasHorizontal) break outer;
+      }
+    }
+    if (hasVertical && hasHorizontal) return [];
+    const missing: string[] = [];
+    if (!hasVertical)   missing.push('vertical (left/right)');
+    if (!hasHorizontal) missing.push('horizontal (top/bottom)');
+    return [{ code: 'RBv1-132', severity: 'info',
+      message: `Plan has ≥ 4 rooms but interior partitions run in only one principal direction (missing: ${missing.join(', ')} shared walls). Platform-frame bearing walls must be present in both directions to create a two-way load path (R-132).` }];
+  },
+};
+
+const RBv1_133: RuleCheck = {
+  id: 'RBv1-133', ruleId: 'R-133',
+  title: 'Kitchen must be adjacent to at least one wet room (plumbing stack consolidation)',
+  severity: 'info',
+  check(layout): Violation[] {
+    const rooms    = validRooms(layout);
+    const WET      = new Set(['bathroom', 'laundry', 'utility']);
+    const kitchens = rooms.filter(r => r.type === 'kitchen');
+    const wetRooms = rooms.filter(r => WET.has(r.type));
+    if (kitchens.length === 0 || wetRooms.length === 0) return [];
+    const violations: Violation[] = [];
+    for (const k of kitchens) {
+      if (!wetRooms.some(w => roomsAreAdjacent(k, w))) {
+        violations.push({ code: 'RBv1-133', severity: 'info',
+          message: `${roomLabel(k)} is not adjacent to any bathroom, laundry, or utility room. In platform-frame construction, kitchen and wet rooms must share a common wet wall to consolidate plumbing onto a single stack; non-adjacent wet rooms require a second independent stack (R-133).` });
+      }
+    }
+    return violations;
+  },
+};
+
+const RBv1_134: RuleCheck = {
+  id: 'RBv1-134', ruleId: 'R-134',
+  title: 'Closet area ≥ 16 sq ft / 1.5m² (rod-and-shelf minimum)',
+  severity: 'info',
+  check(layout, ctx): Violation[] {
+    const rooms   = validRooms(layout);
+    const closets = rooms.filter(r => r.type === 'closet');
+    if (closets.length === 0) return [];
+    const minArea = ctx.units === 'meters' ? 1.5 : 16;
+    const violations: Violation[] = [];
+    for (const c of closets) {
+      const area = roomArea(c);
+      if (area < minArea) {
+        violations.push({ code: 'RBv1-134', severity: 'info',
+          message: `${roomLabel(c)} has an area of ${area.toFixed(1)} sq ${ctx.units} (${c.width.toFixed(1)} × ${c.height.toFixed(1)}), below the ${minArea} sq ${ctx.units} minimum for a functional rod-and-shelf closet. Closets smaller than 4 × 4 ft cannot accommodate standard 24-in-deep built-in storage and a clear access aisle (R-134).`,
+          value: area, threshold: minArea });
+      }
+    }
+    return violations;
+  },
+};
+
+const RBv1_135: RuleCheck = {
+  id: 'RBv1-135', ruleId: 'R-135',
+  title: 'Bathrooms must not exceed bedrooms + 1',
+  severity: 'info',
+  check(layout): Violation[] {
+    const rooms     = validRooms(layout);
+    const bedCount  = rooms.filter(r => r.type === 'bedroom').length;
+    const bathCount = rooms.filter(r => r.type === 'bathroom').length;
+    if (bedCount < 2 || bathCount === 0 || bathCount <= bedCount + 1) return [];
+    return [{ code: 'RBv1-135', severity: 'info',
+      message: `Plan has ${bathCount} bathroom(s) and ${bedCount} bedroom(s); bathrooms exceed the maximum of bedrooms + 1 (${bedCount + 1}). Over-programming wet areas forces additional plumbing stacks beyond the capacity of a standard platform-frame floor-ceiling assembly (R-135).`,
+      value: bathCount, threshold: bedCount + 1 }];
+  },
+};
+
+const RBv1_136: RuleCheck = {
+  id: 'RBv1-136', ruleId: 'R-136',
+  title: 'Plans with ≥ 5 rooms require a dedicated entry, foyer, vestibule, or hall',
+  severity: 'info',
+  check(layout): Violation[] {
+    const rooms = validRooms(layout);
+    if (rooms.length < 5) return [];
+    const ENTRY_TYPES = new Set(['entry', 'foyer', 'vestibule', 'hall']);
+    if (rooms.some(r => ENTRY_TYPES.has(r.type))) return [];
+    return [{ code: 'RBv1-136', severity: 'info',
+      message: `Plan has ${rooms.length} rooms but no dedicated entry, foyer, vestibule, or hall. A ≥ 5-room program requires a transition space at the main entry to maintain the air-lock effect of the exterior wall assembly (R-136).` }];
+  },
+};
+
+const RBv1_137: RuleCheck = {
+  id: 'RBv1-137', ruleId: 'R-137',
+  title: 'Garage must be adjacent to at least one non-garage room (fire separation)',
+  severity: 'warning',
+  check(layout): Violation[] {
+    const rooms      = validRooms(layout);
+    const garages    = rooms.filter(r => r.type === 'garage');
+    const nonGarages = rooms.filter(r => r.type !== 'garage');
+    if (garages.length === 0) return [];
+    const violations: Violation[] = [];
+    for (const g of garages) {
+      if (!nonGarages.some(r => roomsAreAdjacent(g, r))) {
+        violations.push({ code: 'RBv1-137', severity: 'warning',
+          message: `${roomLabel(g)} is not adjacent to any non-garage room. An attached garage requires a rated fire-separation wall shared with an adjacent habitable space; a garage with no adjacency in the plan cannot define this fire wall (R-137).` });
+      }
+    }
+    return violations;
+  },
+};
+
+const RBv1_138: RuleCheck = {
+  id: 'RBv1-138', ruleId: 'R-138',
+  title: 'Interior rooms ≤ 50% of total room count (natural light distribution)',
+  severity: 'info',
+  check(layout, ctx): Violation[] {
+    const rooms = validRooms(layout);
+    if (rooms.length < 4) return [];
+    const interiorRooms  = rooms.filter(r => !touchesExterior(r, ctx.dimW, ctx.dimD));
+    const interiorShare  = interiorRooms.length / rooms.length;
+    if (interiorShare <= 0.5) return [];
+    return [{ code: 'RBv1-138', severity: 'info',
+      message: `${interiorRooms.length} of ${rooms.length} rooms (${Math.round(interiorShare * 100)}%) are interior rooms with no exterior boundary exposure. When more than 50% of rooms are interior, the exterior rooms cannot distribute sufficient natural light to all interior spaces (R-138).`,
+      value: interiorShare, threshold: 0.5 }];
+  },
+};
+
+const RBv1_139: RuleCheck = {
+  id: 'RBv1-139', ruleId: 'R-139',
+  title: 'Kitchen must be adjacent to a living or dining room (open-plan baseline)',
+  severity: 'info',
+  check(layout): Violation[] {
+    const rooms      = validRooms(layout);
+    if (rooms.length < 4) return [];
+    const LIVE_DINING = new Set(['living', 'living room', 'dining']);
+    const kitchens   = rooms.filter(r => r.type === 'kitchen');
+    const liveRooms  = rooms.filter(r => LIVE_DINING.has(r.type));
+    if (kitchens.length === 0 || liveRooms.length === 0) return [];
+    const violations: Violation[] = [];
+    for (const k of kitchens) {
+      if (!liveRooms.some(l => roomsAreAdjacent(k, l))) {
+        violations.push({ code: 'RBv1-139', severity: 'info',
+          message: `${roomLabel(k)} is not adjacent to any living or dining room. Platform-frame residential construction uses the open kitchen-living zone as a baseline spatial strategy to share HVAC returns, range exhaust, and reduce load-bearing partitions; an isolated kitchen requires additional independent MEP routing (R-139).` });
+      }
+    }
+    return violations;
+  },
+};
+
+const RBv1_140: RuleCheck = {
+  id: 'RBv1-140', ruleId: 'R-140',
+  title: 'Total room area ≥ 70% of plan bounding box (net-to-gross efficiency)',
+  severity: 'info',
+  check(layout, ctx): Violation[] {
+    const rooms = validRooms(layout);
+    if (rooms.length < 3) return [];
+    const planArea = ctx.dimW * ctx.dimD;
+    if (planArea <= 0) return [];
+    const totalRoomArea = rooms.reduce((s, r) => s + roomArea(r), 0);
+    const coverage = totalRoomArea / planArea;
+    if (coverage >= 0.70) return [];
+    return [{ code: 'RBv1-140', severity: 'info',
+      message: `Total room area (${totalRoomArea.toFixed(1)} sq ${ctx.units}) is ${Math.round(coverage * 100)}% of the ${planArea.toFixed(1)} sq ${ctx.units} plan bounding box, below the 70% net-to-gross efficiency minimum for platform-frame residential construction (R-140).`,
+      value: coverage, threshold: 0.70 }];
+  },
+};
+
+const RBv1_141: RuleCheck = {
+  id: 'RBv1-141', ruleId: 'R-141',
+  title: 'Office plans ≥ 2000 sq ft require a mechanical/MEP room',
+  severity: 'info',
+  check(layout, ctx): Violation[] {
+    const rooms     = validRooms(layout);
+    const planArea  = ctx.dimW * ctx.dimD;
+    const threshold = ctx.units === 'meters' ? 186 : 2000;
+    if (!rooms.some(r => r.type === 'office') || planArea < threshold) return [];
+    const MEP_TYPES = new Set(['mechanical', 'mep', 'utility']);
+    if (rooms.some(r => MEP_TYPES.has(r.type))) return [];
+    return [{ code: 'RBv1-141', severity: 'info',
+      message: `Commercial plan (${planArea.toFixed(0)} sq ${ctx.units}, office occupancy) has no dedicated mechanical, mep, or utility room. Commercial floor-to-floor heights must budget an explicit MEP zone; without a service room in the program, the MEP zone is unaccounted and will force floor-to-floor revisions at DD (R-141).` }];
+  },
+};
+
+const RBv1_142: RuleCheck = {
+  id: 'RBv1-142', ruleId: 'R-142',
+  title: 'Plans ≥ 15,000 sq ft require a structural core room',
+  severity: 'info',
+  check(layout, ctx): Violation[] {
+    const rooms     = validRooms(layout);
+    const planArea  = ctx.dimW * ctx.dimD;
+    const threshold = ctx.units === 'meters' ? 1394 : 15000;
+    if (planArea < threshold) return [];
+    const CORE_TYPES = new Set(['stair', 'stairwell', 'elevator', 'core', 'circulation core']);
+    if (rooms.some(r => CORE_TYPES.has(r.type))) return [];
+    return [{ code: 'RBv1-142', severity: 'info',
+      message: `Plan area is ${planArea.toFixed(0)} sq ${ctx.units} (≥ ${threshold.toLocaleString()} sq ${ctx.units} commercial scale) but no structural core room (stair, stairwell, elevator, or core) is present. At this scale the core is the primary lateral load-resisting element — a critical SD-stage structural risk (R-142).` }];
+  },
+};
+
+const RBv1_143: RuleCheck = {
+  id: 'RBv1-143', ruleId: 'R-143',
+  title: 'Gross-to-net efficiency within occupancy-specific target band',
+  severity: 'info',
+  check(layout, ctx): Violation[] {
+    const rooms = validRooms(layout);
+    if (rooms.length < 3) return [];
+    const planArea = ctx.dimW * ctx.dimD;
+    if (planArea <= 0) return [];
+    const totalRoomArea = rooms.reduce((s, r) => s + roomArea(r), 0);
+    const gtn = totalRoomArea / planArea;
+    const hasOffice  = rooms.some(r => r.type === 'office');
+    const hasBedroom = rooms.some(r => r.type === 'bedroom');
+    let loMin: number, hiMax: number, occupancy: string;
+    if (hasOffice) {
+      loMin = 0.75; hiMax = 0.90; occupancy = 'commercial office';
+    } else if (hasBedroom) {
+      loMin = 0.80; hiMax = 0.90; occupancy = 'residential';
+    } else {
+      loMin = 0.70; hiMax = 0.90; occupancy = 'mixed';
+    }
+    if (gtn >= loMin && gtn <= hiMax) return [];
+    const tooLow = gtn < loMin;
+    const bound  = tooLow ? loMin : hiMax;
+    return [{ code: 'RBv1-143', severity: 'info',
+      message: `Gross-to-net efficiency is ${Math.round(gtn * 100)}% (${tooLow ? 'below' : 'above'} the ${occupancy} target of ${Math.round(loMin * 100)}–${Math.round(hiMax * 100)}%). ${tooLow ? 'Over-allocated circulation or structural void signals a program that needs rationalization before client confirmation of rentable area.' : 'Under-allocated circulation leaves insufficient space for walls, corridors, and structure.'} (R-143)`,
+      value: Math.round(gtn * 100), threshold: Math.round(bound * 100) }];
+  },
+};
+
+const RBv1_144: RuleCheck = {
+  id: 'RBv1-144', ruleId: 'R-144',
+  title: 'Mechanical/utility room area must be 3–8% of gross plan area',
+  severity: 'info',
+  check(layout, ctx): Violation[] {
+    const rooms     = validRooms(layout);
+    const MEP       = new Set(['mechanical', 'mep', 'utility']);
+    const mechRooms = rooms.filter(r => MEP.has(r.type));
+    if (mechRooms.length === 0) return [];
+    const planArea = ctx.dimW * ctx.dimD;
+    if (planArea <= 0) return [];
+    const mechArea = mechRooms.reduce((s, r) => s + roomArea(r), 0);
+    const ratio    = mechArea / planArea;
+    if (ratio >= 0.03 && ratio <= 0.08) return [];
+    const tooLow = ratio < 0.03;
+    const bound  = tooLow ? 0.03 : 0.08;
+    return [{ code: 'RBv1-144', severity: 'info',
+      message: `Mechanical/utility rooms total ${mechArea.toFixed(1)} sq ${ctx.units} (${Math.round(ratio * 100)}% of ${planArea.toFixed(1)} sq ${ctx.units} plan area), ${tooLow ? 'below' : 'above'} the 3–8% target. ${tooLow ? 'Under-allocated mechanical space will require redesign when the MEP engineer provides an equipment schedule.' : 'Over-allocated mechanical space reduces rentable area beyond typical allowances.'} (R-144)`,
+      value: Math.round(ratio * 100), threshold: Math.round(bound * 100) }];
+  },
+};
+
+const RBv1_145: RuleCheck = {
+  id: 'RBv1-145', ruleId: 'R-145',
+  title: 'Plans ≥ 45,000 sq ft require at least one elevator room per 47,500 sq ft',
+  severity: 'info',
+  check(layout, ctx): Violation[] {
+    const rooms          = validRooms(layout);
+    const planArea       = ctx.dimW * ctx.dimD;
+    const perElevator    = ctx.units === 'meters' ? 4413 : 47500;
+    const baseThreshold  = ctx.units === 'meters' ? 4181 : 45000;
+    if (planArea < baseThreshold) return [];
+    const requiredElevators = Math.ceil(planArea / perElevator);
+    const ELEV_TYPES = new Set(['elevator', 'lift', 'elevator shaft']);
+    const elevCount  = rooms.filter(r => ELEV_TYPES.has(r.type)).length;
+    if (elevCount >= requiredElevators) return [];
+    return [{ code: 'RBv1-145', severity: 'info',
+      message: `Plan area ${planArea.toFixed(0)} sq ${ctx.units} requires ${requiredElevators} elevator(s) (1 per ${perElevator.toLocaleString()} sq ${ctx.units}), but only ${elevCount} elevator room(s) found. Under-provisioned elevator banks are discovered at DD when the consultant confirms unacceptable wait times — adding a core bay then requires major floor plan revision (R-145).`,
+      value: elevCount, threshold: requiredElevators }];
+  },
+};
+
+// ── Category map ──────────────────────────────────────────────────────────────
+// 'residential' = rule is specific to residential programs (bedrooms, bathrooms,
+//   kitchens, living rooms, garages for dwellings, etc.)
+// 'general' = applies across building typologies (geometry, structure, labelling,
+//   sustainability metrics, commercial-scale thresholds, etc.)
+// Applied at registration time via registerRulebookV1Checks().
+
+const RULE_CATEGORY_MAP: Record<string, 'general' | 'residential'> = {
+  // Hard: Connectivity and Access
+  'R-001': 'residential', // private rooms = bedrooms/bathrooms
+  'R-002': 'general',     // entrance required in any building
+  'R-003': 'residential', // bedroom door rule
+  'R-004': 'residential', // bathroom circulation rule
+  'R-005': 'residential', // bathroom/bedroom accessibility
+  'R-006': 'general',     // door clear width (any building)
+  'R-007': 'general',     // main entrance width (any building)
+  'R-008': 'general',     // no room overlap (any building)
+  'R-009': 'general',     // enclosed boundaries (any building)
+  'R-010': 'residential', // requires bedroom + bathroom + kitchen
+  // Hard: Room Area Minimums
+  'R-011': 'residential', // bedroom min area
+  'R-012': 'residential', // master bedroom min area
+  'R-013': 'residential', // kitchen min area
+  'R-014': 'residential', // living room min area
+  'R-015': 'residential', // bathroom min area
+  'R-016': 'general',     // corridor min width (any building)
+  'R-017': 'general',     // habitable room clear dimension (any building)
+  'R-018': 'general',     // exterior wall thickness (any building)
+  'R-019': 'general',     // interior partition thickness (any building)
+  'R-020': 'residential', // residential garage dimensions
+  // Hard: Structural and Geometric Integrity
+  'R-021': 'general',
+  'R-022': 'general',
+  'R-023': 'general',
+  'R-024': 'general',
+  'R-025': 'general',
+  // Hard: Room Adjacency and Zoning
+  'R-026': 'residential', // kitchen–dining adjacency
+  'R-027': 'residential', // entrance → living path
+  'R-028': 'residential', // bathroom count per bedroom count
+  'R-029': 'residential', // master bedroom has bathroom
+  'R-030': 'residential', // laundry not through bedroom zone
+  'R-031': 'residential', // pantry adjacent to kitchen
+  'R-032': 'residential', // residential garage internal connection
+  'R-033': 'residential', // service yard from kitchen/laundry
+  'R-034': 'residential', // stair from common area (not bedroom)
+  'R-035': 'general',     // parking ramp landing (any building)
+  'R-036': 'general',     // underground parking pedestrian stair (any building)
+  'R-037': 'residential', // closet from bedroom
+  'R-038': 'residential', // breakfast nook from kitchen/living
+  'R-039': 'residential', // half-bathroom in social zone
+  'R-040': 'residential', // terrace from indoor room
+  'R-041': 'residential', // bedrooms grouped
+  'R-042': 'general',     // corridor connects ≥2 rooms (any building)
+  'R-043': 'residential', // kitchen not through master bedroom
+  'R-044': 'general',     // storage room min area (any building)
+  'R-045': 'residential', // laundry area min area
+  'R-046': 'general',     // study min area (any building type)
+  'R-047': 'general',     // terrace min area (any building type)
+  'R-048': 'general',     // sliding door min width (any building)
+  'R-049': 'residential', // closet clear depth
+  'R-050': 'general',     // window sill height (any building)
+  // Soft: Adjacency Preferences
+  'R-051': 'residential', // dining adjacent to living
+  'R-052': 'residential', // kitchen access to dining
+  'R-053': 'residential', // living room on primary elevation
+  'R-054': 'residential', // master bedroom largest
+  'R-055': 'residential', // bathroom door not into living/entrance
+  'R-056': 'residential', // kitchen not to main entrance directly
+  'R-057': 'residential', // terrace from living/dining
+  'R-058': 'general',     // study accessible from common areas
+  'R-059': 'residential', // laundry not into bedroom/living
+  'R-060': 'general',     // service room at rear (any building)
+  'R-061': 'residential', // family room adjacent to living/dining
+  'R-062': 'residential', // guest bath from living/dining
+  'R-063': 'residential', // closets between bedroom and corridor
+  'R-064': 'residential', // breakfast nook adjacent to kitchen
+  'R-065': 'residential', // master bedroom not adjacent to kitchen/laundry
+  // Soft: Natural Light
+  'R-066': 'residential', // bedrooms have exterior window
+  'R-067': 'residential', // living room exterior window
+  'R-068': 'residential', // kitchen window
+  'R-069': 'residential', // exterior bathrooms have window
+  'R-070': 'general',     // main entrance natural light (any building)
+  'R-071': 'general',     // terrace faces unobstructed direction
+  'R-072': 'residential', // dining room window
+  'R-073': 'general',     // study window (any building)
+  'R-074': 'residential', // interior bathrooms flagged
+  'R-075': 'general',     // long corridors have natural light (any building)
+  // Soft: Orientation
+  'R-076': 'general',     // main entrance faces street (any building)
+  'R-077': 'residential', // terrace faces south/west (residential outdoor)
+  'R-078': 'residential', // living room windows avoid north
+  'R-079': 'residential', // garage access vs pedestrian
+  'R-080': 'general',     // service yard at rear (any building)
+  'R-081': 'residential', // bedroom windows avoid west
+  'R-082': 'general',     // entrance marquee at main entrance
+  'R-083': 'residential', // garage door faces driveway
+  'R-084': 'residential', // fireplace on exterior wall
+  'R-085': 'residential', // step-downs toward garden
+  // Soft: Functional Sufficiency
+  'R-086': 'residential', // kitchen distinct zones
+  'R-087': 'residential', // bathroom fixture zone
+  'R-088': 'residential', // living room seating group
+  'R-089': 'residential', // dining table zone
+  'R-090': 'residential', // master bedroom double bed
+  'R-091': 'residential', // secondary bedrooms single bed
+  'R-092': 'residential', // garage car zone
+  'R-093': 'general',     // study desk zone (any building)
+  'R-094': 'residential', // kitchen counter depth
+  'R-095': 'residential', // closet interior depth
+  // Hard: Plan Completeness and Labelling
+  'R-096': 'general',
+  'R-097': 'general',
+  'R-098': 'general',
+  'R-099': 'general',
+  'R-100': 'general',
+  'R-101': 'general',
+  // Soft: Plan Completeness
+  'R-102': 'general',
+  'R-103': 'general',
+  // Soft: Sustainability and Climate Adaptation
+  'R-104': 'general',
+  'R-105': 'general',
+  'R-106': 'general',
+  'R-107': 'residential', // laundry adjacent to hall/bathroom
+  'R-108': 'residential', // ≥3 bedrooms → ≥2 bathrooms
+  'R-109': 'general',
+  'R-110': 'general',
+  'R-111': 'residential', // south facade: bedroom/living/dining/kitchen
+  'R-112': 'general',
+  'R-113': 'general',
+  'R-114': 'general',
+  'R-115': 'general',
+  'R-116': 'general',
+  'R-117': 'general',
+  'R-118': 'residential', // north+south facade: bedroom/living/dining/kitchen
+  'R-119': 'general',
+  // Soft: Construction and Structural Standards
+  'R-120': 'general',
+  'R-121': 'general',
+  'R-122': 'general',
+  'R-123': 'general',
+  'R-124': 'general',
+  'R-125': 'general',
+  'R-126': 'general',
+  'R-127': 'general',
+  'R-128': 'general',
+  'R-129': 'general',
+  'R-130': 'residential', // bedroom not adjacent to living/dining without buffer
+  'R-131': 'general',
+  'R-132': 'general',
+  'R-133': 'residential', // kitchen adjacent to wet room
+  'R-134': 'residential', // closets min area (residential built-ins)
+  'R-135': 'residential', // bathroom ≤ bedroom count + 1
+  // Soft: Layout and Program Distribution
+  'R-136': 'general',
+  'R-137': 'residential', // garage adjacent to non-garage (residential)
+  'R-138': 'general',
+  'R-139': 'residential', // kitchen adjacent to living/dining
+  'R-140': 'general',
+  // Soft: Commercial-Scale Requirements
+  'R-141': 'general',
+  'R-142': 'general',
+  'R-143': 'general',
+  'R-144': 'general',
+  'R-145': 'general',
+};
+
 // ── Registry ─────────────────────────────────────────────────────────────────
 
 export const RULEBOOK_V1_CHECKS: readonly RuleCheck[] = [
@@ -2587,12 +3592,24 @@ export const RULEBOOK_V1_CHECKS: readonly RuleCheck[] = [
   RBv1_091, RBv1_092, RBv1_093, RBv1_094, RBv1_095,
   // Soft: Plan Completeness (R-102–R-103)
   RBv1_102, RBv1_103,
+  // Sustainability, Climate and Construction (R-104–R-145)
+  RBv1_104, RBv1_105, RBv1_106, RBv1_107, RBv1_108, RBv1_109, RBv1_110,
+  RBv1_111, RBv1_112, RBv1_113, RBv1_114, RBv1_115, RBv1_116, RBv1_117,
+  RBv1_118, RBv1_119, RBv1_120, RBv1_121, RBv1_122, RBv1_123, RBv1_124,
+  RBv1_125, RBv1_126, RBv1_127, RBv1_128, RBv1_129, RBv1_130, RBv1_131,
+  RBv1_132, RBv1_133, RBv1_134, RBv1_135, RBv1_136, RBv1_137, RBv1_138,
+  RBv1_139, RBv1_140, RBv1_141, RBv1_142, RBv1_143, RBv1_144, RBv1_145,
 ];
 
 /**
- * Register all 103 Rule Book v1 checks into the shared runChecks() registry.
+ * Register all 145 Rule Book v1 checks into the shared runChecks() registry.
+ * Applies building typology categories from RULE_CATEGORY_MAP before registering.
  * Idempotent — safe to call multiple times.
  */
 export function registerRulebookV1Checks(): void {
-  registerChecks(...RULEBOOK_V1_CHECKS);
+  const checks = RULEBOOK_V1_CHECKS.map(c => ({
+    ...c,
+    category: c.ruleId ? (RULE_CATEGORY_MAP[c.ruleId] ?? 'general') : 'general',
+  } as typeof c & { category: 'general' | 'residential' }));
+  registerChecks(...checks);
 }
