@@ -223,7 +223,7 @@ test('exterior door (toRoomId=null) gets exterior wall of fromRoomId', () => {
 
 console.log('\nassignWallSegmentIds — fallback to exterior wall');
 
-test('interior door referencing non-adjacent rooms falls back to exterior wall of fromRoomId', () => {
+test('interior door referencing non-adjacent rooms receives no wallSegmentId', () => {
   // a and b are not adjacent (gap between them)
   const rooms = [makeRoom('a', 0, 0, 10, 10), makeRoom('b', 20, 0, 10, 10)];
   const { interiorWallsByRoomPair, exteriorWallsByRoom } = deriveWallSegments(rooms);
@@ -231,9 +231,8 @@ test('interior door referencing non-adjacent rooms falls back to exterior wall o
   const door: DoorElement = { id: 'd1', type: 'hinged', fromRoomId: 'a', toRoomId: 'b', clearWidth: 3 };
   const { doors } = assignWallSegmentIds([door], [], interiorWallsByRoomPair, exteriorWallsByRoom);
 
-  const extIds = exteriorWallsByRoom.get('a') ?? [];
-  assert(extIds.length > 0, 'room a should have exterior walls');
-  assert(doors[0].wallSegmentId === extIds[0], `non-adjacent door should fall back to fromRoom exterior wall '${extIds[0]}'`);
+  // No shared interior wall → wallSegmentId must be undefined (not a wrong exterior wall).
+  assert(doors[0].wallSegmentId === undefined, 'non-adjacent door should have no wallSegmentId, not a wrong exterior wall');
 });
 
 test('door with no matching walls receives no wallSegmentId', () => {

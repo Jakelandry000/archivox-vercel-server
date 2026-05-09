@@ -103,7 +103,6 @@ export function generateLayoutFromText(
   // Combined jitter + repair scale for a room dimension.
   const dim = (base: number, type: string) => jitter(base) * repairScale(type);
 
-  type RoomDef = { id?: string; type: string; w: number; h: number; label?: string };
   let roomDefs: RoomDef[];
 
   if (plannedRooms && plannedRooms.length > 0) {
@@ -146,8 +145,11 @@ export function generateLayoutFromText(
     }
   }
 
-  // Vary placement order via seeded shuffle (Fisher-Yates) for attempt > 0.
-  if (rng && attemptIndex > 0) {
+  // On the first attempt, sort by door-graph BFS so connected rooms pack adjacent.
+  // Later attempts shuffle for geometric variety (repair loop).
+  if (attemptIndex === 0 && plannedDoors) {
+    roomDefs = sortRoomsByAdjacency(roomDefs, plannedDoors);
+  } else if (rng && attemptIndex > 0) {
     seededShuffle(roomDefs, rng);
   }
 
@@ -158,8 +160,8 @@ export function generateLayoutFromText(
   let cursorY = 0;
   let rowH = 0;
 
-  for (const { id: roomId, type, w, h, label } of roomDefs) {
-    if (cursorX + w > width) {
+  for (const { id: roomId, type, w, h, label, newRow } of roomDefs) {
+    if ((newRow && cursorX > 0) || cursorX + w > width) {
       cursorX = 0;
       cursorY += rowH + spacing;
       rowH = 0;
@@ -378,6 +380,72 @@ export async function generateWithLLM(
 }
 
 // ---------------------------------------------------------------------------
+// Adjacency-aware room ordering
+// ---------------------------------------------------------------------------
+
+type RoomDef = { id?: string; type: string; w: number; h: number; label?: string; newRow?: boolean };
+
+/**
+ * BFS-sorts roomDefs using the door graph so that door-connected rooms pack
+ * near each other in the row packer.  Rooms not reachable via any door go at
+ * the end in their original relative order.  Returns the original array
+ * unchanged when no IDs or doors are present.
+ */
+function sortRoomsByAdjacency(roomDefs: RoomDef[], plannedDoors: PlannedDoor[]): RoomDef[] {
+  if (plannedDoors.length === 0) return roomDefs;
+
+  const adj = new Map<string, Set<string>>();
+  for (const d of plannedDoors) {
+    if (!d.toRoomId) continue;
+    if (!adj.has(d.fromRoomId)) adj.set(d.fromRoomId, new Set());
+    if (!adj.has(d.toRoomId)) adj.set(d.toRoomId, new Set());
+    adj.get(d.fromRoomId)!.add(d.toRoomId);
+    adj.get(d.toRoomId)!.add(d.fromRoomId);
+  }
+
+  const roomIdSet = new Set(roomDefs.map(r => r.id).filter((id): id is string => !!id));
+
+  // Root: prefer entrance or living room that is in the door graph.
+  let root: string | undefined;
+  for (const r of roomDefs) {
+    if (r.id && adj.has(r.id) && (r.type === 'entrance' || r.type === 'living room')) {
+      root = r.id;
+      break;
+    }
+  }
+  if (!root) root = [...adj.keys()].find(id => roomIdSet.has(id));
+  if (!root) return roomDefs;
+
+  const visited = new Set<string>();
+  const orderedIds: string[] = [];
+  const queue = [root];
+  visited.add(root);
+  while (queue.length > 0) {
+    const cur = queue.shift()!;
+    orderedIds.push(cur);
+    for (const nb of adj.get(cur) ?? new Set()) {
+      if (!visited.has(nb) && roomIdSet.has(nb)) {
+        visited.add(nb);
+        queue.push(nb);
+      }
+    }
+  }
+
+  const idToRoom = new Map(roomDefs.map(r => [r.id, r]));
+  const sorted = orderedIds.map(id => idToRoom.get(id)!).filter(Boolean);
+  const unvisited = roomDefs.filter(r => !r.id || !visited.has(r.id));
+  const result = [...sorted, ...unvisited];
+
+  // Mark the first connector room (hallway/corridor) as a row-starter so the
+  // packer places it at the beginning of a new row between zones.
+  const CONNECTOR_TYPES = ['hallway', 'corridor', 'landing', 'foyer'];
+  const connIdx = result.findIndex(r => CONNECTOR_TYPES.some(t => r.type.includes(t)));
+  if (connIdx > 0) result[connIdx] = { ...result[connIdx], newRow: true };
+
+  return result;
+}
+
+// ---------------------------------------------------------------------------
 // Wall derivation helpers
 // ---------------------------------------------------------------------------
 
@@ -505,8 +573,8 @@ export function assignWallSegmentIds(
       wallId = exteriorWallsByRoom.get(door.fromRoomId)?.[0];
     } else {
       wallId = interiorWallsByRoomPair.get([door.fromRoomId, door.toRoomId].sort().join('|'));
-      // Fallback: rooms not adjacent — use exterior wall of fromRoomId
-      if (!wallId) wallId = exteriorWallsByRoom.get(door.fromRoomId)?.[0];
+      // No fallback: if rooms aren't adjacent, leave wallSegmentId undefined.
+      // A wrong exterior wall ID causes bad door placement in Rhino; undefined is safe.
     }
     return wallId ? { ...door, wallSegmentId: wallId } : door;
   });
