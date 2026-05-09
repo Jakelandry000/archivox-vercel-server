@@ -46,7 +46,7 @@ type ApiResult = {
   script: string;
   validation?: ValidationResult;
   priorsMeta?: PriorsMeta;
-  meta?: { attempts: number; notes: string[] };
+  meta?: { attempts: number; notes: string[]; debug?: Array<{ strategy: string }> };
   notes?: string[];
   error?: string;
 };
@@ -324,7 +324,7 @@ export default function Home() {
             <div className="flex flex-col gap-3">
               <SectionTitle
                 title="Prompt"
-                subtitle="Describe the home you want. The MVP uses a no‑LLM heuristic generator (zero token cost)."
+                subtitle="Describe the home you want. Claude Haiku parses your prompt into a room program, then the layout engine packs and validates it."
               />
 
               <textarea
@@ -364,9 +364,16 @@ export default function Home() {
                   </button>
                 </div>
 
-                <div className="text-xs text-white/60">
-                  Mode: <span className="text-white/80 font-medium">No‑LLM</span> • <span className="text-white/50">(LLM planner toggle coming)</span>
-                </div>
+                {result && !result.error && (
+                  <div className="text-xs text-white/60">
+                    {(() => {
+                      const strategy = result.meta?.debug?.[0]?.strategy;
+                      if (strategy === 'llm-planner') return <>Planner: <span className="text-emerald-400 font-medium">Claude Haiku</span> • {result.meta?.attempts} attempt{result.meta?.attempts !== 1 ? 's' : ''}</>;
+                      if (strategy === 'heuristic-fallback') return <>Planner: <span className="text-yellow-400 font-medium">Heuristic fallback</span> (API key missing or call failed)</>;
+                      return null;
+                    })()}
+                  </div>
+                )}
               </div>
 
               {result?.error ? (
@@ -453,8 +460,8 @@ export default function Home() {
                     body: 'No overlaps, circulation hints, better proportions.'
                   },
                   {
-                    title: 'LLM planner toggle',
-                    body: 'High quality mode that uses tokens only when you want.'
+                    title: 'LLM planner',
+                    body: 'Claude Haiku parses prompts into structured room programs with doors and windows.'
                   },
                   {
                     title: 'DXF ingestion',
