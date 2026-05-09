@@ -2,7 +2,7 @@
 
 import { PropsWithChildren, useMemo } from 'react';
 
-export type TabKey = 'plan' | 'cad' | 'json' | 'validation';
+export type TabKey = 'plan' | '3d' | 'cad' | 'json' | 'validation';
 
 export function Tabs({
   active,
@@ -13,6 +13,7 @@ export function Tabs({
     () =>
       [
         { key: 'plan', label: '2D Plan' },
+        { key: '3d', label: '3D Plan' },
         { key: 'cad', label: 'AutoCAD (.scr)' },
         { key: 'json', label: 'Layout JSON' },
         { key: 'validation', label: 'Validation' }

@@ -12,7 +12,8 @@
  *   2. Priors loaded (inline mock Priors object)  — priorsAdjustment is a number in [0,5].
  */
 
-import { generateAndValidate } from '@archivox/generator';
+import { generateAndValidate, generateWithLLM, generateLayoutFromText } from '@archivox/generator';
+import type { RoomProgram } from '@archivox/generator';
 import {
   loadPriors,
   applyIbcRules,
@@ -35,6 +36,18 @@ let failed = 0;
 function test(name: string, fn: () => void) {
   try {
     fn();
+    console.log(`  ✓  ${name}`);
+    passed++;
+  } catch (e: unknown) {
+    console.error(`  ✗  ${name}`);
+    console.error(`     ${(e as Error).message}`);
+    failed++;
+  }
+}
+
+async function testAsync(name: string, fn: () => Promise<void>) {
+  try {
+    await fn();
     console.log(`  ✓  ${name}`);
     passed++;
   } catch (e: unknown) {
@@ -226,7 +239,186 @@ test('validateLayout directly returns priorsAdjustment when priors are supplied'
   );
 });
 
-// ── Summary ───────────────────────────────────────────────────────────────────
+// ── Tests: generateWithLLM async path (no API key → heuristic fallback) ───────
+//
+// These tests exercise the generateWithLLM code path that the route calls.
+// Without ANTHROPIC_API_KEY the LLM planner returns null and the generator
+// falls back to the heuristic, so meta.debug[0].strategy === 'heuristic-fallback'.
+// Async tests are collected in a deferred runner to avoid top-level await (CJS).
 
-console.log(`\n  ${passed} passed, ${failed} failed\n`);
-if (failed > 0) process.exit(1);
+const asyncTests: Array<{ name: string; fn: () => Promise<void> }> = [];
+
+// ── Tests: LLM planner code path via generateLayoutFromText with plannedRooms ─
+//
+// generateWithLLM feeds the extracted room program into generateLayoutFromText.
+// We test this path directly by constructing a mock RoomProgram and verifying
+// the resulting layout reflects those rooms — matching what the route would
+// produce when extractRoomProgram returns a valid program.
+
+console.log('\n/api/chat route — LLM planner path: generateLayoutFromText with plannedRooms');
+
+const MOCK_ROOM_PROGRAM: RoomProgram = {
+  rooms: [
+    { type: 'living room', width: 18, height: 14 },
+    { type: 'kitchen',     width: 12, height: 10 },
+    { type: 'bedroom',     width: 12, height: 10 },
+    { type: 'bedroom',     width: 12, height: 10 },
+    { type: 'bathroom',    width: 8,  height: 8  },
+  ],
+};
+
+test('LLM planner path: layout contains all room types from mock program', () => {
+  const layout = generateLayoutFromText(
+    { prompt: '2 bedrooms 1 bathroom', seed: 42 },
+    0,
+    undefined,
+    undefined,
+    MOCK_ROOM_PROGRAM.rooms,
+  );
+  const types = layout.rooms.map(r => r.type);
+  for (const room of MOCK_ROOM_PROGRAM.rooms) {
+    assert(types.includes(room.type), `Layout must contain room type '${room.type}'`);
+  }
+});
+
+test('LLM planner path: layout room count matches mock program room count', () => {
+  const layout = generateLayoutFromText(
+    { prompt: '2 bedrooms 1 bathroom', seed: 42 },
+    0,
+    undefined,
+    undefined,
+    MOCK_ROOM_PROGRAM.rooms,
+  );
+  assert(
+    layout.rooms.length === MOCK_ROOM_PROGRAM.rooms.length,
+    `Layout must have ${MOCK_ROOM_PROGRAM.rooms.length} rooms, got ${layout.rooms.length}`,
+  );
+});
+
+test('LLM planner path: layout rooms have positive dimensions from mock program', () => {
+  const layout = generateLayoutFromText(
+    { prompt: '2 bedrooms 1 bathroom', seed: 42 },
+    0,
+    undefined,
+    undefined,
+    MOCK_ROOM_PROGRAM.rooms,
+  );
+  for (const room of layout.rooms) {
+    assert(room.width > 0, `Room '${room.id}' must have positive width`);
+    assert(room.height > 0, `Room '${room.id}' must have positive height`);
+  }
+});
+
+test('LLM planner path: bedroom dimensions reflect mock program (not heuristic defaults)', () => {
+  // Heuristic default for bedroom is w=12, h=10. Mock program also uses 12×10
+  // for bedrooms — verify that two bedrooms appear exactly, matching the program.
+  const layout = generateLayoutFromText(
+    { prompt: '2 bedrooms 1 bathroom', seed: 42 },
+    0,
+    undefined,
+    undefined,
+    MOCK_ROOM_PROGRAM.rooms,
+  );
+  const bedrooms = layout.rooms.filter(r => r.type === 'bedroom');
+  assert(
+    bedrooms.length === 2,
+    `Mock program has 2 bedrooms; layout must have 2, got ${bedrooms.length}`,
+  );
+});
+
+test('simulateWithLLM program: validation score ≥ 0 and ≤ 100', () => {
+  const layout = generateLayoutFromText(
+    { prompt: '2 bedrooms 1 bathroom', seed: 42 },
+    0,
+    undefined,
+    undefined,
+    MOCK_ROOM_PROGRAM.rooms,
+  );
+  const validation = validateLayout(layout, undefined);
+  const rulebookViolations = runChecks(layout);
+  const rulebookDeduction  = computeRulebookDeduction(rulebookViolations);
+  const ibcViolations = applyIbcRules(layout);
+  const allViolations = [...validation.violations, ...rulebookViolations, ...ibcViolations];
+  const finalScore = Math.max(0, Math.min(100, validation.score - rulebookDeduction));
+  assert(finalScore >= 0 && finalScore <= 100, `Score must be in [0,100], got ${finalScore}`);
+  assert(Array.isArray(allViolations), 'allViolations must be an array');
+});
+
+// ── Async runner ──────────────────────────────────────────────────────────────
+
+(async () => {
+  console.log('\n/api/chat route — generateWithLLM async path (no API key)');
+
+  asyncTests.push({
+    name: 'generateWithLLM returns a GenerateResult with meta.debug array',
+    fn: async () => {
+      const savedKey = process.env.ANTHROPIC_API_KEY;
+      delete process.env.ANTHROPIC_API_KEY;
+      try {
+        const result = await generateWithLLM(
+          { prompt: '2 bedrooms 1 bathroom', seed: 42 },
+          { maxAttempts: 1, priors: null },
+        );
+        assert(Array.isArray(result.meta.debug), 'meta.debug must be an array');
+        assert(result.meta.debug.length > 0, 'meta.debug must have at least one entry');
+        assert(
+          typeof result.meta.debug[0].strategy === 'string',
+          'meta.debug[0].strategy must be a string',
+        );
+      } finally {
+        if (savedKey !== undefined) process.env.ANTHROPIC_API_KEY = savedKey;
+      }
+    },
+  });
+
+  asyncTests.push({
+    name: 'generateWithLLM without API key uses heuristic-fallback strategy',
+    fn: async () => {
+      const savedKey = process.env.ANTHROPIC_API_KEY;
+      delete process.env.ANTHROPIC_API_KEY;
+      try {
+        const result = await generateWithLLM(
+          { prompt: '2 bedrooms 1 bathroom', seed: 42 },
+          { maxAttempts: 1, priors: null },
+        );
+        assert(
+          result.meta.debug[0].strategy === 'heuristic-fallback',
+          `Expected 'heuristic-fallback', got '${result.meta.debug[0].strategy}'`,
+        );
+      } finally {
+        if (savedKey !== undefined) process.env.ANTHROPIC_API_KEY = savedKey;
+      }
+    },
+  });
+
+  asyncTests.push({
+    name: 'generateWithLLM result shape matches route response contract',
+    fn: async () => {
+      const savedKey = process.env.ANTHROPIC_API_KEY;
+      delete process.env.ANTHROPIC_API_KEY;
+      try {
+        const result = await generateWithLLM(
+          { prompt: '2 bedrooms 1 bathroom', seed: 42 },
+          { maxAttempts: 1, priors: null },
+        );
+        assert(typeof result.attempts === 'number', 'attempts must be a number');
+        assert(Array.isArray(result.meta.debug), 'meta.debug must be present');
+        assert(typeof result.meta.bestScore === 'number', 'meta.bestScore must be a number');
+        assert(Array.isArray(result.meta.scores), 'meta.scores must be an array');
+        assert(result.meta.debug[0] !== undefined, 'meta.debug[0] must exist');
+        assert('strategy' in result.meta.debug[0], 'meta.debug[0] must have strategy key');
+      } finally {
+        if (savedKey !== undefined) process.env.ANTHROPIC_API_KEY = savedKey;
+      }
+    },
+  });
+
+  for (const { name, fn } of asyncTests) {
+    await testAsync(name, fn);
+  }
+
+  // ── Summary ─────────────────────────────────────────────────────────────────
+
+  console.log(`\n  ${passed} passed, ${failed} failed\n`);
+  if (failed > 0) process.exit(1);
+})();

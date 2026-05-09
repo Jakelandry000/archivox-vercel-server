@@ -1,17 +1,22 @@
 import type { Metadata } from 'next';
-import localFont from 'next/font/local';
+import { Fraunces, JetBrains_Mono } from 'next/font/google';
 import './globals.css';
 import { SmoothScroll } from '@/components/SmoothScroll';
 
-const bigShouldersDisplay = localFont({
-  src: [
-    { path: '../../public/fonts/big-shoulders-display-latin-700-normal.woff2', weight: '700', style: 'normal' },
-    { path: '../../public/fonts/big-shoulders-display-latin-800-normal.woff2', weight: '800', style: 'normal' },
-    { path: '../../public/fonts/big-shoulders-display-latin-900-normal.woff2', weight: '900', style: 'normal' },
-  ],
+const fraunces = Fraunces({
+  subsets: ['latin'],
+  axes: ['opsz', 'SOFT'],
+  weight: 'variable',
+  style: ['normal', 'italic'],
   variable: '--font-display',
   display: 'swap',
-  preload: true,
+});
+
+const jetbrainsMono = JetBrains_Mono({
+  subsets: ['latin'],
+  weight: ['400', '500', '600'],
+  variable: '--font-mono',
+  display: 'swap',
 });
 
 export const metadata: Metadata = {
@@ -45,7 +50,7 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className={bigShouldersDisplay.variable}>
+    <html lang="en" className={`${fraunces.variable} ${jetbrainsMono.variable}`}>
       <body className="antialiased">
         <SmoothScroll>
           {children}

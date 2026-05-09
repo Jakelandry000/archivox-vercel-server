@@ -15,6 +15,12 @@ const nextConfig: NextConfig = {
     dangerouslyAllowSVG: true,
     contentSecurityPolicy: "default-src 'self'; script-src 'none'; sandbox;",
   },
+  // Include priors dataset in Vercel output file tracing so readFileSync works
+  // at runtime. The path is relative to the repo root (apps/web/../../..).
+  // Moved from experimental in Next.js 16+.
+  outputFileTracingIncludes: {
+    "/**": ["../../datasets/core-v1/priors.json"],
+  },
 };
 
 export default nextConfig;

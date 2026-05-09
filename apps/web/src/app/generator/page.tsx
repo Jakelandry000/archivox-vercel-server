@@ -4,6 +4,8 @@ import { useMemo, useState } from 'react';
 import { motion } from 'framer-motion';
 import { ScrollShell } from '../components/ScrollShell';
 import { Tabs, TabKey } from '../components/Tabs';
+import { FloorPlan3D } from '../../components/FloorPlan3D';
+import { isLayoutV1 } from '@archivox/core/layout';
 
 type ValidationViolation = {
   code: string;
@@ -397,6 +399,18 @@ export default function Home() {
                         className="min-w-[520px]"
                         dangerouslySetInnerHTML={{ __html: result.svg }}
                       />
+                    </div>
+                  ) : null}
+
+                  {result && !result.error && tab === '3d' ? (
+                    <div className="rounded-2xl border border-white/10 bg-black/20 overflow-hidden" style={{ height: '480px' }}>
+                      {isLayoutV1(result.layout) ? (
+                        <FloorPlan3D layout={result.layout} className="w-full h-full" />
+                      ) : (
+                        <div className="flex h-full items-center justify-center text-sm text-white/50">
+                          Layout data is not a valid LayoutV1 — cannot render 3D view.
+                        </div>
+                      )}
                     </div>
                   ) : null}
 
