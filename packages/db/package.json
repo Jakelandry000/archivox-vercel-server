@@ -14,6 +14,7 @@
     "vitest": "^4.1.5"
   },
   "scripts": {
+    "postinstall": "prisma generate --config=./prisma.config.ts",
     "prisma:generate": "prisma generate --config=./prisma.config.ts",
     "prisma:migrate:dev": "prisma migrate dev --config=./prisma.config.ts",
     "prisma:studio": "node --env-file=.env ../../node_modules/prisma/build/index.js studio --config=./prisma.config.ts"
