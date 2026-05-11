@@ -71,8 +71,7 @@ export async function POST(req: Request) {
     return NextResponse.json({ ok: true })
   }
 
-  await sendTelegramMessage(chatId, '⏳ Got it — fetching your reel. I\'ll reply in about a minute.')
-  await sendTelegramMessage(chatId, '💡 Tip: if this fails, download the reel on your phone and send the video file directly instead.')
+  await sendTelegramMessage(chatId, '⏳ Got it — fetching and transcribing your reel. I\'ll reply in about a minute.')
 
   try {
     const { getInstagramVideoUrl } = await import('@/lib/instagram')
@@ -80,7 +79,7 @@ export async function POST(req: Request) {
     const videoUrl = await getInstagramVideoUrl(url)
 
     if (!videoUrl) {
-      await sendTelegramMessage(chatId, '❌ Instagram is blocking the request. Please download the reel on your phone and send the video file directly to this bot.')
+      await sendTelegramMessage(chatId, '❌ Couldn\'t fetch this reel. Make sure the link is a public Instagram reel and try again.')
       return NextResponse.json({ ok: true })
     }
 
@@ -88,7 +87,8 @@ export async function POST(req: Request) {
     await createReelNote({ url, userNote: userNote ?? null, assemblyJobId: jobId, telegramChatId: chatId })
   } catch (err) {
     console.error('[telegram/webhook] url', err)
-    await sendTelegramMessage(chatId, '❌ Something went wrong. Please try sending the video file directly.')
+    const message = err instanceof Error ? err.message : String(err)
+    await sendTelegramMessage(chatId, `❌ Error: ${message}`)
   }
 
   return NextResponse.json({ ok: true })
