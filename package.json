@@ -8,7 +8,7 @@
   ],
   "scripts": {
     "dev": "npm run dev --workspace @archivox/web",
-    "build": "npm run build --workspace @archivox/web",
+    "build": "npm run prisma:generate --workspace @archivox/db && npm run build --workspace @archivox/web",
     "lint": "npm run lint --workspaces",
     "test": "npx tsx packages/core/src/validator.test.ts && npx tsx packages/core/src/rulebookV1Checks.test.ts",
     "test:e2e": "npx playwright test",

@@ -47,8 +47,12 @@ model Render {
 model ReelNote {
   id              String   @id @default(cuid())
   url             String
-  summary         String
-  applicability   String   // "Applicable" | "Maybe" | "Not applicable"
+  summary         String   @default("")
+  applicability   String   @default("")
   archivoxUseCase String?
+  status          String   @default("pending")
+  assemblyJobId   String?  @unique
+  telegramChatId  String?
+  userNote        String?
   createdAt       DateTime @default(now())
 }
