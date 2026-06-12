@@ -53,8 +53,8 @@ export default function RenderStudioPage() {
           <p className="eyebrow" style={{ marginBottom: 16 }}>Studio · Render</p>
           <h1 className="display-md" style={{ marginBottom: 10 }}>Portfolio render</h1>
           <p style={{ color: 'rgb(var(--muted-rgb))', fontSize: 14, lineHeight: 1.6 }}>
-            Upload a Rhino viewport screenshot. Imagen 3 adds materials, lighting, and landscape context
-            while preserving your geometry exactly.
+            Upload a screenshot from Rhino, SketchUp, or any 3D software. AI adds materials,
+            dusk lighting, and landscape context while preserving your geometry.
           </p>
         </motion.div>
 
@@ -110,7 +110,7 @@ export default function RenderStudioPage() {
               animation: 'spin 0.8s linear infinite',
             }} />
             <p style={{ fontFamily: 'var(--font-mono)', fontSize: 13, color: 'rgb(var(--muted-rgb))' }}>
-              Rendering via Imagen 3…
+              Rendering via Flux Dev…
             </p>
             <p style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'rgb(var(--muted-2-rgb))' }}>
               Usually 15–30 seconds

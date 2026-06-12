@@ -21,7 +21,7 @@ function MarketingNav() {
       </Link>
 
       <div style={{ display: 'flex', gap: 4, marginLeft: 32 }}>
-        {[['Studio', '/project/demo/editor'], ['Render', '/studio/render'], ['Dashboard', '/dashboard'], ['Plugin', '/plugin'], ['Pricing', '/#pricing']].map(([t, to]) => (
+        {[['Studio', '/project/demo/editor'], ['Render', '/studio/render'], ['Portfolio', '/studio/portfolio'], ['Dashboard', '/dashboard'], ['Plugin', '/plugin'], ['Pricing', '/#pricing']].map(([t, to]) => (
           <Link key={t} href={to} className="btn btn-link"
             style={{ padding: '6px 12px', color: 'rgb(var(--muted-rgb))', fontSize: 13 }}>{t}</Link>
         ))}
@@ -82,7 +82,7 @@ function Hero() {
               fontFamily: 'var(--font-mono)', fontSize: 11,
               letterSpacing: '0.12em', color: 'rgb(var(--muted-rgb))',
             }}>
-              <span>RHINO 8 · GRASSHOPPER · IMAGEN 3 · IFC 4</span>
+              <span>RHINO 8 · GRASSHOPPER · FLUX DEV · IFC 4</span>
             </div>
           </div>
           <div>
@@ -96,7 +96,7 @@ function Hero() {
         </div>
 
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'end', marginTop: 32 }}>
-          <div className="mono-label">RHINO 8 COMPATIBLE · GRASSHOPPER · IMAGEN 3 RENDER · IFC 4 EXPORT</div>
+          <div className="mono-label">RHINO 8 COMPATIBLE · GRASSHOPPER · AI RENDER · IFC 4 EXPORT</div>
           <div className="mono-label">SCROLL TO EXPLORE ↓</div>
         </div>
       </div>
