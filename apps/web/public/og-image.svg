@@ -1,0 +1,145 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 630" width="1200" height="630">
+  <defs>
+    <radialGradient id="og-glow" cx="72%" cy="50%" r="50%">
+      <stop offset="0%"  stop-color="rgb(16,185,129)" stop-opacity="0.15"/>
+      <stop offset="100%" stop-color="rgb(12,16,14)"  stop-opacity="0"/>
+    </radialGradient>
+    <pattern id="og-grid" width="48" height="48" patternUnits="userSpaceOnUse">
+      <path d="M 48 0 L 0 0 0 48" fill="none"
+            stroke="rgba(34,197,94,0.07)" stroke-width="1"/>
+    </pattern>
+    <filter id="og-blur-glow" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur stdDeviation="3" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <clipPath id="og-clip">
+      <rect width="1200" height="630"/>
+    </clipPath>
+  </defs>
+
+  <!-- Background -->
+  <rect width="1200" height="630" fill="rgb(12,16,14)"/>
+  <rect width="1200" height="630" fill="url(#og-grid)"/>
+  <rect width="1200" height="630" fill="url(#og-glow)"/>
+
+  <!-- Left panel — brand text -->
+  <!-- Accent bar -->
+  <rect x="64" y="190" width="4" height="260" fill="rgba(34,197,94,0.8)" rx="2"/>
+
+  <!-- ArchiVox logotype -->
+  <text x="84" y="280" font-family="'Courier New', Courier, monospace" font-size="72"
+        font-weight="900" fill="rgb(240,255,240)" letter-spacing="-2">ArchiVox</text>
+
+  <!-- Tagline -->
+  <text x="84" y="326" font-family="'Courier New', Courier, monospace" font-size="22"
+        fill="rgba(34,197,94,0.85)" letter-spacing="1">Architectural Copilot</text>
+
+  <!-- Description line -->
+  <text x="84" y="370" font-family="'Courier New', Courier, monospace" font-size="16"
+        fill="rgba(200,230,210,0.6)" letter-spacing="0.5">Generate layouts, 2D plans, and AutoCAD scripts</text>
+  <text x="84" y="392" font-family="'Courier New', Courier, monospace" font-size="16"
+        fill="rgba(200,230,210,0.6)" letter-spacing="0.5">from plain language.</text>
+
+  <!-- Subtle pill badge -->
+  <rect x="84" y="418" width="130" height="30" rx="15"
+        fill="rgba(34,197,94,0.12)" stroke="rgba(34,197,94,0.35)" stroke-width="1"/>
+  <text x="149" y="438" font-family="'Courier New', Courier, monospace" font-size="12"
+        fill="rgba(34,197,94,0.9)" text-anchor="middle" letter-spacing="2">AI-POWERED</text>
+
+  <!-- Right panel — floor plan illustration -->
+  <g clip-path="url(#og-clip)" transform="translate(760,315) rotate(-6) translate(-220,-180)">
+
+    <!-- Outer building shell -->
+    <rect x="0" y="0" width="440" height="360"
+          fill="none" stroke="rgba(34,197,94,0.55)" stroke-width="2.5"/>
+
+    <!-- Room dividers — horizontal -->
+    <line x1="0"   y1="144" x2="440" y2="144" stroke="rgba(34,197,94,0.35)" stroke-width="1.5"/>
+    <line x1="0"   y1="252" x2="264" y2="252" stroke="rgba(34,197,94,0.35)" stroke-width="1.5"/>
+
+    <!-- Room dividers — vertical -->
+    <line x1="160" y1="0"   x2="160" y2="144" stroke="rgba(34,197,94,0.35)" stroke-width="1.5"/>
+    <line x1="264" y1="144" x2="264" y2="360" stroke="rgba(34,197,94,0.35)" stroke-width="1.5"/>
+    <line x1="160" y1="252" x2="160" y2="360" stroke="rgba(34,197,94,0.35)" stroke-width="1.5"/>
+
+    <!-- Door arcs -->
+    <path d="M 160 0 A 36 36 0 0 1 124 36"
+          fill="none" stroke="rgba(34,197,94,0.45)" stroke-width="1.2" stroke-dasharray="3,3"/>
+    <path d="M 264 144 A 36 36 0 0 0 300 180"
+          fill="none" stroke="rgba(34,197,94,0.45)" stroke-width="1.2" stroke-dasharray="3,3"/>
+    <path d="M 0 252 A 36 36 0 0 1 36 216"
+          fill="none" stroke="rgba(34,197,94,0.45)" stroke-width="1.2" stroke-dasharray="3,3"/>
+    <path d="M 160 360 A 36 36 0 0 0 196 324"
+          fill="none" stroke="rgba(34,197,94,0.45)" stroke-width="1.2" stroke-dasharray="3,3"/>
+
+    <!-- Window ticks -->
+    <line x1="60"  y1="0" x2="60"  y2="-10" stroke="rgba(34,197,94,0.6)" stroke-width="1.5"/>
+    <line x1="100" y1="0" x2="100" y2="-10" stroke="rgba(34,197,94,0.6)" stroke-width="1.5"/>
+    <line x1="60"  y1="0" x2="100" y2="0"   stroke="rgba(34,197,94,0.6)" stroke-width="1.5"/>
+
+    <line x1="340" y1="0" x2="340" y2="-10" stroke="rgba(34,197,94,0.6)" stroke-width="1.5"/>
+    <line x1="380" y1="0" x2="380" y2="-10" stroke="rgba(34,197,94,0.6)" stroke-width="1.5"/>
+    <line x1="340" y1="0" x2="380" y2="0"   stroke="rgba(34,197,94,0.6)" stroke-width="1.5"/>
+
+    <line x1="440" y1="40" x2="450" y2="40" stroke="rgba(34,197,94,0.6)" stroke-width="1.5"/>
+    <line x1="440" y1="80" x2="450" y2="80" stroke="rgba(34,197,94,0.6)" stroke-width="1.5"/>
+    <line x1="440" y1="40" x2="440" y2="80" stroke="rgba(34,197,94,0.6)" stroke-width="1.5"/>
+
+    <!-- Room labels -->
+    <text x="76"  y="80"  font-family="'Courier New', Courier, monospace" font-size="11"
+          fill="rgba(34,197,94,0.4)" text-anchor="middle">Living</text>
+    <text x="210" y="80"  font-family="'Courier New', Courier, monospace" font-size="11"
+          fill="rgba(34,197,94,0.4)" text-anchor="middle">Dining</text>
+    <text x="356" y="80"  font-family="'Courier New', Courier, monospace" font-size="11"
+          fill="rgba(34,197,94,0.4)" text-anchor="middle">Kitchen</text>
+    <text x="76"  y="205" font-family="'Courier New', Courier, monospace" font-size="11"
+          fill="rgba(34,197,94,0.4)" text-anchor="middle">Bed 1</text>
+    <text x="210" y="205" font-family="'Courier New', Courier, monospace" font-size="11"
+          fill="rgba(34,197,94,0.4)" text-anchor="middle">Bath</text>
+    <text x="356" y="205" font-family="'Courier New', Courier, monospace" font-size="11"
+          fill="rgba(34,197,94,0.4)" text-anchor="middle">Bed 2</text>
+    <text x="76"  y="312" font-family="'Courier New', Courier, monospace" font-size="11"
+          fill="rgba(34,197,94,0.4)" text-anchor="middle">Hall</text>
+    <text x="210" y="312" font-family="'Courier New', Courier, monospace" font-size="11"
+          fill="rgba(34,197,94,0.4)" text-anchor="middle">Utility</text>
+    <text x="356" y="312" font-family="'Courier New', Courier, monospace" font-size="11"
+          fill="rgba(34,197,94,0.4)" text-anchor="middle">Garage</text>
+
+    <!-- Dimension leaders -->
+    <line x1="0" y1="378" x2="440" y2="378"
+          stroke="rgba(34,197,94,0.25)" stroke-width="1" stroke-dasharray="4,4"/>
+    <line x1="0"   y1="373" x2="0"   y2="383" stroke="rgba(34,197,94,0.35)" stroke-width="1"/>
+    <line x1="440" y1="373" x2="440" y2="383" stroke="rgba(34,197,94,0.35)" stroke-width="1"/>
+    <text x="220" y="394" font-family="'Courier New', Courier, monospace" font-size="10"
+          fill="rgba(34,197,94,0.35)" text-anchor="middle">12 000 mm</text>
+
+    <line x1="-20" y1="0" x2="-20" y2="360"
+          stroke="rgba(34,197,94,0.25)" stroke-width="1" stroke-dasharray="4,4"/>
+    <line x1="-25" y1="0"   x2="-15" y2="0"   stroke="rgba(34,197,94,0.35)" stroke-width="1"/>
+    <line x1="-25" y1="360" x2="-15" y2="360" stroke="rgba(34,197,94,0.35)" stroke-width="1"/>
+    <text x="-30" y="182" font-family="'Courier New', Courier, monospace" font-size="10"
+          fill="rgba(34,197,94,0.35)" text-anchor="middle"
+          transform="rotate(-90,-30,182)">8 600 mm</text>
+
+    <!-- Compass rose -->
+    <g transform="translate(468,16)" filter="url(#og-blur-glow)">
+      <line x1="0" y1="0" x2="0"  y2="-18" stroke="rgba(34,197,94,0.7)" stroke-width="1.5"/>
+      <polygon points="0,-20 -5,-10 5,-10"  fill="rgba(34,197,94,0.7)"/>
+      <text x="0" y="-24" font-family="'Courier New', Courier, monospace" font-size="9"
+            fill="rgba(34,197,94,0.7)" text-anchor="middle">N</text>
+    </g>
+  </g>
+
+  <!-- Divider line between text and plan areas -->
+  <line x1="640" y1="80" x2="640" y2="550"
+        stroke="rgba(34,197,94,0.08)" stroke-width="1" stroke-dasharray="4,4"/>
+
+  <!-- Domain / URL hint bottom-left -->
+  <text x="64" y="590" font-family="'Courier New', Courier, monospace" font-size="13"
+        fill="rgba(34,197,94,0.35)" letter-spacing="2">archivox.vercel.app</text>
+
+  <!-- Scan-line overlay -->
+  <rect width="1200" height="630" fill="none"
+        stroke="rgba(34,197,94,0.025)" stroke-width="1"
+        style="stroke-dasharray:1 2"/>
+</svg>

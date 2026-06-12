@@ -1,0 +1,3 @@
+# Treat Playwright visual snapshot baselines as binary to prevent line-ending
+# corruption and spurious diffs from text-mode merge tools.
+e2e/__snapshots__/**/*.png binary

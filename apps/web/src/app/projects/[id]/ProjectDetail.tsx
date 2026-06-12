@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { getProjects, saveProject, deleteProject } from '@/lib/projects/store';
-import type { DraftResult, Project } from '@/lib/projects/types';
+import type { DraftResult, DraftValidation, Project } from '@/lib/projects/types';
 import Link from 'next/link';
 
 interface Props {
@@ -42,6 +42,13 @@ function DraftCard({ draft }: { draft: DraftResult }) {
     (v) => v.severity !== 'error' && v.severity !== 'warning'
   ).length;
 
+  const { score, rulebookScoreAdjustment, priorsAdjustment } = draft.validation;
+  const hasBreakdown = rulebookScoreAdjustment !== undefined || priorsAdjustment !== undefined;
+  // Reconstruct the base score before rulebook deductions and priors bonus.
+  const baseScore = hasBreakdown
+    ? score - (rulebookScoreAdjustment ?? 0) - (priorsAdjustment ?? 0)
+    : null;
+
   return (
     <div className="flex flex-col gap-4">
       {/* SVG Preview */}
@@ -60,7 +67,7 @@ function DraftCard({ draft }: { draft: DraftResult }) {
         <div className="text-[10px] uppercase tracking-wider text-white/35">Validation</div>
         <div className="flex items-center gap-3">
           <span className="text-lg font-semibold text-white/90">
-            {draft.validation.score}
+            {score}
             <span className="text-xs text-white/40 font-normal"> / 100</span>
           </span>
           {errorCount > 0 && (
@@ -84,6 +91,34 @@ function DraftCard({ draft }: { draft: DraftResult }) {
             </span>
           )}
         </div>
+        {/* Score breakdown: Base | Rulebook | Priors | Final */}
+        {hasBreakdown && baseScore !== null && (
+          <div className="flex items-center gap-1.5 flex-wrap text-[10px] font-mono text-white/50">
+            <span>Base:</span>
+            <span className="text-white/75">{Math.round(baseScore)}</span>
+            {rulebookScoreAdjustment !== undefined && (
+              <>
+                <span className="text-white/20 mx-0.5">|</span>
+                <span>Rulebook:</span>
+                <span className={rulebookScoreAdjustment < 0 ? 'text-red-400' : 'text-white/60'}>
+                  {rulebookScoreAdjustment > 0 ? '+' : ''}{Math.round(rulebookScoreAdjustment)}
+                </span>
+              </>
+            )}
+            {priorsAdjustment !== undefined && (
+              <>
+                <span className="text-white/20 mx-0.5">|</span>
+                <span>Priors:</span>
+                <span className={priorsAdjustment > 0 ? 'text-emerald-400' : 'text-white/60'}>
+                  {priorsAdjustment > 0 ? '+' : ''}{priorsAdjustment}
+                </span>
+              </>
+            )}
+            <span className="text-white/20 mx-0.5">|</span>
+            <span>Final:</span>
+            <span className="text-white/75">{Math.round(score)}</span>
+          </div>
+        )}
         {draft.validation.violations.length > 0 && (
           <ul className="flex flex-col gap-1 mt-1">
             {draft.validation.violations.map((v, i) => (
@@ -301,7 +336,7 @@ function GenerateDraftSection({
       const data = await res.json() as {
         svg: string;
         script: string;
-        validation: { score: number; violations: Array<{ severity: string; message: string }> };
+        validation: DraftValidation;
         priorsMeta: {
           loaded: boolean;
           labelsCount: number;

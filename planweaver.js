@@ -6,73 +6,83 @@
  * Name: PlanWeaver
  * Purpose: Converts structured architectural layout data into 2D representations,
  * including SVG previews and .scr (AutoCAD) script output.
- * 
+ *
  * Role:
  * - Acts as the architectural drafter for ArchiVox.
  * - Reads JSON layout data and translates it into visual floor plans.
- * 
+ *
  * Tasks:
  * - Validate and interpret room/structure layout data.
  * - Generate scalable SVG drawings for UI previews.
  * - Create AutoCAD-compatible script strings (.scr) for downstream CAD agents.
- * 
+ *
  * Universal Behaviors:
  * - Always use scale units (feet, meters)
  * - Avoid overlapping geometry
  * - Prioritize clarity over complexity in early drafts
- * 
+ *
  * System Start-Up:
  * - Load with no assumptions — await JSON input from ArchiVox
- * 
+ *
  * Output:
  * - { svg: "<svg>...</svg>", script: "RECTANGLE 0,0 40,30" }
- * 
+ *
  * Error Handling:
  * - If layout is missing or invalid, return { error: "Invalid layout data." }
- * 
+ *
  * Security:
  * - Never execute dynamic code
  * - Do not accept arbitrary user commands
- * 
+ *
  * Iterative Process:
  * - Designed to be improved with future geometry engines or layout validators
  */
 
-function generateFloorPlan(data) {
+const { resolveTheme } = require('./themes');
+
+/**
+ * Generate a 2D SVG floor plan and AutoCAD script from layout data.
+ * @param {object} data - Room layout (rooms[], dimensions).
+ * @param {string} [themeName] - Optional color theme name (default: 'blueprint').
+ * @returns {{ svg: string, script: string } | { error: string }}
+ */
+function generateFloorPlan(data, themeName) {
     if (!data || !data.rooms || !data.dimensions) {
       return { error: "Invalid layout data." };
     }
-  
-    const svgElements = data.rooms.map((room, i) => {
+
+    const { colors } = resolveTheme(themeName);
+
+    const svgElements = data.rooms.map((room) => {
       return `
-        <rect 
-          x="${room.x * 10}" 
-          y="${room.y * 10}" 
-          width="${room.width * 10}" 
-          height="${room.height * 10}" 
-          fill="none" 
-          stroke="#444" 
+        <rect
+          x="${room.x * 10}"
+          y="${room.y * 10}"
+          width="${room.width * 10}"
+          height="${room.height * 10}"
+          fill="${colors.room}"
+          stroke="${colors.wall}"
           stroke-width="2"
         />
-        <text 
-          x="${room.x * 10 + 4}" 
-          y="${room.y * 10 + 15}" 
-          font-size="12" 
-          fill="#333"
+        <text
+          x="${room.x * 10 + 4}"
+          y="${room.y * 10 + 15}"
+          font-size="12"
+          fill="${colors.text}"
         >${room.type}</text>
       `;
     });
-  
+
     const totalWidth = data.dimensions.width * 10;
     const totalHeight = data.dimensions.depth * 10;
-  
+
     const svg = `
-      <svg width="${totalWidth}" height="${totalHeight}" xmlns="http://www.w3.org/2000/svg">
+      <svg width="${totalWidth}" height="${totalHeight}" xmlns="http://www.w3.org/2000/svg" style="background:${colors.background}">
         ${svgElements.join("\n")}
       </svg>
     `;
-  
-    // Now add the .scr AutoCAD script generator
+
+    // .scr AutoCAD script generator (no color — CAD scripts are geometry-only)
     const script = data.rooms.map(room => {
       const x1 = room.x;
       const y1 = room.y;
@@ -80,12 +90,13 @@ function generateFloorPlan(data) {
       const y2 = room.y + room.height;
       return `RECTANGLE ${x1},${y1} ${x2},${y2}`;
     }).join("\n");
-  
+
     return {
       svg,
       script
     };
   }
+
   module.exports = {
     generateFloorPlan
   };

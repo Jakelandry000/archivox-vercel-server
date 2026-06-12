@@ -4,6 +4,7 @@
   "private": true,
   "type": "module",
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.55.0",
     "@archivox/core": "0.1.0"
   },
   "exports": {

@@ -9,28 +9,37 @@
     "lint": "eslint",
     "dataset:extract": "node scripts/extract-plan-graphs.mjs",
     "dataset:priors": "node scripts/build-priors.mjs",
-    "dataset:build": "npm run dataset:extract && npm run dataset:priors"
+    "dataset:build": "npm run dataset:extract && npm run dataset:priors",
+    "og:generate": "node scripts/generate-og-image.mjs"
   },
   "dependencies": {
     "@archivox/core": "0.1.0",
     "@archivox/db": "0.1.0",
     "@archivox/engines": "0.1.0",
     "@archivox/generator": "0.1.0",
+    "@google-cloud/aiplatform": "^6.7.0",
+    "@react-three/drei": "^10.7.7",
+    "@react-three/fiber": "^9.6.0",
     "@vercel/blob": "^2.3.2",
     "framer-motion": "^12.23.12",
+    "lenis": "^1.3.21",
     "next": "16.1.6",
     "react": "19.2.3",
-    "react-dom": "19.2.3"
+    "react-dom": "19.2.3",
+    "three": "^0.184.0"
   },
   "devDependencies": {
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "@types/three": "^0.184.0",
+    "@vitejs/plugin-react": "^6.0.1",
     "autoprefixer": "10.4.20",
     "eslint": "^9",
     "eslint-config-next": "16.1.6",
     "postcss": "8.4.49",
     "tailwindcss": "3.4.17",
-    "typescript": "^5"
+    "typescript": "^5",
+    "vitest": "^4.1.5"
   }
 }

@@ -32,3 +32,27 @@ model FloorPlan {
   createdAt DateTime        @default(now())
   updatedAt DateTime        @updatedAt
 }
+
+model Render {
+  id          String   @id @default(cuid())
+  projectId   String?
+  originalUrl String
+  renderedUrl String?
+  prompt      String
+  status      String   @default("pending")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model ReelNote {
+  id              String   @id @default(cuid())
+  url             String
+  summary         String   @default("")
+  applicability   String   @default("")
+  archivoxUseCase String?
+  status          String   @default("pending")
+  assemblyJobId   String?  @unique
+  telegramChatId  String?
+  userNote        String?
+  createdAt       DateTime @default(now())
+}

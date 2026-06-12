@@ -1,22 +1,15 @@
 'use client';
 
-import { PropsWithChildren, useEffect, useMemo, useState } from 'react';
+import { PropsWithChildren, useMemo } from 'react';
 import { motion, useScroll, useTransform } from 'framer-motion';
+import { useReducedMotion } from '@/lib/hooks/useReducedMotion';
 
 export function ScrollShell({ children }: PropsWithChildren) {
   const { scrollYProgress } = useScroll();
   const y1 = useTransform(scrollYProgress, [0, 1], [0, -60]);
   const y2 = useTransform(scrollYProgress, [0, 1], [0, -120]);
 
-  // Reduce motion for users who prefer it.
-  const [reduce, setReduce] = useState(false);
-  useEffect(() => {
-    const mq = window.matchMedia('(prefers-reduced-motion: reduce)');
-    const on = () => setReduce(!!mq.matches);
-    on();
-    mq.addEventListener?.('change', on);
-    return () => mq.removeEventListener?.('change', on);
-  }, []);
+  const reduce = useReducedMotion();
 
   const bg = useMemo(() => {
     return (

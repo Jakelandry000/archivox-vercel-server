@@ -1,4 +1,11 @@
-import { LayoutV1, Units, validateLayout, ValidationResult, loadPriors, Priors, RepairAction } from '@archivox/core';
+import { LayoutV1, Units, DoorElement, WindowElement, WallSegment, Room2D, validateLayout, ValidationResult, loadPriors, Priors, RepairAction, runChecks, computeRulebookDeduction, registerRulebookV1Checks } from '@archivox/core';
+import { extractRoomProgram, RoomProgram, PlannedDoor, PlannedWindow } from './llm-planner';
+
+export { extractRoomProgram, type RoomProgram } from './llm-planner';
+
+// Ensure all 103 Rule Book v1 checks are registered before the first call to
+// runChecks() inside the generate loop.  registerRulebookV1Checks is idempotent.
+registerRulebookV1Checks();
 
 export type GenerateInput = {
   prompt: string;
@@ -7,6 +14,12 @@ export type GenerateInput = {
   depth?: number;
   /** Optional seed for deterministic variation across attempts. */
   seed?: number;
+  /**
+   * Building typology.  When set to 'residential', validation runs are scoped
+   * to residential rule checks only.  Omit to run all registered checks
+   * (preserves existing behavior for non-residential or untyped plans).
+   */
+  typology?: 'residential' | 'general';
 };
 
 export type GenerateMeta = {
@@ -36,13 +49,18 @@ type RepairHints = {
   worstRoomScale: number;
 };
 
-// MVP heuristic generator: cheap, deterministic, good enough to demo.
-// Later: swap with an LLM-backed planner that outputs LayoutV1.
+// Primary generator.  When `plannedRooms` are provided (from the LLM planner)
+// they replace the heuristic regex extraction phase; the packing + repair loop
+// still apply, preserving geometric correctness.  Falls back to heuristic when
+// plannedRooms is absent or empty.
 export function generateLayoutFromText(
   input: GenerateInput,
   attemptIndex = 0,
   rng?: () => number,
-  hints?: RepairHints
+  hints?: RepairHints,
+  plannedRooms?: RoomProgram['rooms'],
+  plannedDoors?: PlannedDoor[],
+  plannedWindows?: PlannedWindow[],
 ): LayoutV1 {
   const prompt = (input.prompt ?? '').toLowerCase();
 
@@ -72,16 +90,6 @@ export function generateLayoutFromText(
     depth = clampNum(depth * hints.canvasScale, 10, 200);
   }
 
-  const wants = {
-    bedrooms: parseCount(prompt, ['bedroom', 'bedrooms', 'bed']) ?? 1,
-    bathrooms: parseCount(prompt, ['bathroom', 'bathrooms', 'bath']) ?? 1,
-    office: /\boffice\b/.test(prompt),
-    garage: /\bgarage\b/.test(prompt),
-    laundry: /\blaundry\b/.test(prompt),
-    kitchen: true,
-    living: true,
-  };
-
   // Build room list with optional size jitter (±10% via rng).
   const jitter = (base: number) => {
     if (!rng || attemptIndex === 0) return base;
@@ -95,26 +103,53 @@ export function generateLayoutFromText(
   // Combined jitter + repair scale for a room dimension.
   const dim = (base: number, type: string) => jitter(base) * repairScale(type);
 
-  type RoomDef = { type: string; w: number; h: number; label?: string };
-  const roomDefs: RoomDef[] = [];
+  let roomDefs: RoomDef[];
 
-  roomDefs.push({ type: 'living room', w: dim(18, 'living room'), h: dim(14, 'living room') });
-  roomDefs.push({ type: 'kitchen', w: dim(12, 'kitchen'), h: dim(10, 'kitchen') });
-  if (wants.laundry) roomDefs.push({ type: 'laundry', w: dim(6, 'laundry'), h: dim(6, 'laundry') });
-  if (wants.office) roomDefs.push({ type: 'office', w: dim(10, 'office'), h: dim(10, 'office') });
-  for (let i = 0; i < clampNum(wants.bedrooms, 1, 6); i++) {
-    roomDefs.push({ type: 'bedroom', w: dim(12, 'bedroom'), h: dim(10, 'bedroom') });
-  }
-  for (let i = 0; i < clampNum(wants.bathrooms, 1, 4); i++) {
-    roomDefs.push({ type: 'bathroom', w: dim(8, 'bathroom'), h: dim(8, 'bathroom') });
-  }
-  if (wants.garage) {
-    const gs = hints?.garageScale ?? 1.0;
-    roomDefs.push({ type: 'garage', w: jitter(20) * gs, h: jitter(18) * gs });
+  if (plannedRooms && plannedRooms.length > 0) {
+    // LLM planner path: use provided room dimensions, applying jitter + repair.
+    roomDefs = plannedRooms.map(r => ({
+      id: r.id,
+      type: r.type,
+      w: r.type === 'garage'
+        ? jitter(r.width) * (hints?.garageScale ?? 1.0)
+        : dim(r.width, r.type),
+      h: r.type === 'garage'
+        ? jitter(r.height) * (hints?.garageScale ?? 1.0)
+        : dim(r.height, r.type),
+      label: r.label,
+    }));
+  } else {
+    // Heuristic fallback path: regex extraction + hard-coded typical dimensions.
+    const wants = {
+      bedrooms: parseCount(prompt, ['bedroom', 'bedrooms', 'bed']) ?? 1,
+      bathrooms: parseCount(prompt, ['bathroom', 'bathrooms', 'bath']) ?? 1,
+      office: /\boffice\b/.test(prompt),
+      garage: /\bgarage\b/.test(prompt),
+      laundry: /\blaundry\b/.test(prompt),
+    };
+
+    roomDefs = [];
+    roomDefs.push({ type: 'living room', w: dim(18, 'living room'), h: dim(14, 'living room') });
+    roomDefs.push({ type: 'kitchen', w: dim(12, 'kitchen'), h: dim(10, 'kitchen') });
+    if (wants.laundry) roomDefs.push({ type: 'laundry', w: dim(6, 'laundry'), h: dim(6, 'laundry') });
+    if (wants.office) roomDefs.push({ type: 'office', w: dim(10, 'office'), h: dim(10, 'office') });
+    for (let i = 0; i < clampNum(wants.bedrooms, 1, 6); i++) {
+      roomDefs.push({ type: 'bedroom', w: dim(12, 'bedroom'), h: dim(10, 'bedroom') });
+    }
+    for (let i = 0; i < clampNum(wants.bathrooms, 1, 4); i++) {
+      roomDefs.push({ type: 'bathroom', w: dim(8, 'bathroom'), h: dim(8, 'bathroom') });
+    }
+    if (wants.garage) {
+      const gs = hints?.garageScale ?? 1.0;
+      roomDefs.push({ type: 'garage', w: jitter(20) * gs, h: jitter(18) * gs });
+    }
   }
 
-  // Vary placement order via seeded shuffle (Fisher-Yates) for attempt > 0.
-  if (rng && attemptIndex > 0) {
+  // On the first attempt, sort by door-graph BFS so connected rooms pack adjacent.
+  // Later attempts shuffle for geometric variety (repair loop).
+  if (attemptIndex === 0 && plannedDoors) {
+    roomDefs = sortRoomsByAdjacency(roomDefs, plannedDoors);
+  } else if (rng && attemptIndex > 0) {
     seededShuffle(roomDefs, rng);
   }
 
@@ -125,19 +160,58 @@ export function generateLayoutFromText(
   let cursorY = 0;
   let rowH = 0;
 
-  for (const { type, w, h, label } of roomDefs) {
-    if (cursorX + w > width) {
+  for (const { id: roomId, type, w, h, label, newRow } of roomDefs) {
+    if ((newRow && cursorX > 0) || cursorX + w > width) {
       cursorX = 0;
       cursorY += rowH + spacing;
       rowH = 0;
     }
-    if (cursorY + h > depth) {
-      cursorY = Math.max(0, depth - h);
-    }
-    const id = `${type.replace(/\s+/g, '_')}_${rooms.length + 1}`;
-    rooms.push({ id, type, label, x: cursorX, y: cursorY, width: w, height: h });
+    // Collision-aware Y: scan forward from cursorY until the position is clear
+    // of all already-placed rooms. Never move Y backward (that causes containment).
+    const placedY = findClearY(rooms, cursorX, w, h, cursorY, spacing);
+    const id = roomId ?? `${type.replace(/\s+/g, '_')}_${rooms.length + 1}`;
+    rooms.push({ id, type, label, x: cursorX, y: placedY, width: w, height: h });
     cursorX += w + spacing;
-    rowH = Math.max(rowH, h);
+    rowH = Math.max(rowH, placedY - cursorY + h);
+  }
+
+  let doors: DoorElement[] | undefined =
+    plannedDoors && plannedDoors.length > 0
+      ? plannedDoors.map((d, i) => ({
+          id: d.id ?? `door_${i + 1}`,
+          type: d.type,
+          fromRoomId: d.fromRoomId,
+          toRoomId: d.toRoomId,
+          clearWidth: d.clearWidth,
+          ...(d.wallSegmentId ? { wallSegmentId: d.wallSegmentId } : {}),
+          ...(d.offsetAlongWall !== undefined ? { offsetAlongWall: d.offsetAlongWall } : {}),
+        }))
+      : undefined;
+
+  let windows: WindowElement[] | undefined =
+    plannedWindows && plannedWindows.length > 0
+      ? plannedWindows.map((w, i) => ({
+          id: w.id ?? `window_${i + 1}`,
+          roomId: w.roomId,
+          sillHeight: w.sillHeight,
+          ...(w.wallSegmentId ? { wallSegmentId: w.wallSegmentId } : {}),
+          ...(w.type ? { type: w.type } : {}),
+          ...(w.offsetAlongWall !== undefined ? { offsetAlongWall: w.offsetAlongWall } : {}),
+        }))
+      : undefined;
+
+  // Derive wall segments from packed room geometry and assign wallSegmentId to
+  // every door and window that doesn't already have one.
+  const { walls, interiorWallsByRoomPair, exteriorWallsByRoom } = deriveWallSegments(rooms);
+  if (doors || windows) {
+    const assigned = assignWallSegmentIds(
+      doors ?? [],
+      windows ?? [],
+      interiorWallsByRoomPair,
+      exteriorWallsByRoom,
+    );
+    if (doors) doors = assigned.doors;
+    if (windows) windows = assigned.windows;
   }
 
   return {
@@ -145,6 +219,9 @@ export function generateLayoutFromText(
     units,
     dimensions: { width, depth },
     rooms,
+    ...(walls.length > 0 ? { walls } : {}),
+    ...(doors ? { doors } : {}),
+    ...(windows ? { windows } : {}),
   };
 }
 
@@ -183,7 +260,7 @@ export function generateAndValidate(
   const seed = input.seed ?? Math.floor(Math.random() * 2 ** 31);
   const rng = makeLCG(seed);
 
-  let best: { layout: LayoutV1; validation: ValidationResult } | null = null;
+  let best: { layout: LayoutV1; validation: ValidationResult; combinedScore: number } | null = null;
   const scores: number[] = [];
   const debug: Array<{ strategy: string }> = [];
 
@@ -193,16 +270,23 @@ export function generateAndValidate(
   for (let attempt = 1; attempt <= maxAttempts; attempt++) {
     const layout = generateLayoutFromText(input, attempt - 1, rng, currentHints);
     const validation = validateLayout(layout, effectivePriors);
-    scores.push(validation.score);
+
+    // Per-attempt rulebook scoring: fold deductions into the comparison score so
+    // best-of-N selection reflects combined quality (base + rulebook + priors).
+    const rulebookViolations = runChecks(layout, undefined, input.typology);
+    const rulebookDeduction  = computeRulebookDeduction(rulebookViolations);
+    const combinedScore = Math.max(0, Math.min(100, validation.score - rulebookDeduction));
+
+    scores.push(combinedScore);
     debug.push({ strategy: nextStrategy });
 
-    if (!best || validation.score > best.validation.score) {
-      best = { layout, validation };
+    if (!best || combinedScore > best.combinedScore) {
+      best = { layout, validation, combinedScore };
     }
 
-    if (validation.score >= earlyExitScore) break;
+    if (combinedScore >= earlyExitScore) break;
     // Legacy threshold: also stop early if scoreThreshold met (keeps old callers happy).
-    if (attempt > 1 && validation.score >= scoreThreshold) break;
+    if (attempt > 1 && combinedScore >= scoreThreshold) break;
 
     // Derive repair hints and strategy label for the next attempt.
     const derived = deriveRepairHints(validation, layout);
@@ -210,13 +294,298 @@ export function generateAndValidate(
     nextStrategy = derived.strategy;
   }
 
-  const bestScore = best!.validation.score;
+  const bestScore = best!.combinedScore;
   return {
     layout: best!.layout,
     validation: best!.validation,
     attempts: scores.length,
     meta: { attempts: scores.length, bestScore, scores, seed, debug },
   };
+}
+
+/**
+ * Async variant of `generateAndValidate` that calls the LLM planner first.
+ *
+ * When ANTHROPIC_API_KEY is set, extracts a room program from the prompt via
+ * the Claude API and feeds it into the packing + repair loop.  Falls back to
+ * the synchronous heuristic generator when the API key is absent or the call
+ * fails, so callers always receive a valid result.
+ */
+export async function generateWithLLM(
+  input: GenerateInput,
+  options: {
+    scoreThreshold?: number;
+    maxAttempts?: number;
+    earlyExitScore?: number;
+    priors?: Priors | null;
+  } = {},
+): Promise<GenerateResult> {
+  const { scoreThreshold = 70, maxAttempts = 8, earlyExitScore = 95 } = options;
+  const effectivePriors: Priors | undefined =
+    'priors' in options ? (options.priors ?? undefined) : (loadPriors() ?? undefined);
+
+  const seed = input.seed ?? Math.floor(Math.random() * 2 ** 31);
+  const rng = makeLCG(seed);
+
+  // Ask the LLM planner for a room program; fall back to heuristic on failure.
+  const roomProgram = await extractRoomProgram(
+    input.prompt,
+    input.units ?? 'feet',
+    input.width ?? 40,
+    input.depth ?? 30,
+  );
+
+  let best: { layout: LayoutV1; validation: ValidationResult; combinedScore: number } | null = null;
+  const scores: number[] = [];
+  const debug: Array<{ strategy: string }> = [];
+  let currentHints: RepairHints | undefined;
+  let nextStrategy = roomProgram ? 'llm-planner' : 'heuristic-fallback';
+
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    const layout = generateLayoutFromText(
+      input,
+      attempt - 1,
+      rng,
+      currentHints,
+      roomProgram?.rooms,
+      roomProgram?.doors,
+      roomProgram?.windows,
+    );
+    const validation = validateLayout(layout, effectivePriors);
+    const rulebookViolations = runChecks(layout, undefined, input.typology);
+    const rulebookDeduction  = computeRulebookDeduction(rulebookViolations);
+    const combinedScore = Math.max(0, Math.min(100, validation.score - rulebookDeduction));
+
+    scores.push(combinedScore);
+    debug.push({ strategy: nextStrategy });
+
+    if (!best || combinedScore > best.combinedScore) {
+      best = { layout, validation, combinedScore };
+    }
+
+    if (combinedScore >= earlyExitScore) break;
+    if (attempt > 1 && combinedScore >= scoreThreshold) break;
+
+    const derived = deriveRepairHints(validation, layout);
+    currentHints = derived.hints;
+    nextStrategy = derived.strategy;
+  }
+
+  return {
+    layout: best!.layout,
+    validation: best!.validation,
+    attempts: scores.length,
+    meta: { attempts: scores.length, bestScore: best!.combinedScore, scores, seed, debug },
+  };
+}
+
+// ---------------------------------------------------------------------------
+// Adjacency-aware room ordering
+// ---------------------------------------------------------------------------
+
+type RoomDef = { id?: string; type: string; w: number; h: number; label?: string; newRow?: boolean };
+
+/**
+ * BFS-sorts roomDefs using the door graph so that door-connected rooms pack
+ * near each other in the row packer.  Rooms not reachable via any door go at
+ * the end in their original relative order.  Returns the original array
+ * unchanged when no IDs or doors are present.
+ */
+function sortRoomsByAdjacency(roomDefs: RoomDef[], plannedDoors: PlannedDoor[]): RoomDef[] {
+  if (plannedDoors.length === 0) return roomDefs;
+
+  const adj = new Map<string, Set<string>>();
+  for (const d of plannedDoors) {
+    if (!d.toRoomId) continue;
+    if (!adj.has(d.fromRoomId)) adj.set(d.fromRoomId, new Set());
+    if (!adj.has(d.toRoomId)) adj.set(d.toRoomId, new Set());
+    adj.get(d.fromRoomId)!.add(d.toRoomId);
+    adj.get(d.toRoomId)!.add(d.fromRoomId);
+  }
+
+  const roomIdSet = new Set(roomDefs.map(r => r.id).filter((id): id is string => !!id));
+
+  // Root: prefer entrance or living room that is in the door graph.
+  let root: string | undefined;
+  for (const r of roomDefs) {
+    if (r.id && adj.has(r.id) && (r.type === 'entrance' || r.type === 'living room')) {
+      root = r.id;
+      break;
+    }
+  }
+  if (!root) root = [...adj.keys()].find(id => roomIdSet.has(id));
+  if (!root) return roomDefs;
+
+  const visited = new Set<string>();
+  const orderedIds: string[] = [];
+  const queue = [root];
+  visited.add(root);
+  while (queue.length > 0) {
+    const cur = queue.shift()!;
+    orderedIds.push(cur);
+    for (const nb of adj.get(cur) ?? new Set()) {
+      if (!visited.has(nb) && roomIdSet.has(nb)) {
+        visited.add(nb);
+        queue.push(nb);
+      }
+    }
+  }
+
+  const idToRoom = new Map(roomDefs.map(r => [r.id, r]));
+  const sorted = orderedIds.map(id => idToRoom.get(id)!).filter(Boolean);
+  const unvisited = roomDefs.filter(r => !r.id || !visited.has(r.id));
+  const result = [...sorted, ...unvisited];
+
+  // Mark the first connector room (hallway/corridor) as a row-starter so the
+  // packer places it at the beginning of a new row between zones.
+  const CONNECTOR_TYPES = ['hallway', 'corridor', 'landing', 'foyer'];
+  const connIdx = result.findIndex(r => CONNECTOR_TYPES.some(t => r.type.includes(t)));
+  if (connIdx > 0) result[connIdx] = { ...result[connIdx], newRow: true };
+
+  return result;
+}
+
+// ---------------------------------------------------------------------------
+// Wall derivation helpers
+// ---------------------------------------------------------------------------
+
+/**
+ * Derives WallSegment objects from the axis-aligned bounding boxes of packed
+ * rooms.  Interior walls are created where two rooms share an edge; all other
+ * room edges become exterior walls.  Returns the segments together with two
+ * lookup maps used by assignWallSegmentIds.
+ */
+export function deriveWallSegments(rooms: Room2D[]): {
+  walls: WallSegment[];
+  /** Sorted room-pair key (roomA|roomB) → interior wallId */
+  interiorWallsByRoomPair: Map<string, string>;
+  /** roomId → list of exterior wallIds for that room */
+  exteriorWallsByRoom: Map<string, string[]>;
+} {
+  const walls: WallSegment[] = [];
+  const interiorWallsByRoomPair = new Map<string, string>();
+  const exteriorWallsByRoom = new Map<string, string[]>();
+  // Tracks which (roomId:side) edges have been claimed by a shared interior wall.
+  const claimed = new Set<string>();
+  const eps = 0.05;
+
+  const nextId = () => `wall_${walls.length + 1}`;
+
+  for (let i = 0; i < rooms.length; i++) {
+    for (let j = i + 1; j < rooms.length; j++) {
+      const a = rooms[i];
+      const b = rooms[j];
+
+      // a's right edge touches b's left edge (vertical shared wall)
+      if (Math.abs(a.x + a.width - b.x) < eps) {
+        const y0 = Math.max(a.y, b.y);
+        const y1 = Math.min(a.y + a.height, b.y + b.height);
+        if (y1 - y0 > eps) {
+          const id = nextId();
+          walls.push({ id, start: { x: a.x + a.width, y: y0 }, end: { x: a.x + a.width, y: y1 }, thickness: 0.5, type: 'interior' });
+          claimed.add(`${a.id}:right`);
+          claimed.add(`${b.id}:left`);
+          interiorWallsByRoomPair.set([a.id, b.id].sort().join('|'), id);
+        }
+      }
+
+      // b's right edge touches a's left edge (vertical shared wall)
+      if (Math.abs(b.x + b.width - a.x) < eps) {
+        const y0 = Math.max(a.y, b.y);
+        const y1 = Math.min(a.y + a.height, b.y + b.height);
+        if (y1 - y0 > eps) {
+          const id = nextId();
+          walls.push({ id, start: { x: b.x + b.width, y: y0 }, end: { x: b.x + b.width, y: y1 }, thickness: 0.5, type: 'interior' });
+          claimed.add(`${b.id}:right`);
+          claimed.add(`${a.id}:left`);
+          interiorWallsByRoomPair.set([a.id, b.id].sort().join('|'), id);
+        }
+      }
+
+      // a's bottom edge touches b's top edge (horizontal shared wall)
+      if (Math.abs(a.y + a.height - b.y) < eps) {
+        const x0 = Math.max(a.x, b.x);
+        const x1 = Math.min(a.x + a.width, b.x + b.width);
+        if (x1 - x0 > eps) {
+          const id = nextId();
+          walls.push({ id, start: { x: x0, y: a.y + a.height }, end: { x: x1, y: a.y + a.height }, thickness: 0.5, type: 'interior' });
+          claimed.add(`${a.id}:bottom`);
+          claimed.add(`${b.id}:top`);
+          interiorWallsByRoomPair.set([a.id, b.id].sort().join('|'), id);
+        }
+      }
+
+      // b's bottom edge touches a's top edge (horizontal shared wall)
+      if (Math.abs(b.y + b.height - a.y) < eps) {
+        const x0 = Math.max(a.x, b.x);
+        const x1 = Math.min(a.x + a.width, b.x + b.width);
+        if (x1 - x0 > eps) {
+          const id = nextId();
+          walls.push({ id, start: { x: x0, y: b.y + b.height }, end: { x: x1, y: b.y + b.height }, thickness: 0.5, type: 'interior' });
+          claimed.add(`${b.id}:bottom`);
+          claimed.add(`${a.id}:top`);
+          interiorWallsByRoomPair.set([a.id, b.id].sort().join('|'), id);
+        }
+      }
+    }
+  }
+
+  // Exterior walls — every room edge not claimed by a shared interior wall.
+  for (const room of rooms) {
+    const extIds: string[] = [];
+    const addExt = (start: { x: number; y: number }, end: { x: number; y: number }) => {
+      const id = nextId();
+      walls.push({ id, start, end, thickness: 0.75, type: 'exterior' });
+      extIds.push(id);
+    };
+
+    if (!claimed.has(`${room.id}:top`))
+      addExt({ x: room.x, y: room.y }, { x: room.x + room.width, y: room.y });
+    if (!claimed.has(`${room.id}:bottom`))
+      addExt({ x: room.x, y: room.y + room.height }, { x: room.x + room.width, y: room.y + room.height });
+    if (!claimed.has(`${room.id}:left`))
+      addExt({ x: room.x, y: room.y }, { x: room.x, y: room.y + room.height });
+    if (!claimed.has(`${room.id}:right`))
+      addExt({ x: room.x + room.width, y: room.y }, { x: room.x + room.width, y: room.y + room.height });
+
+    if (extIds.length > 0) exteriorWallsByRoom.set(room.id, extIds);
+  }
+
+  return { walls, interiorWallsByRoomPair, exteriorWallsByRoom };
+}
+
+/**
+ * Returns copies of doors and windows with wallSegmentId populated where it
+ * was absent.  Interior doors get the wall shared between fromRoomId and
+ * toRoomId; exterior doors and windows get the first exterior wall of their
+ * room.  Elements that already carry a wallSegmentId are returned unchanged.
+ */
+export function assignWallSegmentIds(
+  doors: DoorElement[],
+  windows: WindowElement[],
+  interiorWallsByRoomPair: Map<string, string>,
+  exteriorWallsByRoom: Map<string, string[]>,
+): { doors: DoorElement[]; windows: WindowElement[] } {
+  const assignedDoors = doors.map(door => {
+    if (door.wallSegmentId) return door;
+    let wallId: string | undefined;
+    if (door.toRoomId === null) {
+      wallId = exteriorWallsByRoom.get(door.fromRoomId)?.[0];
+    } else {
+      wallId = interiorWallsByRoomPair.get([door.fromRoomId, door.toRoomId].sort().join('|'));
+      // No fallback: if rooms aren't adjacent, leave wallSegmentId undefined.
+      // A wrong exterior wall ID causes bad door placement in Rhino; undefined is safe.
+    }
+    return wallId ? { ...door, wallSegmentId: wallId } : door;
+  });
+
+  const assignedWindows = windows.map(win => {
+    if (win.wallSegmentId) return win;
+    const wallId = exteriorWallsByRoom.get(win.roomId)?.[0];
+    return wallId ? { ...win, wallSegmentId: wallId } : win;
+  });
+
+  return { doors: assignedDoors, windows: assignedWindows };
 }
 
 // ---------------------------------------------------------------------------
@@ -287,7 +656,7 @@ function deriveRepairHints(
 
   // 4. Out-of-bounds → enlarge canvas to contain rooms.
   if (validation.metrics.outOfBoundsArea > 0) {
-    hints.canvasScale = Math.max(hints.canvasScale, 1.1);
+    hints.canvasScale = Math.max(hints.canvasScale, 1.2);
     strategies.push('expand-bounds');
   }
 
@@ -372,6 +741,41 @@ export function applyRepairAction(layout: LayoutV1, action: RepairAction): Layou
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
+
+/**
+ * Returns the smallest Y >= startY such that a rectangle (x, Y, w, h) does
+ * not overlap any room in `placed` by more than epsilon.  Scans forward only
+ * — never backward — so containment/overlap from backward clamping is
+ * impossible.  If every candidate Y causes an overlap, the function still
+ * returns a non-overlapping position (potentially out-of-canvas bounds); the
+ * repair loop handles out-of-bounds via canvas expansion.
+ */
+function findClearY(
+  placed: LayoutV1['rooms'],
+  x: number,
+  w: number,
+  h: number,
+  startY: number,
+  spacing: number,
+  eps = 1e-6,
+): number {
+  let y = startY;
+  // Each iteration either confirms clear or jumps past a conflicting room.
+  // At most placed.length jumps are needed before all conflicts are cleared.
+  for (let guard = 0; guard <= placed.length; guard++) {
+    let maxConflictBottom = -1;
+    for (const r of placed) {
+      const ox = Math.min(x + w, r.x + r.width) - Math.max(x, r.x);
+      const oy = Math.min(y + h, r.y + r.height) - Math.max(y, r.y);
+      if (ox > eps && oy > eps) {
+        maxConflictBottom = Math.max(maxConflictBottom, r.y + r.height);
+      }
+    }
+    if (maxConflictBottom < 0) return y; // no conflict at this Y
+    y = maxConflictBottom + spacing;     // jump past all current conflicts
+  }
+  return y; // all conflicts cleared (or guard exhausted — should not happen)
+}
 
 /** Linear congruential generator (Numerical Recipes params). Returns [0,1). */
 function makeLCG(seed: number): () => number {

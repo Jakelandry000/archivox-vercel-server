@@ -9,6 +9,18 @@ const nextConfig: NextConfig = {
     "@archivox/engines",
     "@archivox/generator",
   ],
+  // Allow next/image to serve SVG files.
+  // The CSP disables scripts inside the SVG to mitigate XSS risk.
+  images: {
+    dangerouslyAllowSVG: true,
+    contentSecurityPolicy: "default-src 'self'; script-src 'none'; sandbox;",
+  },
+  // Include priors dataset in Vercel output file tracing so readFileSync works
+  // at runtime. The path is relative to the repo root (apps/web/../../..).
+  // Moved from experimental in Next.js 16+.
+  outputFileTracingIncludes: {
+    "/**": ["../../datasets/core-v1/priors.json"],
+  },
 };
 
 export default nextConfig;
